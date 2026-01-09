@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { generateEmbedding } from '@/lib/openai'
 import { NextRequest, NextResponse } from 'next/server'
 
-export async function POST(request: NextRequest) {
+export async function POST(request: NextRequest): Promise<NextResponse> {
   const supabase = await createClient()
 
   const body = await request.json()

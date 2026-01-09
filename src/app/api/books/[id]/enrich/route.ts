@@ -1,15 +1,19 @@
 import { createClient } from '@/lib/supabase/server'
 import { generateEmbedding, generateBookSummary, generateGenres, createEmbeddingText } from '@/lib/openai'
 import { NextRequest, NextResponse } from 'next/server'
+import { isAdminRole } from '@/lib/constants'
+
+interface RouteParams {
+  params: Promise<{ id: string }>
+}
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+  { params }: RouteParams
+): Promise<NextResponse> {
   const { id } = await params
   const supabase = await createClient()
 
-  // Check auth
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -21,7 +25,7 @@ export async function POST(
     .eq('id', user.id)
     .single()
 
-  if (!profile || !['librarian', 'admin'].includes(profile.role)) {
+  if (!isAdminRole(profile?.role)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
@@ -37,7 +41,8 @@ export async function POST(
   }
 
   try {
-    const updates: Record<string, unknown> = {}
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const updates: Record<string, any> = {}
 
     // Generate AI summary if not present
     if (!book.ai_summary) {
@@ -65,11 +70,12 @@ export async function POST(
       title: book.title,
       author: book.author,
       description: book.description,
-      ai_summary: updates.ai_summary as string || book.ai_summary,
-      genres: updates.genres as string[] || book.genres,
+      ai_summary: updates.ai_summary || book.ai_summary,
+      genres: updates.genres || book.genres,
     })
     const embedding = await generateEmbedding(embeddingText)
-    updates.embedding = JSON.stringify(embedding)
+    // Store embedding as array of numbers
+    updates.embedding = embedding
 
     // Update the book
     const { data: updatedBook, error: updateError } = await supabase

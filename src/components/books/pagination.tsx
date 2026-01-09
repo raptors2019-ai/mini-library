@@ -10,17 +10,41 @@ interface PaginationProps {
   total: number
 }
 
+function calculatePageNumbers(currentPage: number, totalPages: number): number[] {
+  const maxVisible = 5
+
+  if (totalPages <= maxVisible) {
+    return Array.from({ length: totalPages }, (_, i) => i + 1)
+  }
+
+  const halfVisible = Math.floor(maxVisible / 2)
+  let start = currentPage - halfVisible
+  let end = currentPage + halfVisible
+
+  if (start < 1) {
+    start = 1
+    end = maxVisible
+  } else if (end > totalPages) {
+    end = totalPages
+    start = totalPages - maxVisible + 1
+  }
+
+  return Array.from({ length: end - start + 1 }, (_, i) => start + i)
+}
+
 export function Pagination({ currentPage, totalPages, total }: PaginationProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
 
-  const goToPage = (page: number) => {
+  if (totalPages <= 1) return null
+
+  function goToPage(page: number): void {
     const params = new URLSearchParams(searchParams.toString())
     params.set('page', page.toString())
     router.push(`?${params.toString()}`)
   }
 
-  if (totalPages <= 1) return null
+  const pageNumbers = calculatePageNumbers(currentPage, totalPages)
 
   return (
     <div className="flex items-center justify-between">
@@ -38,29 +62,17 @@ export function Pagination({ currentPage, totalPages, total }: PaginationProps) 
           Previous
         </Button>
         <div className="flex items-center gap-1">
-          {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-            let pageNum: number
-            if (totalPages <= 5) {
-              pageNum = i + 1
-            } else if (currentPage <= 3) {
-              pageNum = i + 1
-            } else if (currentPage >= totalPages - 2) {
-              pageNum = totalPages - 4 + i
-            } else {
-              pageNum = currentPage - 2 + i
-            }
-            return (
-              <Button
-                key={pageNum}
-                variant={pageNum === currentPage ? 'default' : 'outline'}
-                size="sm"
-                className="w-8"
-                onClick={() => goToPage(pageNum)}
-              >
-                {pageNum}
-              </Button>
-            )
-          })}
+          {pageNumbers.map((pageNum) => (
+            <Button
+              key={pageNum}
+              variant={pageNum === currentPage ? 'default' : 'outline'}
+              size="sm"
+              className="w-8"
+              onClick={() => goToPage(pageNum)}
+            >
+              {pageNum}
+            </Button>
+          ))}
         </div>
         <Button
           variant="outline"

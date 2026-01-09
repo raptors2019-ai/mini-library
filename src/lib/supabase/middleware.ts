@@ -1,10 +1,17 @@
-import { createServerClient } from '@supabase/ssr'
+import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { isAdminRole } from '@/lib/constants'
 
-export async function updateSession(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({
-    request,
-  })
+const AUTH_ROUTES = ['/login', '/register']
+const PROTECTED_ROUTES = ['/dashboard', '/admin']
+
+function pathStartsWith(pathname: string, routes: string[]): boolean {
+  return routes.some(route => pathname.startsWith(route))
+}
+
+export async function updateSession(request: NextRequest): Promise<NextResponse> {
+  let supabaseResponse = NextResponse.next({ request })
+  const { pathname } = request.nextUrl
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -14,30 +21,24 @@ export async function updateSession(request: NextRequest) {
         getAll() {
           return request.cookies.getAll()
         },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
-          supabaseResponse = NextResponse.next({
-            request,
-          })
-          cookiesToSet.forEach(({ name, value, options }) =>
+        setAll(cookiesToSet: Array<{ name: string; value: string; options: CookieOptions }>) {
+          for (const { name, value } of cookiesToSet) {
+            request.cookies.set(name, value)
+          }
+          supabaseResponse = NextResponse.next({ request })
+          for (const { name, value, options } of cookiesToSet) {
             supabaseResponse.cookies.set(name, value, options)
-          )
+          }
         },
       },
     }
   )
 
-  // Refresh session if expired
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const { data: { user } } = await supabase.auth.getUser()
 
-  // Protected routes check
-  const isAuthRoute = request.nextUrl.pathname.startsWith('/login') ||
-                      request.nextUrl.pathname.startsWith('/register')
-  const isProtectedRoute = request.nextUrl.pathname.startsWith('/dashboard') ||
-                           request.nextUrl.pathname.startsWith('/admin')
-  const isAdminRoute = request.nextUrl.pathname.startsWith('/admin')
+  const isAuthRoute = pathStartsWith(pathname, AUTH_ROUTES)
+  const isProtectedRoute = pathStartsWith(pathname, PROTECTED_ROUTES)
+  const isAdminRoute = pathname.startsWith('/admin')
 
   // Redirect unauthenticated users from protected routes
   if (!user && isProtectedRoute) {
@@ -62,7 +63,7 @@ export async function updateSession(request: NextRequest) {
       .eq('id', user.id)
       .single()
 
-    if (!profile || !['librarian', 'admin'].includes(profile.role)) {
+    if (!isAdminRole(profile?.role)) {
       const url = request.nextUrl.clone()
       url.pathname = '/dashboard'
       return NextResponse.redirect(url)

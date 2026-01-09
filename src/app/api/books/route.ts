@@ -1,8 +1,9 @@
 import { createClient } from '@/lib/supabase/server'
 import { generateEmbedding, generateBookSummary, generateGenres, createEmbeddingText } from '@/lib/openai'
 import { NextRequest, NextResponse } from 'next/server'
+import { isAdminRole } from '@/lib/constants'
 
-export async function GET(request: NextRequest) {
+export async function GET(request: NextRequest): Promise<NextResponse> {
   const supabase = await createClient()
   const { searchParams } = new URL(request.url)
 
@@ -51,7 +52,7 @@ export async function GET(request: NextRequest) {
   })
 }
 
-export async function POST(request: NextRequest) {
+export async function POST(request: NextRequest): Promise<NextResponse> {
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
@@ -65,7 +66,7 @@ export async function POST(request: NextRequest) {
     .eq('id', user.id)
     .single()
 
-  if (!profile || !['librarian', 'admin'].includes(profile.role)) {
+  if (!isAdminRole(profile?.role)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 

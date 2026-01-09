@@ -1,7 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
+import { isAdminRole } from '@/lib/constants'
 
-export async function GET() {
+export async function GET(): Promise<NextResponse> {
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
@@ -15,7 +16,7 @@ export async function GET() {
     .eq('id', user.id)
     .single()
 
-  if (!profile || !['librarian', 'admin'].includes(profile.role)) {
+  if (!isAdminRole(profile?.role)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 

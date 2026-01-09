@@ -1,10 +1,14 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 
+interface RouteParams {
+  params: Promise<{ bookId: string }>
+}
+
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ bookId: string }> }
-) {
+  { params }: RouteParams
+): Promise<NextResponse> {
   const { bookId } = await params
   const supabase = await createClient()
 

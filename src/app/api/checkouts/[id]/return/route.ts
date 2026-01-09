@@ -1,11 +1,16 @@
 import { createClient } from '@/lib/supabase/server'
 import { createNotification, notificationTemplates } from '@/lib/notifications'
 import { NextRequest, NextResponse } from 'next/server'
+import { isAdminRole } from '@/lib/constants'
+
+interface RouteParams {
+  params: Promise<{ id: string }>
+}
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+  { params }: RouteParams
+): Promise<NextResponse> {
   const { id } = await params
   const supabase = await createClient()
 
@@ -32,8 +37,7 @@ export async function PUT(
     .eq('id', user.id)
     .single()
 
-  const isStaff = profile?.role && ['librarian', 'admin'].includes(profile.role)
-  if (checkout.user_id !== user.id && !isStaff) {
+  if (checkout.user_id !== user.id && !isAdminRole(profile?.role)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 

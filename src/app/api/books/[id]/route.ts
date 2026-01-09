@@ -1,10 +1,15 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
+import { isAdminRole } from '@/lib/constants'
+
+interface RouteParams {
+  params: Promise<{ id: string }>
+}
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+  { params }: RouteParams
+): Promise<NextResponse> {
   const { id } = await params
   const supabase = await createClient()
 
@@ -42,8 +47,8 @@ export async function GET(
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+  { params }: RouteParams
+): Promise<NextResponse> {
   const { id } = await params
   const supabase = await createClient()
 
@@ -58,8 +63,7 @@ export async function PATCH(
     .eq('id', user.id)
     .single()
 
-  const profileData = profile as { role: string } | null
-  if (!profileData || !['librarian', 'admin'].includes(profileData.role)) {
+  if (!isAdminRole(profile?.role)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
@@ -91,8 +95,8 @@ export async function PATCH(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+  { params }: RouteParams
+): Promise<NextResponse> {
   const { id } = await params
   const supabase = await createClient()
 
@@ -107,8 +111,7 @@ export async function DELETE(
     .eq('id', user.id)
     .single()
 
-  const profileData = profile as { role: string } | null
-  if (!profileData || profileData.role !== 'admin') {
+  if (!profile || profile.role !== 'admin') {
     return NextResponse.json({ error: 'Forbidden - Admin only' }, { status: 403 })
   }
 

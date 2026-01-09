@@ -7,8 +7,21 @@ import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { BookGrid } from '@/components/books/book-grid'
-import { Book } from '@/types/database'
+import type { Book } from '@/types/database'
 import { Badge } from '@/components/ui/badge'
+
+const SEARCH_TYPE_LABELS: Record<string, string> = {
+  semantic: 'AI Search',
+  text_fallback: 'Text Search (fallback)',
+  text: 'Text Search',
+}
+
+const EXAMPLE_QUERIES = [
+  'books about machine learning for beginners',
+  'dystopian novels about surveillance',
+  'self-improvement and productivity',
+  'science fiction space exploration',
+]
 
 export default function SearchPage() {
   const [query, setQuery] = useState('')
@@ -50,13 +63,6 @@ export default function SearchPage() {
       setLoading(false)
     }
   }
-
-  const exampleQueries = [
-    "books about machine learning for beginners",
-    "dystopian novels about surveillance",
-    "self-improvement and productivity",
-    "science fiction space exploration",
-  ]
 
   return (
     <div className="flex flex-col gap-8">
@@ -111,7 +117,7 @@ export default function SearchPage() {
         <div className="flex flex-col gap-4">
           <p className="text-sm text-muted-foreground">Try these example searches:</p>
           <div className="flex flex-wrap gap-2">
-            {exampleQueries.map((example) => (
+            {EXAMPLE_QUERIES.map((example) => (
               <Button
                 key={example}
                 variant="outline"
@@ -138,9 +144,7 @@ export default function SearchPage() {
             </p>
             {searchType && (
               <Badge variant="outline" className="text-xs">
-                {searchType === 'semantic' && 'AI Search'}
-                {searchType === 'text_fallback' && 'Text Search (fallback)'}
-                {searchType === 'text' && 'Text Search'}
+                {SEARCH_TYPE_LABELS[searchType] || searchType}
               </Badge>
             )}
           </div>

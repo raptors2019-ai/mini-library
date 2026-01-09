@@ -24,10 +24,14 @@ interface GoogleBooksResponse {
   items?: GoogleBooksVolume[]
 }
 
+interface RouteParams {
+  params: Promise<{ isbn: string }>
+}
+
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ isbn: string }> }
-) {
+  { params }: RouteParams
+): Promise<NextResponse> {
   const { isbn } = await params
 
   // Clean ISBN (remove hyphens and spaces)

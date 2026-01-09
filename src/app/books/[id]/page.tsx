@@ -17,23 +17,11 @@ import {
 } from 'lucide-react'
 import { CheckoutButton } from '@/components/books/checkout-button'
 import { WaitlistButton } from '@/components/books/waitlist-button'
+import { BOOK_STATUS_COLORS, BOOK_STATUS_LABELS, isAdminRole } from '@/lib/constants'
+import type { BookStatus } from '@/types/database'
 
 interface BookDetailPageProps {
   params: Promise<{ id: string }>
-}
-
-const statusColors: Record<string, string> = {
-  available: 'bg-green-500/10 text-green-600 border-green-500/20',
-  checked_out: 'bg-orange-500/10 text-orange-600 border-orange-500/20',
-  on_hold: 'bg-blue-500/10 text-blue-600 border-blue-500/20',
-  inactive: 'bg-gray-500/10 text-gray-600 border-gray-500/20'
-}
-
-const statusLabels: Record<string, string> = {
-  available: 'Available',
-  checked_out: 'Checked Out',
-  on_hold: 'On Hold',
-  inactive: 'Inactive'
 }
 
 export default async function BookDetailPage({ params }: BookDetailPageProps) {
@@ -98,7 +86,7 @@ export default async function BookDetailPage({ params }: BookDetailPageProps) {
     userActiveCheckout = count || 0
   }
 
-  const canEdit = userRole === 'librarian' || userRole === 'admin'
+  const canEdit = isAdminRole(userRole)
   const isAvailable = book.status === 'available'
 
   return (
@@ -168,8 +156,8 @@ export default async function BookDetailPage({ params }: BookDetailPageProps) {
         <div className="space-y-6">
           <div>
             <div className="flex items-center gap-2 mb-2">
-              <Badge variant="outline" className={statusColors[book.status]}>
-                {statusLabels[book.status]}
+              <Badge variant="outline" className={BOOK_STATUS_COLORS[book.status as BookStatus]}>
+                {BOOK_STATUS_LABELS[book.status as BookStatus]}
               </Badge>
               {book.genres?.map((genre: string) => (
                 <Badge key={genre} variant="secondary">

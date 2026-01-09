@@ -1,7 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
+import { isPriorityRole } from '@/lib/constants'
 
-export async function POST(request: NextRequest) {
+export async function POST(request: NextRequest): Promise<NextResponse> {
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
@@ -48,7 +49,7 @@ export async function POST(request: NextRequest) {
     .eq('id', user.id)
     .single()
 
-  const isPriority = profile?.role && ['premium', 'librarian', 'admin'].includes(profile.role)
+  const isPriority = isPriorityRole(profile?.role)
 
   const { data: entry, error } = await supabase
     .from('waitlist')

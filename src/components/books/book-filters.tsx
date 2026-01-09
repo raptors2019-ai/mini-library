@@ -12,24 +12,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Search, X } from 'lucide-react'
 import { useCallback, useState, useTransition } from 'react'
-
-const GENRES = [
-  'Fiction',
-  'Non-Fiction',
-  'Mystery',
-  'Science Fiction',
-  'Fantasy',
-  'Romance',
-  'Thriller',
-  'Biography',
-  'History',
-  'Self-Help',
-  'Science',
-  'Technology',
-  'Business',
-  'Children',
-  'Young Adult'
-]
+import { GENRES } from '@/lib/constants'
 
 export function BookFilters() {
   const router = useRouter()

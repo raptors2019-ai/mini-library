@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useForm } from 'react-hook-form'
+import { useForm, type Resolver } from 'react-hook-form'
 import * as z from 'zod'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -26,25 +26,8 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Loader2, Search, X } from 'lucide-react'
 import { toast } from 'sonner'
-import { Book } from '@/types/database'
-
-const GENRES = [
-  'Fiction',
-  'Non-Fiction',
-  'Mystery',
-  'Science Fiction',
-  'Fantasy',
-  'Romance',
-  'Thriller',
-  'Biography',
-  'History',
-  'Self-Help',
-  'Science',
-  'Technology',
-  'Business',
-  'Children',
-  'Young Adult'
-]
+import type { Book } from '@/types/database'
+import { GENRES } from '@/lib/constants'
 
 const bookSchema = z.object({
   title: z.string().min(1, 'Title is required'),
@@ -58,6 +41,8 @@ const bookSchema = z.object({
   status: z.enum(['available', 'checked_out', 'on_hold', 'inactive']).default('available')
 })
 
+type BookFormValues = z.infer<typeof bookSchema>
+
 interface BookFormProps {
   book?: Book
   mode: 'create' | 'edit'
@@ -68,8 +53,8 @@ export function BookForm({ book, mode }: BookFormProps) {
   const [loading, setLoading] = useState(false)
   const [isbnLoading, setIsbnLoading] = useState(false)
 
-  const form = useForm<z.infer<typeof bookSchema>>({
-    resolver: zodResolver(bookSchema),
+  const form = useForm<BookFormValues>({
+    resolver: zodResolver(bookSchema) as Resolver<BookFormValues>,
     defaultValues: {
       title: book?.title || '',
       author: book?.author || '',
@@ -116,8 +101,7 @@ export function BookForm({ book, mode }: BookFormProps) {
     }
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const onSubmit = async (values: any) => {
+  const onSubmit = async (values: BookFormValues) => {
     setLoading(true)
     try {
       const url = mode === 'create' ? '/api/books' : `/api/books/${book?.id}`
@@ -295,7 +279,7 @@ export function BookForm({ book, mode }: BookFormProps) {
               <SelectValue placeholder="Add genre" />
             </SelectTrigger>
             <SelectContent>
-              {GENRES.filter(g => !selectedGenres.includes(g)).map((genre) => (
+              {GENRES.filter(g => !selectedGenres.includes(g as string)).map((genre) => (
                 <SelectItem key={genre} value={genre}>
                   {genre}
                 </SelectItem>
