@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { createNotification, notificationTemplates } from '@/lib/notifications'
 import { NextRequest, NextResponse } from 'next/server'
 
 export async function POST(request: NextRequest) {
@@ -72,6 +73,27 @@ export async function POST(request: NextRequest) {
     .from('books')
     .update({ status: 'checked_out' })
     .eq('id', book_id)
+
+  // Get book title for notification
+  const { data: bookData } = await supabase
+    .from('books')
+    .select('title')
+    .eq('id', book_id)
+    .single()
+
+  // Create checkout confirmation notification
+  if (bookData) {
+    const template = notificationTemplates.checkoutConfirmed(
+      bookData.title,
+      dueDate.toLocaleDateString()
+    )
+    await createNotification({
+      supabase,
+      userId: user.id,
+      bookId: book_id,
+      ...template,
+    })
+  }
 
   return NextResponse.json(checkout, { status: 201 })
 }

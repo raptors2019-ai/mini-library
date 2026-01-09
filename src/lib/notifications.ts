@@ -1,0 +1,78 @@
+import { SupabaseClient } from '@supabase/supabase-js'
+import { NotificationType } from '@/types/database'
+
+interface CreateNotificationParams {
+  supabase: SupabaseClient
+  userId: string
+  type: NotificationType
+  title: string
+  message: string
+  bookId?: string
+}
+
+export async function createNotification({
+  supabase,
+  userId,
+  type,
+  title,
+  message,
+  bookId,
+}: CreateNotificationParams) {
+  const { data, error } = await supabase
+    .from('notifications')
+    .insert({
+      user_id: userId,
+      type,
+      title,
+      message,
+      book_id: bookId || null,
+    })
+    .select()
+    .single()
+
+  if (error) {
+    console.error('Failed to create notification:', error)
+    return null
+  }
+
+  return data
+}
+
+// Pre-defined notification templates
+export const notificationTemplates = {
+  checkoutConfirmed: (bookTitle: string, dueDate: string) => ({
+    type: 'checkout_confirmed' as NotificationType,
+    title: 'Book Checked Out',
+    message: `You have successfully checked out "${bookTitle}". Due date: ${dueDate}`,
+  }),
+
+  dueSoon: (bookTitle: string, daysLeft: number) => ({
+    type: 'due_soon' as NotificationType,
+    title: 'Book Due Soon',
+    message: `"${bookTitle}" is due in ${daysLeft} day${daysLeft === 1 ? '' : 's'}. Please return it on time.`,
+  }),
+
+  overdue: (bookTitle: string) => ({
+    type: 'overdue' as NotificationType,
+    title: 'Book Overdue',
+    message: `"${bookTitle}" is overdue. Please return it as soon as possible.`,
+  }),
+
+  waitlistAvailable: (bookTitle: string) => ({
+    type: 'waitlist_available' as NotificationType,
+    title: 'Book Available!',
+    message: `"${bookTitle}" is now available for you. You have 24 hours to claim it.`,
+  }),
+
+  waitlistExpired: (bookTitle: string) => ({
+    type: 'waitlist_expired' as NotificationType,
+    title: 'Waitlist Expired',
+    message: `Your hold on "${bookTitle}" has expired. The book has been offered to the next person in line.`,
+  }),
+
+  bookReturned: (bookTitle: string) => ({
+    type: 'book_returned' as NotificationType,
+    title: 'Book Returned',
+    message: `You have successfully returned "${bookTitle}". Thank you!`,
+  }),
+}

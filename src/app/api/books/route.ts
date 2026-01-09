@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { generateEmbedding, generateBookSummary, generateGenres, createEmbeddingText } from '@/lib/openai'
 import { NextRequest, NextResponse } from 'next/server'
 
 export async function GET(request: NextRequest) {
@@ -69,10 +70,41 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json()
-  const { title, author, isbn, description, cover_url, page_count, publish_date, genres } = body
+  const { title, author, isbn, description, cover_url, page_count, publish_date, genres, enrich_with_ai } = body
 
   if (!title || !author) {
     return NextResponse.json({ error: 'Title and author are required' }, { status: 400 })
+  }
+
+  let ai_summary: string | null = null
+  let finalGenres = genres || []
+  let embedding: string | null = null
+
+  // AI enrichment if requested
+  if (enrich_with_ai && process.env.OPENAI_API_KEY) {
+    try {
+      // Generate summary
+      ai_summary = await generateBookSummary({ title, author, description, genres: finalGenres })
+
+      // Generate genres if not provided
+      if (finalGenres.length === 0) {
+        finalGenres = await generateGenres({ title, author, description })
+      }
+
+      // Generate embedding
+      const embeddingText = createEmbeddingText({
+        title,
+        author,
+        description,
+        ai_summary,
+        genres: finalGenres,
+      })
+      const embeddingVector = await generateEmbedding(embeddingText)
+      embedding = JSON.stringify(embeddingVector)
+    } catch (aiError) {
+      console.error('AI enrichment error:', aiError)
+      // Continue without AI enrichment
+    }
   }
 
   const { data: book, error } = await supabase
@@ -82,10 +114,12 @@ export async function POST(request: NextRequest) {
       author,
       isbn: isbn || null,
       description: description || null,
+      ai_summary,
       cover_url: cover_url || null,
       page_count: page_count || null,
       publish_date: publish_date || null,
-      genres: genres || [],
+      genres: finalGenres,
+      embedding,
       created_by: user.id
     })
     .select()

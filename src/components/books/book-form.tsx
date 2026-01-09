@@ -58,8 +58,6 @@ const bookSchema = z.object({
   status: z.enum(['available', 'checked_out', 'on_hold', 'inactive']).default('available')
 })
 
-type BookFormValues = z.infer<typeof bookSchema>
-
 interface BookFormProps {
   book?: Book
   mode: 'create' | 'edit'
@@ -70,7 +68,7 @@ export function BookForm({ book, mode }: BookFormProps) {
   const [loading, setLoading] = useState(false)
   const [isbnLoading, setIsbnLoading] = useState(false)
 
-  const form = useForm({
+  const form = useForm<z.infer<typeof bookSchema>>({
     resolver: zodResolver(bookSchema),
     defaultValues: {
       title: book?.title || '',

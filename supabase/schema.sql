@@ -232,3 +232,115 @@ CREATE POLICY "Users can update own notifications" ON notifications
 -- System can insert notifications (using service role)
 CREATE POLICY "Service role can insert notifications" ON notifications
   FOR INSERT WITH CHECK (true);
+
+-- Semantic Search Functions (pgvector)
+
+-- Function for semantic search - find books matching a query embedding
+CREATE OR REPLACE FUNCTION match_books(
+  query_embedding VECTOR(1536),
+  match_threshold FLOAT DEFAULT 0.5,
+  match_count INT DEFAULT 10
+)
+RETURNS TABLE (
+  id UUID,
+  isbn TEXT,
+  title TEXT,
+  author TEXT,
+  description TEXT,
+  ai_summary TEXT,
+  cover_url TEXT,
+  page_count INTEGER,
+  publish_date DATE,
+  genres TEXT[],
+  status TEXT,
+  created_at TIMESTAMPTZ,
+  updated_at TIMESTAMPTZ,
+  similarity FLOAT
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  RETURN QUERY
+  SELECT
+    books.id,
+    books.isbn,
+    books.title,
+    books.author,
+    books.description,
+    books.ai_summary,
+    books.cover_url,
+    books.page_count,
+    books.publish_date,
+    books.genres,
+    books.status,
+    books.created_at,
+    books.updated_at,
+    1 - (books.embedding <=> query_embedding) AS similarity
+  FROM books
+  WHERE books.embedding IS NOT NULL
+    AND books.status != 'inactive'
+    AND 1 - (books.embedding <=> query_embedding) > match_threshold
+  ORDER BY books.embedding <=> query_embedding
+  LIMIT match_count;
+END;
+$$;
+
+-- Function to find similar books based on a book's embedding
+CREATE OR REPLACE FUNCTION find_similar_books(
+  book_id UUID,
+  match_count INT DEFAULT 5
+)
+RETURNS TABLE (
+  id UUID,
+  isbn TEXT,
+  title TEXT,
+  author TEXT,
+  description TEXT,
+  ai_summary TEXT,
+  cover_url TEXT,
+  page_count INTEGER,
+  publish_date DATE,
+  genres TEXT[],
+  status TEXT,
+  created_at TIMESTAMPTZ,
+  updated_at TIMESTAMPTZ,
+  similarity FLOAT
+)
+LANGUAGE plpgsql
+AS $$
+DECLARE
+  source_embedding VECTOR(1536);
+BEGIN
+  -- Get the source book's embedding
+  SELECT books.embedding INTO source_embedding
+  FROM books
+  WHERE books.id = book_id;
+
+  IF source_embedding IS NULL THEN
+    RETURN;
+  END IF;
+
+  RETURN QUERY
+  SELECT
+    books.id,
+    books.isbn,
+    books.title,
+    books.author,
+    books.description,
+    books.ai_summary,
+    books.cover_url,
+    books.page_count,
+    books.publish_date,
+    books.genres,
+    books.status,
+    books.created_at,
+    books.updated_at,
+    1 - (books.embedding <=> source_embedding) AS similarity
+  FROM books
+  WHERE books.embedding IS NOT NULL
+    AND books.id != book_id
+    AND books.status != 'inactive'
+  ORDER BY books.embedding <=> source_embedding
+  LIMIT match_count;
+END;
+$$;

@@ -4,6 +4,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Book, Search, LayoutDashboard, Settings, LogIn, LogOut, User } from "lucide-react"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { NotificationBell } from "@/components/notification-bell"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -113,6 +114,7 @@ export function Header() {
 
         <div className="ml-auto flex items-center space-x-2">
           <ThemeToggle />
+          {user && <NotificationBell />}
 
           {loading ? (
             <div className="h-8 w-8 animate-pulse rounded-full bg-muted" />
