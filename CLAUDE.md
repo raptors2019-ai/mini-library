@@ -8,16 +8,15 @@ This section tracks active development tasks. Update as tasks are completed and 
 
 | Status | Task |
 |--------|------|
-| Pending | Enable leaked password protection in Supabase Dashboard |
-| Pending | Add tests for API routes (books, checkouts, recommendations) |
-| Pending | Add tests for key components (BookCard, Dashboard) |
-| Pending | Enhance admin panel with book management features |
-| Pending | Add user management to admin panel |
+| Pending | Enable leaked password protection in Supabase Dashboard (manual) |
 
 **Recently Completed:**
+- Add admin panel with book management (/admin/books)
+- Add user management to admin panel (/admin/users)
+- Add tests for utils, constants, and BookCard component (35 tests)
 - Fix light mode hover effects (header + white buttons) to navy blue
 - Fix database security warnings (search_path, RLS policies)
-- Commit user books, recommendations, reviews, and dashboard features
+- Add user books, recommendations, reviews, and dashboard features
 - Remove duplicate books and fix missing cover images
 
 ## Commands
