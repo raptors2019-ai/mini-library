@@ -44,3 +44,4 @@ next-env.d.ts
 
 # seeder progress
 scripts/.seed-progress.json
+.playwright-mcp/

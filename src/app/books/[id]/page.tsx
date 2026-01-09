@@ -16,8 +16,13 @@ import {
 import { CheckoutButton } from '@/components/books/checkout-button'
 import { WaitlistButton } from '@/components/books/waitlist-button'
 import { BookCoverImage } from '@/components/books/book-cover-image'
+import { SimilarBooks } from '@/components/books/similar-books'
+import { AddToMyBooksButton } from '@/components/books/add-to-my-books-button'
+import { BookReviews } from '@/components/books/book-reviews'
+import { UserBookForm } from '@/components/books/user-book-form'
+import { WhyYouMightLike } from '@/components/books/why-you-might-like'
 import { BOOK_STATUS_COLORS, BOOK_STATUS_LABELS, isAdminRole } from '@/lib/constants'
-import type { BookStatus } from '@/types/database'
+import type { BookStatus, UserBookStatus } from '@/types/database'
 
 interface BookDetailPageProps {
   params: Promise<{ id: string }>
@@ -57,6 +62,7 @@ export default async function BookDetailPage({ params }: BookDetailPageProps) {
   let userRole = null
   let userWaitlistEntry = null
   let userActiveCheckout = null
+  let userBookEntry: { status: UserBookStatus; rating: number | null; review: string | null } | null = null
 
   if (user) {
     const { data: profile } = await supabase
@@ -83,6 +89,17 @@ export default async function BookDetailPage({ params }: BookDetailPageProps) {
       .eq('user_id', user.id)
       .eq('status', 'active')
     userActiveCheckout = count || 0
+
+    // Check if user has this book in their reading list
+    const { data: userBook } = await supabase
+      .from('user_books')
+      .select('status, rating, review')
+      .eq('book_id', id)
+      .eq('user_id', user.id)
+      .single()
+    if (userBook) {
+      userBookEntry = userBook as { status: UserBookStatus; rating: number | null; review: string | null }
+    }
   }
 
   const canEdit = isAdminRole(userRole)
@@ -134,6 +151,11 @@ export default async function BookDetailPage({ params }: BookDetailPageProps) {
                   waitlistPosition={userWaitlistEntry?.position}
                 />
               )}
+              <AddToMyBooksButton
+                bookId={book.id}
+                existingStatus={userBookEntry?.status}
+                existingRating={userBookEntry?.rating}
+              />
             </div>
           )}
 
@@ -141,6 +163,16 @@ export default async function BookDetailPage({ params }: BookDetailPageProps) {
             <Link href="/login">
               <Button className="w-full">Sign in to checkout</Button>
             </Link>
+          )}
+
+          {/* User's Rating/Review Form */}
+          {user && (
+            <UserBookForm
+              bookId={book.id}
+              existingStatus={userBookEntry?.status}
+              existingRating={userBookEntry?.rating}
+              existingReview={userBookEntry?.review}
+            />
           )}
         </div>
 
@@ -160,6 +192,15 @@ export default async function BookDetailPage({ params }: BookDetailPageProps) {
             <h1 className="text-3xl font-bold">{book.title}</h1>
             <p className="text-xl text-muted-foreground mt-1">{book.author}</p>
           </div>
+
+          {/* Why You Might Like This */}
+          {user && book.genres && book.genres.length > 0 && (
+            <WhyYouMightLike
+              bookId={book.id}
+              bookTitle={book.title}
+              bookGenres={book.genres}
+            />
+          )}
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             {book.isbn && (
@@ -231,6 +272,9 @@ export default async function BookDetailPage({ params }: BookDetailPageProps) {
             </Card>
           )}
 
+          {/* Community Ratings & Reviews */}
+          <BookReviews bookId={book.id} />
+
           {checkout && canEdit && (
             <Card>
               <CardHeader>
@@ -247,7 +291,7 @@ export default async function BookDetailPage({ params }: BookDetailPageProps) {
                     </p>
                     <p className="text-sm text-muted-foreground flex items-center gap-1">
                       <Clock className="h-3 w-3" />
-                      Due: {new Date(checkout.due_date).toLocaleDateString()}
+                      Due: {new Date(checkout.due_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                     </p>
                   </div>
                 </div>
@@ -256,6 +300,9 @@ export default async function BookDetailPage({ params }: BookDetailPageProps) {
           )}
         </div>
       </div>
+
+      {/* Similar Books Section */}
+      <SimilarBooks bookId={book.id} />
     </div>
   )
 }

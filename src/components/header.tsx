@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation"
 import { Book, Search, LayoutDashboard, Settings, LogIn, LogOut, User, Menu } from "lucide-react"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { NotificationBell } from "@/components/notification-bell"
+import { RoleSwitcher } from "@/components/dev/role-switcher"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -198,6 +199,8 @@ export function Header() {
         </nav>
 
         <div className="ml-auto flex items-center space-x-2">
+          {/* Dev-only role switcher */}
+          {process.env.NODE_ENV === 'development' && user && <RoleSwitcher />}
           <ThemeToggle />
           {user && <NotificationBell />}
 

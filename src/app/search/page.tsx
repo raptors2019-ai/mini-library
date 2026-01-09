@@ -17,10 +17,10 @@ const SEARCH_TYPE_LABELS: Record<string, string> = {
 }
 
 const EXAMPLE_QUERIES = [
-  'books about machine learning for beginners',
-  'dystopian novels about surveillance',
-  'self-improvement and productivity',
-  'science fiction space exploration',
+  'classic detective mystery novels',
+  'adventure stories for young readers',
+  'inspiring biographies of famous people',
+  'science fiction and fantasy worlds',
 ]
 
 export default function SearchPage() {
@@ -31,27 +31,26 @@ export default function SearchPage() {
   const [useSemanticSearch, setUseSemanticSearch] = useState(true)
   const [searchType, setSearchType] = useState<string>('')
 
-  const handleSearch = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!query.trim()) return
+  const performSearch = async (searchQuery: string, semantic: boolean = useSemanticSearch) => {
+    if (!searchQuery.trim()) return
 
     setLoading(true)
     setSearched(true)
 
     try {
-      if (useSemanticSearch) {
+      if (semantic) {
         // Use semantic search
         const response = await fetch('/api/search/semantic', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ query: query.trim(), limit: 20 })
+          body: JSON.stringify({ query: searchQuery.trim(), limit: 20 })
         })
         const data = await response.json()
         setBooks(data.books || [])
         setSearchType(data.search_type || 'semantic')
       } else {
         // Use text search
-        const response = await fetch(`/api/books/search?q=${encodeURIComponent(query.trim())}&limit=20`)
+        const response = await fetch(`/api/books/search?q=${encodeURIComponent(searchQuery.trim())}&limit=20`)
         const data = await response.json()
         setBooks(data.books || [])
         setSearchType('text')
@@ -62,6 +61,17 @@ export default function SearchPage() {
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleSearch = async (e: React.FormEvent) => {
+    e.preventDefault()
+    performSearch(query)
+  }
+
+  const handleExampleClick = (example: string) => {
+    setQuery(example)
+    setUseSemanticSearch(true)
+    performSearch(example, true)
   }
 
   return (
@@ -123,10 +133,7 @@ export default function SearchPage() {
                 variant="outline"
                 size="sm"
                 className="text-xs"
-                onClick={() => {
-                  setQuery(example)
-                  setUseSemanticSearch(true)
-                }}
+                onClick={() => handleExampleClick(example)}
               >
                 {example}
                 <ArrowRight className="ml-1 h-3 w-3" />

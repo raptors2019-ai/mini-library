@@ -7,9 +7,10 @@ import { Skeleton } from '@/components/ui/skeleton'
 interface BookGridProps {
   books: Book[]
   loading?: boolean
+  showAddButton?: boolean
 }
 
-export function BookGrid({ books, loading }: BookGridProps) {
+export function BookGrid({ books, loading, showAddButton = false }: BookGridProps) {
   if (loading) {
     return (
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
@@ -35,7 +36,7 @@ export function BookGrid({ books, loading }: BookGridProps) {
   return (
     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
       {books.map((book) => (
-        <BookCard key={book.id} book={book} />
+        <BookCard key={book.id} book={book} showAddButton={showAddButton} />
       ))}
     </div>
   )

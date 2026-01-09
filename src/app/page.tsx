@@ -1,8 +1,9 @@
 import Link from "next/link"
-import { Book, Search, Sparkles, Clock, Users } from "lucide-react"
+import { Book, Search, Sparkles, Clock, Users, LayoutDashboard } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { TrendingCarousel } from "@/components/landing/trending-carousel"
+import { PersonalizedRecommendations } from "@/components/home/personalized-recommendations"
 import { createClient } from "@/lib/supabase/server"
 import { getBooksWithCovers } from "@/lib/google-books"
 
@@ -31,8 +32,38 @@ async function getTrendingBooks() {
   }))
 }
 
+async function getUserInfo() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user) return null
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('full_name')
+    .eq('id', user.id)
+    .single()
+
+  const { data: preferences } = await supabase
+    .from('user_preferences')
+    .select('favorite_genres, onboarding_completed')
+    .eq('user_id', user.id)
+    .single()
+
+  return {
+    firstName: profile?.full_name?.split(' ')[0] || 'there',
+    favoriteGenres: preferences?.favorite_genres || [],
+    onboardingCompleted: preferences?.onboarding_completed || false,
+  }
+}
+
 export default async function Home() {
-  const trendingBooks = await getTrendingBooks()
+  const [trendingBooks, userInfo] = await Promise.all([
+    getTrendingBooks(),
+    getUserInfo(),
+  ])
+
+  const isLoggedIn = !!userInfo
 
   const features = [
     {
@@ -65,27 +96,52 @@ export default async function Home() {
           <Book className="h-12 w-12" />
         </div>
         <h1 className="text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl">
-          Your Modern Library
+          {isLoggedIn ? `Welcome back, ${userInfo.firstName}!` : 'Your Modern Library'}
         </h1>
         <p className="max-w-[600px] text-lg text-muted-foreground">
-          Discover, borrow, and explore books with AI-powered search and recommendations.
-          A smarter way to manage your reading journey.
+          {isLoggedIn
+            ? 'Discover your next great read with personalized recommendations.'
+            : 'Discover, borrow, and explore books with AI-powered search and recommendations. A smarter way to manage your reading journey.'}
         </p>
         <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 w-full sm:w-auto px-4 sm:px-0">
-          <Button asChild size="lg" className="w-full sm:w-auto">
-            <Link href="/books">
-              <Book className="mr-2 h-4 w-4" />
-              Browse Books
-            </Link>
-          </Button>
-          <Button asChild variant="outline" size="lg" className="w-full sm:w-auto">
-            <Link href="/search">
-              <Search className="mr-2 h-4 w-4" />
-              Search
-            </Link>
-          </Button>
+          {isLoggedIn ? (
+            <>
+              <Button asChild size="lg" className="w-full sm:w-auto">
+                <Link href="/dashboard">
+                  <LayoutDashboard className="mr-2 h-4 w-4" />
+                  My Dashboard
+                </Link>
+              </Button>
+              <Button asChild variant="outline" size="lg" className="w-full sm:w-auto">
+                <Link href="/books">
+                  <Book className="mr-2 h-4 w-4" />
+                  Browse Books
+                </Link>
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button asChild size="lg" className="w-full sm:w-auto">
+                <Link href="/books">
+                  <Book className="mr-2 h-4 w-4" />
+                  Browse Books
+                </Link>
+              </Button>
+              <Button asChild variant="outline" size="lg" className="w-full sm:w-auto">
+                <Link href="/search">
+                  <Search className="mr-2 h-4 w-4" />
+                  Search
+                </Link>
+              </Button>
+            </>
+          )}
         </div>
       </section>
+
+      {/* Personalized Recommendations for Logged-in Users */}
+      {isLoggedIn && userInfo.onboardingCompleted && (
+        <PersonalizedRecommendations favoriteGenres={userInfo.favoriteGenres} />
+      )}
 
       {/* Trending Books Carousel */}
       {trendingBooks.length > 0 && (
@@ -112,13 +168,30 @@ export default async function Home() {
 
       {/* CTA Section */}
       <section className="flex flex-col items-center text-center gap-4 py-12 border-t">
-        <h2 className="text-2xl font-bold">Ready to start reading?</h2>
-        <p className="text-muted-foreground">
-          Sign up for free and get access to our entire collection.
-        </p>
-        <Button asChild size="lg">
-          <Link href="/register">Get Started</Link>
-        </Button>
+        {isLoggedIn ? (
+          <>
+            <h2 className="text-2xl font-bold">Ready to find your next book?</h2>
+            <p className="text-muted-foreground">
+              Use AI-powered search to discover exactly what you&apos;re looking for.
+            </p>
+            <Button asChild size="lg">
+              <Link href="/search">
+                <Search className="mr-2 h-4 w-4" />
+                Start Searching
+              </Link>
+            </Button>
+          </>
+        ) : (
+          <>
+            <h2 className="text-2xl font-bold">Ready to start reading?</h2>
+            <p className="text-muted-foreground">
+              Sign up for free and get access to our entire collection.
+            </p>
+            <Button asChild size="lg">
+              <Link href="/register">Get Started</Link>
+            </Button>
+          </>
+        )}
       </section>
     </div>
   )

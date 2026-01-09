@@ -23,7 +23,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     // Use RPC to call the similarity search function
     const { data: books, error } = await supabase.rpc('match_books', {
       query_embedding: queryEmbedding,
-      match_threshold: 0.5,
+      match_threshold: 0.3,
       match_count: limit
     })
 

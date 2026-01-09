@@ -416,7 +416,7 @@ async function main() {
   }
 
   // Load existing progress
-  let progress = loadProgress()
+  const progress = loadProgress()
   console.log(`[Resume] Starting from phase: ${progress.phase}`)
 
   try {

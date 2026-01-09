@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { BookOpen } from "lucide-react"
@@ -24,7 +25,9 @@ export function TrendingBookCard({
   coverUrl,
   status,
 }: TrendingBookCardProps) {
+  const [imageError, setImageError] = useState(false)
   const isAvailable = status === "available"
+  const showPlaceholder = !coverUrl || imageError
 
   function renderActionButton() {
     if (isAvailable) {
@@ -47,13 +50,14 @@ export function TrendingBookCard({
       <Link href={`/books/${id}`}>
         {/* Book Cover */}
         <div className="relative aspect-[2/3] w-full overflow-hidden bg-muted">
-          {coverUrl ? (
+          {!showPlaceholder ? (
             <Image
-              src={coverUrl}
+              src={coverUrl!}
               alt={`Cover of ${title}`}
               fill
               className="object-cover transition-transform duration-300 group-hover:scale-105"
               sizes="200px"
+              onError={() => setImageError(true)}
             />
           ) : (
             <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-muted to-muted/50">

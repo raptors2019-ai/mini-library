@@ -1,29 +1,38 @@
 'use client'
 
+import { useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import type { Book } from '@/types/database'
+import type { Book, UserBookStatus } from '@/types/database'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { BookOpen } from 'lucide-react'
 import { BOOK_STATUS_COLORS, BOOK_STATUS_LABELS } from '@/lib/constants'
+import { AddToMyBooksButton } from './add-to-my-books-button'
 
 interface BookCardProps {
   book: Book
+  showAddButton?: boolean
+  userBookStatus?: UserBookStatus | null
+  userBookRating?: number | null
 }
 
-export function BookCard({ book }: BookCardProps) {
+export function BookCard({ book, showAddButton = false, userBookStatus, userBookRating }: BookCardProps) {
+  const [imageError, setImageError] = useState(false)
+  const showPlaceholder = !book.cover_url || imageError
+
   return (
-    <Link href={`/books/${book.id}`}>
-      <Card className="group h-full overflow-hidden transition-all hover:shadow-lg hover:scale-[1.02]">
+    <Card className="group h-full overflow-hidden transition-all hover:shadow-lg hover:scale-[1.02] relative">
+      <Link href={`/books/${book.id}`}>
         <div className="aspect-[2/3] relative bg-muted">
-          {book.cover_url ? (
+          {!showPlaceholder ? (
             <Image
-              src={book.cover_url}
+              src={book.cover_url!}
               alt={book.title}
               fill
               className="object-cover"
               sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
+              onError={() => setImageError(true)}
             />
           ) : (
             <div className="absolute inset-0 flex items-center justify-center">
@@ -58,7 +67,19 @@ export function BookCard({ book }: BookCardProps) {
             </div>
           )}
         </CardContent>
-      </Card>
-    </Link>
+      </Link>
+      {showAddButton && (
+        <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+          <AddToMyBooksButton
+            bookId={book.id}
+            existingStatus={userBookStatus}
+            existingRating={userBookRating}
+            variant="secondary"
+            size="icon"
+            showLabel={false}
+          />
+        </div>
+      )}
+    </Card>
   )
 }

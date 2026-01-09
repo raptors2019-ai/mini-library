@@ -19,6 +19,9 @@ export type NotificationType =
   | 'book_returned'
   | 'system'
 
+export type UserBookStatus = 'want_to_read' | 'reading' | 'read' | 'dnf'
+export type PreferredLength = 'short' | 'medium' | 'long' | 'any'
+
 export interface Database {
   public: {
     Tables: {
@@ -209,6 +212,82 @@ export interface Database {
           created_at?: string
         }
       }
+      user_books: {
+        Row: {
+          id: string
+          user_id: string
+          book_id: string
+          status: UserBookStatus
+          rating: number | null
+          review: string | null
+          date_started: string | null
+          date_finished: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          book_id: string
+          status?: UserBookStatus
+          rating?: number | null
+          review?: string | null
+          date_started?: string | null
+          date_finished?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          book_id?: string
+          status?: UserBookStatus
+          rating?: number | null
+          review?: string | null
+          date_started?: string | null
+          date_finished?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      user_preferences: {
+        Row: {
+          id: string
+          user_id: string
+          favorite_genres: string[]
+          disliked_genres: string[]
+          preferred_length: PreferredLength
+          reading_moods: string[]
+          onboarding_completed: boolean
+          taste_embedding: number[] | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          favorite_genres?: string[]
+          disliked_genres?: string[]
+          preferred_length?: PreferredLength
+          reading_moods?: string[]
+          onboarding_completed?: boolean
+          taste_embedding?: number[] | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          favorite_genres?: string[]
+          disliked_genres?: string[]
+          preferred_length?: PreferredLength
+          reading_moods?: string[]
+          onboarding_completed?: boolean
+          taste_embedding?: number[] | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
     }
     Views: {
       [_ in never]: never
@@ -228,6 +307,8 @@ export type Book = Database['public']['Tables']['books']['Row']
 export type Checkout = Database['public']['Tables']['checkouts']['Row']
 export type Waitlist = Database['public']['Tables']['waitlist']['Row']
 export type Notification = Database['public']['Tables']['notifications']['Row']
+export type UserBook = Database['public']['Tables']['user_books']['Row']
+export type UserPreferences = Database['public']['Tables']['user_preferences']['Row']
 
 // Extended types with relations
 export type BookWithCheckout = Book & {
@@ -242,4 +323,12 @@ export type CheckoutWithBook = Checkout & {
 export type CheckoutWithBookAndUser = Checkout & {
   book: Book
   user: Profile
+}
+
+export type UserBookWithBook = UserBook & {
+  book: Book
+}
+
+export type WaitlistWithBook = Waitlist & {
+  book: Book
 }
