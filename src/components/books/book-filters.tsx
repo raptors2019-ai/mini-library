@@ -126,11 +126,11 @@ export function BookFilters() {
           </Button>
         </form>
 
-        <div className="flex gap-2">
+        <div className="flex gap-2 w-full sm:w-auto">
           {/* Status multi-select */}
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="outline" className="w-[140px] justify-between">
+              <Button variant="outline" className="flex-1 sm:flex-none sm:w-[140px] justify-between">
                 {selectedStatuses.length > 0
                   ? `${selectedStatuses.length} selected`
                   : 'Status'}
@@ -142,7 +142,7 @@ export function BookFilters() {
                 {STATUSES.map((status) => (
                   <label
                     key={status.value}
-                    className="flex items-center gap-2 px-2 py-1.5 rounded-sm hover:bg-primary/10 cursor-pointer"
+                    className="flex items-center gap-3 px-3 py-2.5 min-h-[44px] rounded-sm hover:bg-primary/10 cursor-pointer"
                   >
                     <Checkbox
                       checked={selectedStatuses.includes(status.value)}
@@ -158,7 +158,7 @@ export function BookFilters() {
           {/* Genre multi-select */}
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="outline" className="w-[140px] justify-between">
+              <Button variant="outline" className="flex-1 sm:flex-none sm:w-[140px] justify-between">
                 {selectedGenres.length > 0
                   ? `${selectedGenres.length} selected`
                   : 'Genres'}
@@ -170,7 +170,7 @@ export function BookFilters() {
                 {GENRES.map((genre) => (
                   <label
                     key={genre}
-                    className="flex items-center gap-2 px-2 py-1.5 rounded-sm hover:bg-primary/10 cursor-pointer"
+                    className="flex items-center gap-3 px-3 py-2.5 min-h-[44px] rounded-sm hover:bg-primary/10 cursor-pointer"
                   >
                     <Checkbox
                       checked={selectedGenres.includes(genre)}
@@ -184,7 +184,7 @@ export function BookFilters() {
           </Popover>
 
           {hasFilters && (
-            <Button variant="ghost" size="icon" onClick={clearFilters}>
+            <Button variant="ghost" size="icon" className="h-10 w-10" onClick={clearFilters}>
               <X className="h-4 w-4" />
             </Button>
           )}
@@ -197,12 +197,12 @@ export function BookFilters() {
           {selectedStatuses.map((status) => (
             <Badge
               key={status}
-              className="gap-1 pr-1 bg-primary/15 text-primary border-primary/25 hover:bg-primary/20"
+              className="gap-1 pr-0.5 bg-primary/15 text-primary border-primary/25 hover:bg-primary/20"
             >
               {BOOK_STATUS_LABELS[status as BookStatus] || status}
               <button
                 onClick={() => removeStatus(status)}
-                className="ml-1 rounded-full p-0.5 hover:bg-primary/30"
+                className="ml-1 rounded-full p-1.5 min-w-[24px] min-h-[24px] flex items-center justify-center hover:bg-primary/30"
               >
                 <X className="h-3 w-3" />
               </button>
@@ -211,12 +211,12 @@ export function BookFilters() {
           {selectedGenres.map((genre) => (
             <Badge
               key={genre}
-              className="gap-1 pr-1 bg-primary/15 text-primary border-primary/25 hover:bg-primary/20"
+              className="gap-1 pr-0.5 bg-primary/15 text-primary border-primary/25 hover:bg-primary/20"
             >
               {genre}
               <button
                 onClick={() => removeGenre(genre)}
-                className="ml-1 rounded-full p-0.5 hover:bg-primary/30"
+                className="ml-1 rounded-full p-1.5 min-w-[24px] min-h-[24px] flex items-center justify-center hover:bg-primary/30"
               >
                 <X className="h-3 w-3" />
               </button>

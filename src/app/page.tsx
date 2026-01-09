@@ -71,14 +71,14 @@ export default async function Home() {
           Discover, borrow, and explore books with AI-powered search and recommendations.
           A smarter way to manage your reading journey.
         </p>
-        <div className="flex gap-4">
-          <Button asChild size="lg">
+        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 w-full sm:w-auto px-4 sm:px-0">
+          <Button asChild size="lg" className="w-full sm:w-auto">
             <Link href="/books">
               <Book className="mr-2 h-4 w-4" />
               Browse Books
             </Link>
           </Button>
-          <Button asChild variant="outline" size="lg">
+          <Button asChild variant="outline" size="lg" className="w-full sm:w-auto">
             <Link href="/search">
               <Search className="mr-2 h-4 w-4" />
               Search

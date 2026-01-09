@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef, useCallback } from "react"
 import { TrendingUp } from "lucide-react"
 import { TrendingBookCard } from "./trending-book-card"
 import type { BookStatus } from "@/types/database"
@@ -19,6 +19,24 @@ interface TrendingCarouselProps {
 
 export function TrendingCarousel({ books }: TrendingCarouselProps) {
   const [isPaused, setIsPaused] = useState(false)
+  const touchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+
+  // Touch handlers for mobile - pause on touch, resume after delay
+  const handleTouchStart = useCallback(() => {
+    // Clear any pending resume timeout
+    if (touchTimeoutRef.current) {
+      clearTimeout(touchTimeoutRef.current)
+      touchTimeoutRef.current = null
+    }
+    setIsPaused(true)
+  }, [])
+
+  const handleTouchEnd = useCallback(() => {
+    // Resume carousel after 3 seconds to allow user to tap on cards
+    touchTimeoutRef.current = setTimeout(() => {
+      setIsPaused(false)
+    }, 3000)
+  }, [])
 
   if (books.length === 0) {
     return null
@@ -45,6 +63,8 @@ export function TrendingCarousel({ books }: TrendingCarouselProps) {
         className="relative w-full overflow-hidden"
         onMouseEnter={() => setIsPaused(true)}
         onMouseLeave={() => setIsPaused(false)}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
       >
         {/* Gradient Overlays */}
         <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-16 bg-gradient-to-r from-background to-transparent z-10" />

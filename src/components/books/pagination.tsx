@@ -47,7 +47,7 @@ export function Pagination({ currentPage, totalPages, total }: PaginationProps) 
   const pageNumbers = calculatePageNumbers(currentPage, totalPages)
 
   return (
-    <div className="flex items-center justify-between">
+    <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
       <p className="text-sm text-muted-foreground">
         Showing page {currentPage} of {totalPages} ({total} books)
       </p>
@@ -55,19 +55,24 @@ export function Pagination({ currentPage, totalPages, total }: PaginationProps) 
         <Button
           variant="outline"
           size="sm"
+          className="h-10 px-3 sm:h-8 sm:px-2"
           onClick={() => goToPage(currentPage - 1)}
           disabled={currentPage <= 1}
         >
-          <ChevronLeft className="h-4 w-4 mr-1" />
-          Previous
+          <ChevronLeft className="h-4 w-4 sm:mr-1" />
+          <span className="hidden sm:inline">Previous</span>
         </Button>
-        <div className="flex items-center gap-1">
+        {/* Page numbers - hidden on mobile, show simplified text */}
+        <span className="sm:hidden text-sm text-muted-foreground px-2 min-w-[60px] text-center">
+          {currentPage} / {totalPages}
+        </span>
+        <div className="hidden sm:flex items-center gap-1">
           {pageNumbers.map((pageNum) => (
             <Button
               key={pageNum}
               variant={pageNum === currentPage ? 'default' : 'outline'}
               size="sm"
-              className="w-8"
+              className="w-8 h-8"
               onClick={() => goToPage(pageNum)}
             >
               {pageNum}
@@ -77,11 +82,12 @@ export function Pagination({ currentPage, totalPages, total }: PaginationProps) 
         <Button
           variant="outline"
           size="sm"
+          className="h-10 px-3 sm:h-8 sm:px-2"
           onClick={() => goToPage(currentPage + 1)}
           disabled={currentPage >= totalPages}
         >
-          Next
-          <ChevronRight className="h-4 w-4 ml-1" />
+          <span className="hidden sm:inline">Next</span>
+          <ChevronRight className="h-4 w-4 sm:ml-1" />
         </Button>
       </div>
     </div>

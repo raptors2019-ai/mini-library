@@ -1,13 +1,11 @@
 import { createClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
-import Image from 'next/image'
 import Link from 'next/link'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   ArrowLeft,
-  BookOpen,
   Calendar,
   Edit,
   FileText,
@@ -17,6 +15,7 @@ import {
 } from 'lucide-react'
 import { CheckoutButton } from '@/components/books/checkout-button'
 import { WaitlistButton } from '@/components/books/waitlist-button'
+import { BookCoverImage } from '@/components/books/book-cover-image'
 import { BOOK_STATUS_COLORS, BOOK_STATUS_LABELS, isAdminRole } from '@/lib/constants'
 import type { BookStatus } from '@/types/database'
 
@@ -108,23 +107,16 @@ export default async function BookDetailPage({ params }: BookDetailPageProps) {
         )}
       </div>
 
-      <div className="grid md:grid-cols-[300px_1fr] gap-8">
+      <div className="grid lg:grid-cols-[280px_1fr] gap-6 lg:gap-8">
         {/* Book Cover */}
-        <div className="space-y-4">
+        <div className="space-y-4 mx-auto lg:mx-0 max-w-[280px] lg:max-w-none w-full">
           <div className="aspect-[2/3] relative bg-muted rounded-lg overflow-hidden">
-            {book.cover_url ? (
-              <Image
-                src={book.cover_url}
-                alt={book.title}
-                fill
-                className="object-cover"
-                priority
-              />
-            ) : (
-              <div className="absolute inset-0 flex items-center justify-center">
-                <BookOpen className="h-24 w-24 text-muted-foreground/50" />
-              </div>
-            )}
+            <BookCoverImage
+              src={book.cover_url}
+              alt={book.title}
+              priority
+              iconSize="lg"
+            />
           </div>
 
           {/* Actions */}
