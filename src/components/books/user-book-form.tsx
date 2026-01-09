@@ -104,7 +104,7 @@ export function UserBookForm({
   const displayRating = hoverRating || rating
 
   return (
-    <Card>
+    <Card data-review-form>
       <CardHeader>
         <CardTitle className="text-lg flex items-center gap-2">
           <BookPlus className="h-4 w-4" />

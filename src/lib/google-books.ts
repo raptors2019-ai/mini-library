@@ -1,16 +1,33 @@
 const GOOGLE_BOOKS_API = 'https://www.googleapis.com/books/v1/volumes'
 
+interface GoogleBooksVolumeInfo {
+  imageLinks?: {
+    thumbnail?: string
+    smallThumbnail?: string
+    medium?: string
+    large?: string
+  }
+  averageRating?: number
+  ratingsCount?: number
+  previewLink?: string
+  publisher?: string
+  description?: string
+  pageCount?: number
+  publishedDate?: string
+  categories?: string[]
+}
+
 interface GoogleBooksResponse {
   items?: Array<{
-    volumeInfo: {
-      imageLinks?: {
-        thumbnail?: string
-        smallThumbnail?: string
-        medium?: string
-        large?: string
-      }
-    }
+    volumeInfo: GoogleBooksVolumeInfo
   }>
+}
+
+export interface BookMetadata {
+  averageRating: number | null
+  ratingsCount: number | null
+  previewLink: string | null
+  publisher: string | null
 }
 
 /**
@@ -81,4 +98,39 @@ export async function getBooksWithCovers(
   }
 
   return coverMap
+}
+
+/**
+ * Fetches book metadata from Google Books API using ISBN
+ * Includes rating, review count, preview link, and publisher
+ * @param isbn - The book's ISBN (10 or 13 digit)
+ * @returns Book metadata or null if not found
+ */
+export async function getBookMetadata(isbn: string): Promise<BookMetadata | null> {
+  try {
+    const apiKey = process.env.GOOGLE_BOOKS_API_KEY
+    const url = apiKey
+      ? `${GOOGLE_BOOKS_API}?q=isbn:${isbn}&key=${apiKey}`
+      : `${GOOGLE_BOOKS_API}?q=isbn:${isbn}`
+
+    const response = await fetch(url, {
+      next: { revalidate: 86400 } // Cache for 24 hours
+    })
+
+    if (!response.ok) return null
+
+    const data: GoogleBooksResponse = await response.json()
+    const volumeInfo = data.items?.[0]?.volumeInfo
+
+    if (!volumeInfo) return null
+
+    return {
+      averageRating: volumeInfo.averageRating ?? null,
+      ratingsCount: volumeInfo.ratingsCount ?? null,
+      previewLink: volumeInfo.previewLink ?? null,
+      publisher: volumeInfo.publisher ?? null,
+    }
+  } catch {
+    return null
+  }
 }

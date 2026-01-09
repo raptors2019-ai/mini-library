@@ -37,6 +37,8 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
+  --color-hover: var(--hover);
+  --color-hover-muted: var(--hover-muted);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -67,6 +69,8 @@
   --border: #e5e7eb;
   --input: #e5e7eb;
   --ring: #00b4d8; /* Anju Cyan */
+  --hover: #0a2540; /* Anju Navy for light mode hover */
+  --hover-muted: rgba(10, 37, 64, 0.1); /* Navy with opacity for backgrounds */
   --chart-1: #00b4d8; /* Anju Cyan */
   --chart-2: #e91e8c; /* Anju Magenta */
   --chart-3: #0a2540; /* Anju Navy */
@@ -102,6 +106,8 @@
   --border: #1a2744;
   --input: #1a2744;
   --ring: #00b4d8; /* Anju Cyan */
+  --hover: #00b4d8; /* Anju Cyan for dark mode hover */
+  --hover-muted: rgba(0, 180, 216, 0.1); /* Cyan with opacity for backgrounds */
   --chart-1: #00b4d8; /* Anju Cyan */
   --chart-2: #e91e8c; /* Anju Magenta */
   --chart-3: #f5f7f8; /* Light for contrast */

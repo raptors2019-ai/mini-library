@@ -21,7 +21,11 @@ import { AddToMyBooksButton } from '@/components/books/add-to-my-books-button'
 import { BookReviews } from '@/components/books/book-reviews'
 import { UserBookForm } from '@/components/books/user-book-form'
 import { WhyYouMightLike } from '@/components/books/why-you-might-like'
+import { ExternalRating } from '@/components/books/external-rating'
+import { CommunityStats } from '@/components/books/community-stats'
+import { ReviewCTA } from '@/components/books/review-cta'
 import { BOOK_STATUS_COLORS, BOOK_STATUS_LABELS, isAdminRole } from '@/lib/constants'
+import { estimateReadingTime } from '@/lib/utils'
 import type { BookStatus, UserBookStatus } from '@/types/database'
 
 interface BookDetailPageProps {
@@ -56,6 +60,18 @@ export default async function BookDetailPage({ params }: BookDetailPageProps) {
     .select('*', { count: 'exact', head: true })
     .eq('book_id', id)
     .eq('status', 'waiting')
+
+  // Get community stats (reader count and review count)
+  const { count: readerCount } = await supabase
+    .from('user_books')
+    .select('*', { count: 'exact', head: true })
+    .eq('book_id', id)
+
+  const { count: reviewCount } = await supabase
+    .from('user_books')
+    .select('*', { count: 'exact', head: true })
+    .eq('book_id', id)
+    .not('review', 'is', null)
 
   // Get current user and their role
   const { data: { user } } = await supabase.auth.getUser()
@@ -193,6 +209,16 @@ export default async function BookDetailPage({ params }: BookDetailPageProps) {
             <p className="text-xl text-muted-foreground mt-1">{book.author}</p>
           </div>
 
+          {/* External Rating from Hardcover + Google Books */}
+          <ExternalRating bookId={book.id} />
+
+          {/* Review Call-to-Action */}
+          <ReviewCTA
+            reviewCount={reviewCount ?? 0}
+            hasUserReview={!!userBookEntry?.review}
+            isLoggedIn={!!user}
+          />
+
           {/* Why You Might Like This */}
           {user && book.genres && book.genres.length > 0 && (
             <WhyYouMightLike
@@ -222,6 +248,17 @@ export default async function BookDetailPage({ params }: BookDetailPageProps) {
                 </CardContent>
               </Card>
             )}
+            {estimateReadingTime(book.page_count) && (
+              <Card>
+                <CardContent className="p-4 flex items-center gap-2">
+                  <Clock className="h-4 w-4 text-muted-foreground" />
+                  <div>
+                    <div className="text-sm text-muted-foreground">Read Time</div>
+                    <div className="font-medium">{estimateReadingTime(book.page_count)}</div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
             {book.publish_date && (
               <Card>
                 <CardContent className="p-4 flex items-center gap-2">
@@ -244,6 +281,11 @@ export default async function BookDetailPage({ params }: BookDetailPageProps) {
                 </CardContent>
               </Card>
             )}
+            {/* Community Stats */}
+            <CommunityStats
+              readerCount={readerCount ?? 0}
+              reviewCount={reviewCount ?? 0}
+            />
           </div>
 
           {book.description && (

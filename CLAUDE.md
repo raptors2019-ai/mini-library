@@ -2,6 +2,24 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Current Todo List
+
+This section tracks active development tasks. Update as tasks are completed and new ones are added.
+
+| Status | Task |
+|--------|------|
+| Pending | Enable leaked password protection in Supabase Dashboard |
+| Pending | Add tests for API routes (books, checkouts, recommendations) |
+| Pending | Add tests for key components (BookCard, Dashboard) |
+| Pending | Enhance admin panel with book management features |
+| Pending | Add user management to admin panel |
+
+**Recently Completed:**
+- Fix light mode hover effects (header + white buttons) to navy blue
+- Fix database security warnings (search_path, RLS policies)
+- Commit user books, recommendations, reviews, and dashboard features
+- Remove duplicate books and fix missing cover images
+
 ## Commands
 
 ```bash

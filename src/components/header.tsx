@@ -108,7 +108,7 @@ export function Header() {
                     key={item.href}
                     href={item.href}
                     onClick={() => setMobileMenuOpen(false)}
-                    className={`flex items-center gap-3 px-3 py-3 min-h-[44px] rounded-md transition-colors hover:bg-primary/10 hover:text-primary ${
+                    className={`flex items-center gap-3 px-3 py-3 min-h-[44px] rounded-md transition-colors hover:bg-hover-muted hover:text-hover ${
                       pathname === item.href || pathname.startsWith(item.href + "/")
                         ? "text-primary bg-primary/10"
                         : "text-foreground/60"
@@ -160,7 +160,7 @@ export function Header() {
             <Link
               key={item.href}
               href={item.href}
-              className={`flex items-center space-x-1 px-3 py-2 rounded-md transition-colors hover:bg-primary/10 hover:text-primary ${
+              className={`flex items-center space-x-1 px-3 py-2 rounded-md transition-colors hover:bg-hover-muted hover:text-hover ${
                 pathname === item.href
                   ? "text-primary bg-primary/10"
                   : "text-foreground/60"
@@ -173,7 +173,7 @@ export function Header() {
           {user && (
             <Link
               href="/dashboard"
-              className={`flex items-center space-x-1 px-3 py-2 rounded-md transition-colors hover:bg-primary/10 hover:text-primary ${
+              className={`flex items-center space-x-1 px-3 py-2 rounded-md transition-colors hover:bg-hover-muted hover:text-hover ${
                 pathname.startsWith("/dashboard")
                   ? "text-primary bg-primary/10"
                   : "text-foreground/60"
@@ -186,7 +186,7 @@ export function Header() {
           {isAdmin && (
             <Link
               href="/admin"
-              className={`flex items-center space-x-1 px-3 py-2 rounded-md transition-colors hover:bg-primary/10 hover:text-primary ${
+              className={`flex items-center space-x-1 px-3 py-2 rounded-md transition-colors hover:bg-hover-muted hover:text-hover ${
                 pathname.startsWith("/admin")
                   ? "text-primary bg-primary/10"
                   : "text-foreground/60"
