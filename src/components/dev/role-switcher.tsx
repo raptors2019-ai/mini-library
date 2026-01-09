@@ -81,7 +81,7 @@ export function RoleSwitcher() {
         <Button
           variant="outline"
           size="sm"
-          className="gap-2 border-dashed border-yellow-500/50 bg-yellow-500/10"
+          className="gap-2 border-dashed border-fuchsia-500/50 bg-fuchsia-500/10"
           disabled={loading}
         >
           <Shield className={`h-4 w-4 ${roleInfo.color}`} />
