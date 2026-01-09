@@ -10,8 +10,8 @@ import { Suspense } from 'react'
 interface BooksPageProps {
   searchParams: Promise<{
     page?: string
-    status?: string
-    genre?: string
+    statuses?: string
+    genres?: string
     search?: string
   }>
 }
@@ -29,14 +29,18 @@ async function BooksContent({ searchParams }: BooksPageProps) {
     .select('*', { count: 'exact' })
     .order('created_at', { ascending: false })
 
-  if (params.status && params.status !== 'all') {
-    query = query.eq('status', params.status)
+  // Handle multiple statuses
+  const selectedStatuses = params.statuses?.split(',').filter(Boolean) || []
+  if (selectedStatuses.length > 0) {
+    query = query.in('status', selectedStatuses)
   } else {
     query = query.neq('status', 'inactive')
   }
 
-  if (params.genre) {
-    query = query.contains('genres', [params.genre])
+  // Handle multiple genres (books that contain ANY of the selected genres)
+  const selectedGenres = params.genres?.split(',').filter(Boolean) || []
+  if (selectedGenres.length > 0) {
+    query = query.overlaps('genres', selectedGenres)
   }
 
   if (params.search) {

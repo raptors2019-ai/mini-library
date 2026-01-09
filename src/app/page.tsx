@@ -2,8 +2,38 @@ import Link from "next/link"
 import { Book, Search, Sparkles, Clock, Users } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { TrendingCarousel } from "@/components/landing/trending-carousel"
+import { createClient } from "@/lib/supabase/server"
+import { getBooksWithCovers } from "@/lib/google-books"
 
-export default function Home() {
+async function getTrendingBooks() {
+  const supabase = await createClient()
+
+  const { data: books } = await supabase
+    .from('books')
+    .select('id, isbn, title, author, status, cover_url, genres')
+    .neq('status', 'inactive')
+
+  if (!books || books.length === 0) {
+    return []
+  }
+
+  // Shuffle books randomly
+  const shuffled = [...books].sort(() => Math.random() - 0.5).slice(0, 10)
+
+  // Fetch cover URLs from Google Books
+  const coverMap = await getBooksWithCovers(shuffled)
+
+  // Add cover URLs to books
+  return shuffled.map(book => ({
+    ...book,
+    cover_url: coverMap.get(book.id) || book.cover_url || null
+  }))
+}
+
+export default async function Home() {
+  const trendingBooks = await getTrendingBooks()
+
   const features = [
     {
       icon: Search,
@@ -28,9 +58,9 @@ export default function Home() {
   ]
 
   return (
-    <div className="flex flex-col gap-12">
+    <div className="flex flex-col gap-8 overflow-hidden">
       {/* Hero Section */}
-      <section className="flex flex-col items-center text-center gap-6 py-12">
+      <section className="flex flex-col items-center text-center gap-6 py-8">
         <div className="flex items-center gap-2 text-primary">
           <Book className="h-12 w-12" />
         </div>
@@ -57,19 +87,27 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Trending Books Carousel */}
+      {trendingBooks.length > 0 && (
+        <TrendingCarousel books={trendingBooks} />
+      )}
+
       {/* Features Grid */}
-      <section className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-        {features.map((feature) => (
-          <Card key={feature.title}>
-            <CardHeader>
-              <feature.icon className="h-8 w-8 text-primary mb-2" />
-              <CardTitle className="text-lg">{feature.title}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <CardDescription>{feature.description}</CardDescription>
-            </CardContent>
-          </Card>
-        ))}
+      <section className="py-8">
+        <h2 className="text-2xl font-bold text-center mb-8">Why Choose Our Library</h2>
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          {features.map((feature) => (
+            <Card key={feature.title}>
+              <CardHeader>
+                <feature.icon className="h-8 w-8 text-primary mb-2" />
+                <CardTitle className="text-lg">{feature.title}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <CardDescription>{feature.description}</CardDescription>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       </section>
 
       {/* CTA Section */}

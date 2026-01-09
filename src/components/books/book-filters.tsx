@@ -2,17 +2,24 @@
 
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Input } from '@/components/ui/input'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
-import { Search, X } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import { Checkbox } from '@/components/ui/checkbox'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
+import { Search, X, ChevronDown } from 'lucide-react'
 import { useCallback, useState, useTransition } from 'react'
-import { GENRES } from '@/lib/constants'
+import { GENRES, BOOK_STATUS_LABELS } from '@/lib/constants'
+import type { BookStatus } from '@/types/database'
+
+const STATUSES: { value: BookStatus; label: string }[] = [
+  { value: 'available', label: 'Available' },
+  { value: 'checked_out', label: 'Checked Out' },
+  { value: 'on_hold', label: 'On Hold' },
+]
 
 export function BookFilters() {
   const router = useRouter()
@@ -20,6 +27,10 @@ export function BookFilters() {
   const [isPending, startTransition] = useTransition()
 
   const [searchInput, setSearchInput] = useState(searchParams.get('search') || '')
+
+  // Parse multi-value params
+  const selectedGenres = searchParams.get('genres')?.split(',').filter(Boolean) || []
+  const selectedStatuses = searchParams.get('statuses')?.split(',').filter(Boolean) || []
 
   const createQueryString = useCallback(
     (updates: Record<string, string | null>) => {
@@ -44,15 +55,45 @@ export function BookFilters() {
     })
   }
 
-  const handleStatusChange = (value: string) => {
+  const handleGenreToggle = (genre: string) => {
+    const newGenres = selectedGenres.includes(genre)
+      ? selectedGenres.filter(g => g !== genre)
+      : [...selectedGenres, genre]
+
     startTransition(() => {
-      router.push(`/books?${createQueryString({ status: value === 'all' ? null : value })}`)
+      router.push(`/books?${createQueryString({
+        genres: newGenres.length > 0 ? newGenres.join(',') : null
+      })}`)
     })
   }
 
-  const handleGenreChange = (value: string) => {
+  const handleStatusToggle = (status: string) => {
+    const newStatuses = selectedStatuses.includes(status)
+      ? selectedStatuses.filter(s => s !== status)
+      : [...selectedStatuses, status]
+
     startTransition(() => {
-      router.push(`/books?${createQueryString({ genre: value === 'all' ? null : value })}`)
+      router.push(`/books?${createQueryString({
+        statuses: newStatuses.length > 0 ? newStatuses.join(',') : null
+      })}`)
+    })
+  }
+
+  const removeGenre = (genre: string) => {
+    const newGenres = selectedGenres.filter(g => g !== genre)
+    startTransition(() => {
+      router.push(`/books?${createQueryString({
+        genres: newGenres.length > 0 ? newGenres.join(',') : null
+      })}`)
+    })
+  }
+
+  const removeStatus = (status: string) => {
+    const newStatuses = selectedStatuses.filter(s => s !== status)
+    startTransition(() => {
+      router.push(`/books?${createQueryString({
+        statuses: newStatuses.length > 0 ? newStatuses.join(',') : null
+      })}`)
     })
   }
 
@@ -63,64 +104,128 @@ export function BookFilters() {
     })
   }
 
-  const hasFilters = searchParams.has('search') || searchParams.has('status') || searchParams.has('genre')
+  const hasFilters = searchParams.has('search') || selectedGenres.length > 0 || selectedStatuses.length > 0
+  const hasActiveFilterTags = selectedGenres.length > 0 || selectedStatuses.length > 0
 
   return (
-    <div className="flex flex-col sm:flex-row gap-4">
-      <form onSubmit={handleSearch} className="flex-1 flex gap-2">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search books..."
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-            className="pl-10"
-          />
-        </div>
-        <Button type="submit" disabled={isPending}>
-          Search
-        </Button>
-      </form>
-
-      <div className="flex gap-2">
-        <Select
-          value={searchParams.get('status') || 'all'}
-          onValueChange={handleStatusChange}
-        >
-          <SelectTrigger className="w-[140px]">
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Status</SelectItem>
-            <SelectItem value="available">Available</SelectItem>
-            <SelectItem value="checked_out">Checked Out</SelectItem>
-            <SelectItem value="on_hold">On Hold</SelectItem>
-          </SelectContent>
-        </Select>
-
-        <Select
-          value={searchParams.get('genre') || 'all'}
-          onValueChange={handleGenreChange}
-        >
-          <SelectTrigger className="w-[140px]">
-            <SelectValue placeholder="Genre" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Genres</SelectItem>
-            {GENRES.map((genre) => (
-              <SelectItem key={genre} value={genre}>
-                {genre}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        {hasFilters && (
-          <Button variant="ghost" size="icon" onClick={clearFilters}>
-            <X className="h-4 w-4" />
+    <div className="flex flex-col gap-4">
+      {/* Filter controls row */}
+      <div className="flex flex-col sm:flex-row gap-4">
+        <form onSubmit={handleSearch} className="flex-1 flex gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search books..."
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+          <Button type="submit" disabled={isPending}>
+            Search
           </Button>
-        )}
+        </form>
+
+        <div className="flex gap-2">
+          {/* Status multi-select */}
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className="w-[140px] justify-between">
+                {selectedStatuses.length > 0
+                  ? `${selectedStatuses.length} selected`
+                  : 'Status'}
+                <ChevronDown className="ml-2 h-4 w-4 opacity-50" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[200px] p-2" align="start">
+              <div className="flex flex-col gap-1">
+                {STATUSES.map((status) => (
+                  <label
+                    key={status.value}
+                    className="flex items-center gap-2 px-2 py-1.5 rounded-sm hover:bg-accent cursor-pointer"
+                  >
+                    <Checkbox
+                      checked={selectedStatuses.includes(status.value)}
+                      onCheckedChange={() => handleStatusToggle(status.value)}
+                    />
+                    <span className="text-sm">{status.label}</span>
+                  </label>
+                ))}
+              </div>
+            </PopoverContent>
+          </Popover>
+
+          {/* Genre multi-select */}
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className="w-[140px] justify-between">
+                {selectedGenres.length > 0
+                  ? `${selectedGenres.length} selected`
+                  : 'Genres'}
+                <ChevronDown className="ml-2 h-4 w-4 opacity-50" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[200px] p-2 max-h-[300px] overflow-y-auto" align="start">
+              <div className="flex flex-col gap-1">
+                {GENRES.map((genre) => (
+                  <label
+                    key={genre}
+                    className="flex items-center gap-2 px-2 py-1.5 rounded-sm hover:bg-accent cursor-pointer"
+                  >
+                    <Checkbox
+                      checked={selectedGenres.includes(genre)}
+                      onCheckedChange={() => handleGenreToggle(genre)}
+                    />
+                    <span className="text-sm">{genre}</span>
+                  </label>
+                ))}
+              </div>
+            </PopoverContent>
+          </Popover>
+
+          {hasFilters && (
+            <Button variant="ghost" size="icon" onClick={clearFilters}>
+              <X className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
       </div>
+
+      {/* Active filter tags */}
+      {hasActiveFilterTags && (
+        <div className="flex flex-wrap gap-2">
+          {selectedStatuses.map((status) => (
+            <Badge
+              key={status}
+              variant="secondary"
+              className="gap-1 pr-1"
+            >
+              {BOOK_STATUS_LABELS[status as BookStatus] || status}
+              <button
+                onClick={() => removeStatus(status)}
+                className="ml-1 rounded-full p-0.5 hover:bg-muted-foreground/20"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </Badge>
+          ))}
+          {selectedGenres.map((genre) => (
+            <Badge
+              key={genre}
+              variant="secondary"
+              className="gap-1 pr-1"
+            >
+              {genre}
+              <button
+                onClick={() => removeGenre(genre)}
+                className="ml-1 rounded-full p-0.5 hover:bg-muted-foreground/20"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </Badge>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
