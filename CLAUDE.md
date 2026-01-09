@@ -31,6 +31,24 @@ This is a **Library Management System** built with Next.js 16 (App Router) and S
 - **AI**: OpenAI for book summaries and embeddings
 - **Testing**: Jest + React Testing Library
 
+### Brand Colors (Anju Software)
+
+Three core brand colors from [anjusoftware.com](https://www.anjusoftware.com/):
+
+| Color | Hex | Usage |
+|-------|-----|-------|
+| **Cyan** | `#00b4d8` | Primary buttons, links, focus rings |
+| **Magenta** | `#e91e8c` | Accent elements, destructive/warning actions |
+| **Navy** | `#0a2540` | Dark mode background, light mode headlines |
+
+Neutral colors:
+- **White**: `#ffffff` - Light mode background
+- **Light Gray**: `#f5f7f8` - Secondary/muted backgrounds
+- **Dark Gray**: `#313131` - Light mode text
+- **Medium Gray**: `#444444` - Muted text
+
+CSS variables are defined in `src/app/globals.css`. Theme toggle is light/dark only (no system preference).
+
 ### Core Data Model
 
 Five tables with Row Level Security (RLS):

@@ -142,7 +142,7 @@ export function BookFilters() {
                 {STATUSES.map((status) => (
                   <label
                     key={status.value}
-                    className="flex items-center gap-2 px-2 py-1.5 rounded-sm hover:bg-accent cursor-pointer"
+                    className="flex items-center gap-2 px-2 py-1.5 rounded-sm hover:bg-primary/10 cursor-pointer"
                   >
                     <Checkbox
                       checked={selectedStatuses.includes(status.value)}
@@ -170,7 +170,7 @@ export function BookFilters() {
                 {GENRES.map((genre) => (
                   <label
                     key={genre}
-                    className="flex items-center gap-2 px-2 py-1.5 rounded-sm hover:bg-accent cursor-pointer"
+                    className="flex items-center gap-2 px-2 py-1.5 rounded-sm hover:bg-primary/10 cursor-pointer"
                   >
                     <Checkbox
                       checked={selectedGenres.includes(genre)}
@@ -197,13 +197,12 @@ export function BookFilters() {
           {selectedStatuses.map((status) => (
             <Badge
               key={status}
-              variant="secondary"
-              className="gap-1 pr-1"
+              className="gap-1 pr-1 bg-primary/15 text-primary border-primary/25 hover:bg-primary/20"
             >
               {BOOK_STATUS_LABELS[status as BookStatus] || status}
               <button
                 onClick={() => removeStatus(status)}
-                className="ml-1 rounded-full p-0.5 hover:bg-muted-foreground/20"
+                className="ml-1 rounded-full p-0.5 hover:bg-primary/30"
               >
                 <X className="h-3 w-3" />
               </button>
@@ -212,13 +211,12 @@ export function BookFilters() {
           {selectedGenres.map((genre) => (
             <Badge
               key={genre}
-              variant="secondary"
-              className="gap-1 pr-1"
+              className="gap-1 pr-1 bg-primary/15 text-primary border-primary/25 hover:bg-primary/20"
             >
               {genre}
               <button
                 onClick={() => removeGenre(genre)}
-                className="ml-1 rounded-full p-0.5 hover:bg-muted-foreground/20"
+                className="ml-1 rounded-full p-0.5 hover:bg-primary/30"
               >
                 <X className="h-3 w-3" />
               </button>

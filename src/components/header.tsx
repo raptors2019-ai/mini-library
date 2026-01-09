@@ -75,13 +75,15 @@ export function Header() {
           <span className="font-bold">Library</span>
         </Link>
 
-        <nav className="flex items-center space-x-6 text-sm font-medium">
+        <nav className="flex items-center space-x-1 text-sm font-medium">
           {navItems.map((item) => (
             <Link
               key={item.href}
               href={item.href}
-              className={`flex items-center space-x-1 transition-colors hover:text-foreground/80 ${
-                pathname === item.href ? "text-foreground" : "text-foreground/60"
+              className={`flex items-center space-x-1 px-3 py-2 rounded-md transition-colors hover:bg-primary/10 hover:text-primary ${
+                pathname === item.href
+                  ? "text-primary bg-primary/10"
+                  : "text-foreground/60"
               }`}
             >
               <item.icon className="h-4 w-4" />
@@ -91,8 +93,10 @@ export function Header() {
           {user && (
             <Link
               href="/dashboard"
-              className={`flex items-center space-x-1 transition-colors hover:text-foreground/80 ${
-                pathname.startsWith("/dashboard") ? "text-foreground" : "text-foreground/60"
+              className={`flex items-center space-x-1 px-3 py-2 rounded-md transition-colors hover:bg-primary/10 hover:text-primary ${
+                pathname.startsWith("/dashboard")
+                  ? "text-primary bg-primary/10"
+                  : "text-foreground/60"
               }`}
             >
               <LayoutDashboard className="h-4 w-4" />
@@ -102,8 +106,10 @@ export function Header() {
           {isAdmin && (
             <Link
               href="/admin"
-              className={`flex items-center space-x-1 transition-colors hover:text-foreground/80 ${
-                pathname.startsWith("/admin") ? "text-foreground" : "text-foreground/60"
+              className={`flex items-center space-x-1 px-3 py-2 rounded-md transition-colors hover:bg-primary/10 hover:text-primary ${
+                pathname.startsWith("/admin")
+                  ? "text-primary bg-primary/10"
+                  : "text-foreground/60"
               }`}
             >
               <Settings className="h-4 w-4" />
