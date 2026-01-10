@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { generateEmbedding } from '@/lib/openai'
+import { detectSimilarityQuery } from '@/lib/search/similarity-detection'
 import { NextRequest, NextResponse } from 'next/server'
 import type { Book } from '@/types/database'
 
@@ -18,6 +19,73 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 
   try {
+    // Check if this is a "similar to X" query
+    const similarityCheck = detectSimilarityQuery(query)
+
+    if (similarityCheck.isSimilarityQuery && similarityCheck.sourceBookTitle) {
+      // Find the source book first
+      const { data: sourceBooks } = await supabase
+        .from('books')
+        .select('id, title')
+        .neq('status', 'inactive')
+        .ilike('title', `%${similarityCheck.sourceBookTitle}%`)
+        .limit(1)
+
+      if (sourceBooks && sourceBooks.length > 0) {
+        const sourceBook = sourceBooks[0]
+
+        // Use find_similar_books RPC to get similar books (excludes source automatically)
+        const { data: similarBooks, error: rpcError } = await supabase.rpc('find_similar_books', {
+          book_id: sourceBook.id,
+          match_count: limit,
+        })
+
+        if (!rpcError && similarBooks?.length > 0) {
+          return NextResponse.json({
+            books: similarBooks as Book[],
+            query,
+            search_type: 'similar',
+            source_book: sourceBook.title,
+            counts: {
+              similar: similarBooks.length,
+              total: similarBooks.length,
+            },
+          })
+        }
+
+        // Fallback: genre-based similarity if RPC fails
+        const { data: fullSourceBook } = await supabase
+          .from('books')
+          .select('genres')
+          .eq('id', sourceBook.id)
+          .single()
+
+        if (fullSourceBook?.genres?.length) {
+          const { data: genreBooks } = await supabase
+            .from('books')
+            .select('*')
+            .neq('id', sourceBook.id)
+            .neq('status', 'inactive')
+            .overlaps('genres', fullSourceBook.genres)
+            .limit(limit)
+
+          if (genreBooks?.length) {
+            return NextResponse.json({
+              books: genreBooks,
+              query,
+              search_type: 'similar_genre',
+              source_book: sourceBook.title,
+              counts: {
+                genre: genreBooks.length,
+                total: genreBooks.length,
+              },
+            })
+          }
+        }
+      }
+      // If source book not found, fall through to regular search
+    }
+
     // Run semantic search and text/genre search in parallel for comprehensive results
     const [semanticResults, textResults] = await Promise.all([
       // Semantic search using embeddings

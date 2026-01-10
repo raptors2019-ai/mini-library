@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { generateEmbedding } from '@/lib/openai'
 import { GENRES } from '@/lib/constants'
+import { detectSimilarityQuery } from '@/lib/search/similarity-detection'
 import type { Book } from '@/types/database'
 import type {
   SearchBooksArgs,
@@ -63,6 +64,14 @@ export async function executeTool(
 async function searchBooks(args: SearchBooksArgs): Promise<ToolExecutionResult> {
   const supabase = await createClient()
   const limit = Math.min(args.limit || 5, 10)
+
+  // Check if this is a "similar to X" query - if so, delegate to findSimilarBooks
+  // This is a safety net in case the LLM uses search_books instead of find_similar_books
+  const similarityCheck = detectSimilarityQuery(args.query)
+  if (similarityCheck.isSimilarityQuery && similarityCheck.sourceBookTitle) {
+    console.log(`[searchBooks] Detected similarity query, delegating to findSimilarBooks: "${similarityCheck.sourceBookTitle}"`)
+    return findSimilarBooks({ title: similarityCheck.sourceBookTitle, limit })
+  }
 
   // Try semantic search first
   try {

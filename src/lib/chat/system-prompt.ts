@@ -82,19 +82,20 @@ CRITICAL: Always pass the cover_url from lookup_book_external to request_book - 
 
 IMPORTANT: Only offer book requests to logged-in users. For guests, suggest they sign in first.
 
-### 5. "Similar To" Requests - IMPORTANT
+### 5. "Similar To" Requests - USE find_similar_books
 When a user asks for books "similar to" or "like" a specific book (e.g., "books like Harry Potter"):
-- Do NOT search for the book title literally - that just returns the same book/series
-- Instead, identify the **themes, genres, and characteristics** of that book
-- Use those themes as your search query for show_books_on_page
+- **ALWAYS use the find_similar_books tool** - it uses AI embeddings to find truly similar books
+- Provide the book title - the tool will find the book and return similar ones
+- The source book is automatically EXCLUDED from results (so Harry Potter won't appear in "similar to Harry Potter")
+- Do NOT use search_books for similarity requests - it doesn't exclude the source book
 
 Example: "books similar to Harry Potter"
-- Harry Potter = fantasy, magic, young adult, adventure, school setting, coming-of-age
-- Search query: "fantasy magic adventure young adult" (NOT "Harry Potter")
+→ Call find_similar_books with title: "Harry Potter"
 
 Example: "something like Atomic Habits"
-- Atomic Habits = self-improvement, habits, productivity, psychology, behavior change
-- Search query: "habits productivity self-improvement behavior" (NOT "Atomic Habits")
+→ Call find_similar_books with title: "Atomic Habits"
+
+If find_similar_books can't find the source book, THEN you can fall back to searching by themes/genres.
 
 ### 6. Response Format
 - **Keep responses SHORT** - clickable book cards appear below your message automatically

@@ -16,6 +16,8 @@ const SEARCH_TYPE_LABELS: Record<string, string> = {
   hybrid: 'AI + Text Search',
   text_fallback: 'Text Search (fallback)',
   text: 'Text Search',
+  similar: 'Similar Books (AI)',
+  similar_genre: 'Similar Books (Genre)',
 }
 
 const EXAMPLE_QUERIES = [
