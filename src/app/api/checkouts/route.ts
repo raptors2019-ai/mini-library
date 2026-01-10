@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { createNotification, notificationTemplates } from '@/lib/notifications'
+import { getCurrentDate, isOverdue } from '@/lib/simulated-date'
 import { NextRequest, NextResponse } from 'next/server'
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
@@ -20,14 +21,34 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
   }
 
-  // Check active checkouts count
-  const { count: activeCount } = await supabase
-    .from('checkouts')
-    .select('*', { count: 'exact', head: true })
-    .eq('user_id', user.id)
-    .eq('status', 'active')
+  // Get current date (may be simulated)
+  const currentDate = await getCurrentDate(supabase)
 
-  if ((activeCount || 0) >= profile.checkout_limit) {
+  // Check for overdue books - users cannot checkout if they have overdue items
+  const { data: activeCheckouts } = await supabase
+    .from('checkouts')
+    .select('id, due_date, status')
+    .eq('user_id', user.id)
+    .in('status', ['active', 'overdue'])
+
+  if (activeCheckouts) {
+    const overdueBooks = activeCheckouts.filter(checkout => {
+      const dueDate = new Date(checkout.due_date)
+      return checkout.status === 'overdue' || isOverdue(dueDate, currentDate)
+    })
+
+    if (overdueBooks.length > 0) {
+      return NextResponse.json({
+        error: 'You have overdue books. Please return them before checking out new items.',
+        overdueCount: overdueBooks.length
+      }, { status: 400 })
+    }
+  }
+
+  // Check active checkouts count
+  const activeCount = activeCheckouts?.filter(c => c.status === 'active').length || 0
+
+  if (activeCount >= profile.checkout_limit) {
     return NextResponse.json({ error: 'Checkout limit reached' }, { status: 400 })
   }
 
@@ -49,8 +70,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: 'Book not available' }, { status: 400 })
   }
 
-  // Calculate due date
-  const dueDate = new Date()
+  // Calculate due date based on current (possibly simulated) date
+  const dueDate = new Date(currentDate)
   dueDate.setDate(dueDate.getDate() + profile.hold_duration_days)
 
   // Create checkout and update book status

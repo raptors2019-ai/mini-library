@@ -79,7 +79,14 @@ export function NotificationBell() {
     setOpen(false)
 
     // Navigate to relevant page
-    if (notification.book_id) {
+    if (notification.type === 'admin_new_book_request') {
+      router.push('/admin')
+    } else if (notification.type === 'book_request_submitted' ||
+               notification.type === 'book_request_approved' ||
+               notification.type === 'book_request_declined' ||
+               notification.type === 'book_request_fulfilled') {
+      router.push('/dashboard')
+    } else if (notification.book_id) {
       router.push(`/books/${notification.book_id}`)
     } else {
       router.push('/dashboard')
@@ -100,6 +107,11 @@ export function NotificationBell() {
     waitlist_available: '🎉',
     waitlist_expired: '😔',
     book_returned: '✅',
+    book_request_submitted: '📝',
+    book_request_approved: '✅',
+    book_request_declined: '❌',
+    book_request_fulfilled: '🎉',
+    admin_new_book_request: '📬',
   }
 
   const getNotificationIcon = (type: string): string =>

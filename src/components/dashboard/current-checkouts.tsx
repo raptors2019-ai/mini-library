@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { BookOpen, Calendar, AlertCircle, CheckCircle } from 'lucide-react'
@@ -14,10 +14,9 @@ interface CurrentCheckoutsProps {
   onReturn?: (checkoutId: string) => Promise<void>
 }
 
-function getDueStatus(dueDate: string): { label: string; color: string; urgent: boolean } {
-  const now = new Date()
+function getDueStatus(dueDate: string, currentDate: Date): { label: string; color: string; urgent: boolean } {
   const due = new Date(dueDate)
-  const daysUntilDue = Math.ceil((due.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+  const daysUntilDue = Math.ceil((due.getTime() - currentDate.getTime()) / (1000 * 60 * 60 * 24))
 
   if (daysUntilDue < 0) {
     return { label: `${Math.abs(daysUntilDue)}d overdue`, color: 'text-red-500 bg-red-500/10', urgent: true }
@@ -34,6 +33,29 @@ function getDueStatus(dueDate: string): { label: string; color: string; urgent: 
 
 export function CurrentCheckouts({ checkouts, onReturn }: CurrentCheckoutsProps) {
   const [returningId, setReturningId] = useState<string | null>(null)
+  const [currentDate, setCurrentDate] = useState<Date>(new Date())
+
+  // Fetch simulated date (if any), otherwise use real date
+  const fetchCurrentDate = useCallback(async () => {
+    try {
+      const res = await fetch('/api/admin/simulated-date')
+      if (res.ok) {
+        const data = await res.json()
+        if (data.simulatedDate) {
+          setCurrentDate(new Date(data.simulatedDate))
+        } else {
+          setCurrentDate(new Date())
+        }
+      }
+    } catch {
+      // Fall back to real date on error
+      setCurrentDate(new Date())
+    }
+  }, [])
+
+  useEffect(() => {
+    fetchCurrentDate()
+  }, [fetchCurrentDate])
 
   const handleReturn = async (checkoutId: string) => {
     if (!onReturn) return
@@ -65,7 +87,7 @@ export function CurrentCheckouts({ checkouts, onReturn }: CurrentCheckoutsProps)
         ) : (
           <div className="space-y-4">
             {checkouts.map((checkout) => {
-              const dueStatus = getDueStatus(checkout.due_date)
+              const dueStatus = getDueStatus(checkout.due_date, currentDate)
               return (
                 <div
                   key={checkout.id}

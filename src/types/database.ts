@@ -417,3 +417,11 @@ export type BookRequestWithUser = BookRequest & {
   reviewer?: Profile
   book?: Book
 }
+
+// System settings types
+export interface SystemSetting {
+  key: string
+  value: unknown
+  updated_at: string
+  updated_by: string | null
+}

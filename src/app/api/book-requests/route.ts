@@ -115,5 +115,15 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  // Notify the user that their request was submitted
+  const userTemplate = notificationTemplates.bookRequestSubmitted(title)
+  await createNotification({
+    supabase,
+    userId: user.id,
+    type: userTemplate.type,
+    title: userTemplate.title,
+    message: userTemplate.message,
+  })
+
   return jsonSuccess(bookRequest, 201)
 }

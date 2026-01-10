@@ -6,6 +6,7 @@ import { Search, Library, Settings, LogIn, LogOut, User, Menu, LayoutDashboard, 
 import { ThemeToggle } from "@/components/theme-toggle"
 import { NotificationBell } from "@/components/notification-bell"
 import { RoleSwitcher } from "@/components/dev/role-switcher"
+import { DateSimulator } from "@/components/dev/date-simulator"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -214,6 +215,8 @@ export function Header(): React.ReactNode {
         </nav>
 
         <div className="ml-auto flex items-center space-x-2">
+          {/* Admin: Date simulator for demo purposes */}
+          {isAdmin && <DateSimulator />}
           {/* Dev-only role switcher */}
           {process.env.NODE_ENV === 'development' && user && <RoleSwitcher />}
           <ThemeToggle />
