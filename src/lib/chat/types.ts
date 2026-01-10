@@ -25,6 +25,9 @@ export interface ChatRequest {
     role: 'user' | 'assistant'
     content: string
   }>
+  context?: {
+    currentBookId?: string
+  }
 }
 
 export interface SearchBooksArgs {

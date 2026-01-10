@@ -207,7 +207,7 @@ async function BooksContent({ searchParams }: BooksPageProps) {
 
       {/* Carousels - only show when no filters are active */}
       {!hasActiveFilters && (
-        <div className="space-y-4 -mx-4 sm:-mx-6 lg:-mx-8">
+        <div className="space-y-4 -mx-4 sm:-mx-6 lg:-mx-8 overflow-x-clip">
           {trendingBooks.length > 0 && (
             <BookCarousel
               books={trendingBooks}

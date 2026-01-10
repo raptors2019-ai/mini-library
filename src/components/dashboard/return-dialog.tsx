@@ -22,6 +22,19 @@ interface ReturnDialogProps {
   onOpenChange: (open: boolean) => void
   checkout: CheckoutWithBook | null
   onReturnComplete?: () => void
+  currentDate?: Date
+}
+
+const LATE_FEE_PER_DAY = 0.25
+
+function calculateLateFee(dueDate: string, currentDate: Date): { daysOverdue: number; lateFee: number } {
+  const due = new Date(dueDate)
+  const daysUntilDue = Math.ceil((due.getTime() - currentDate.getTime()) / (1000 * 60 * 60 * 24))
+  if (daysUntilDue < 0) {
+    const daysOverdue = Math.abs(daysUntilDue)
+    return { daysOverdue, lateFee: daysOverdue * LATE_FEE_PER_DAY }
+  }
+  return { daysOverdue: 0, lateFee: 0 }
 }
 
 type ReturnStep = 'confirm' | 'processing' | 'success' | 'question'
@@ -31,6 +44,7 @@ export function ReturnDialog({
   onOpenChange,
   checkout,
   onReturnComplete,
+  currentDate = new Date(),
 }: ReturnDialogProps) {
   const [step, setStep] = useState<ReturnStep>('confirm')
   const [loading, setLoading] = useState(false)
@@ -124,12 +138,16 @@ export function ReturnDialog({
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="sm:max-w-md">
           {/* Confirm step */}
-          {step === 'confirm' && (
+          {step === 'confirm' && (() => {
+            const { daysOverdue, lateFee } = calculateLateFee(checkout.due_date, currentDate)
+            return (
             <>
               <DialogHeader>
                 <DialogTitle>Return Book</DialogTitle>
                 <DialogDescription>
-                  Confirm you want to return this book.
+                  {daysOverdue > 0
+                    ? `This book is ${daysOverdue} day${daysOverdue !== 1 ? 's' : ''} overdue.`
+                    : 'Confirm you want to return this book.'}
                 </DialogDescription>
               </DialogHeader>
               <div className="flex gap-4 py-4">
@@ -150,6 +168,16 @@ export function ReturnDialog({
                 <div className="flex-1 min-w-0">
                   <p className="font-medium line-clamp-2">{book.title}</p>
                   <p className="text-sm text-muted-foreground">{book.author}</p>
+                  {lateFee > 0 && (
+                    <div className="mt-3 p-2 bg-red-500/10 rounded-md border border-red-500/20">
+                      <p className="text-sm font-semibold text-red-600 dark:text-red-400">
+                        Late Fee: ${lateFee.toFixed(2)}
+                      </p>
+                      <p className="text-xs text-red-500/80 mt-0.5">
+                        ${LATE_FEE_PER_DAY.toFixed(2)}/day × {daysOverdue} day{daysOverdue !== 1 ? 's' : ''} overdue
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
               <DialogFooter className="gap-2 sm:gap-0">
@@ -157,11 +185,11 @@ export function ReturnDialog({
                   Cancel
                 </Button>
                 <Button onClick={handleReturn}>
-                  Confirm Return
+                  {lateFee > 0 ? `Return & Pay $${lateFee.toFixed(2)}` : 'Confirm Return'}
                 </Button>
               </DialogFooter>
             </>
-          )}
+          )})()}
 
           {/* Processing step */}
           {step === 'processing' && (

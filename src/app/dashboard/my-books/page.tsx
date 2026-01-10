@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { BookOpen, ArrowLeft, Plus } from 'lucide-react'
+import { BookOpen, ArrowLeft, Plus, CheckCircle, BookMarked, Clock, XCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { MyBooksList } from './my-books-list'
@@ -25,6 +25,7 @@ async function getMyBooksData() {
     totalRead: userBooks?.filter(ub => ub.status === 'read').length || 0,
     currentlyReading: userBooks?.filter(ub => ub.status === 'reading').length || 0,
     wantToRead: userBooks?.filter(ub => ub.status === 'want_to_read').length || 0,
+    dnf: userBooks?.filter(ub => ub.status === 'dnf').length || 0,
     totalRated: userBooks?.filter(ub => ub.rating).length || 0,
     totalPages: userBooks?.reduce((sum, ub) => {
       if (ub.status === 'read' && ub.book?.page_count) {
@@ -59,6 +60,7 @@ export default async function MyBooksPage() {
   const readBooks = data.userBooks.filter(ub => ub.status === 'read')
   const readingBooks = data.userBooks.filter(ub => ub.status === 'reading')
   const wantToReadBooks = data.userBooks.filter(ub => ub.status === 'want_to_read')
+  const dnfBooks = data.userBooks.filter(ub => ub.status === 'dnf')
 
   return (
     <div className="flex flex-col gap-6">
@@ -87,26 +89,40 @@ export default async function MyBooksPage() {
       <ReadingStats stats={data.stats} topGenres={data.topGenres} />
 
       {/* Book Shelves */}
-      <Tabs defaultValue="read" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="read">
-            Read ({data.stats.totalRead})
+      <Tabs defaultValue="reading" className="w-full">
+        <TabsList className="grid w-full grid-cols-4 h-auto">
+          <TabsTrigger value="reading" className="flex items-center gap-2 py-3">
+            <BookMarked className="h-4 w-4 text-blue-500" />
+            <span className="hidden sm:inline">Reading</span>
+            <span className="text-xs text-muted-foreground">({data.stats.currentlyReading})</span>
           </TabsTrigger>
-          <TabsTrigger value="reading">
-            Reading ({data.stats.currentlyReading})
+          <TabsTrigger value="want_to_read" className="flex items-center gap-2 py-3">
+            <Clock className="h-4 w-4 text-amber-500" />
+            <span className="hidden sm:inline">Want to Read</span>
+            <span className="text-xs text-muted-foreground">({data.stats.wantToRead})</span>
           </TabsTrigger>
-          <TabsTrigger value="want_to_read">
-            Want to Read ({data.stats.wantToRead})
+          <TabsTrigger value="read" className="flex items-center gap-2 py-3">
+            <CheckCircle className="h-4 w-4 text-green-500" />
+            <span className="hidden sm:inline">Read</span>
+            <span className="text-xs text-muted-foreground">({data.stats.totalRead})</span>
+          </TabsTrigger>
+          <TabsTrigger value="dnf" className="flex items-center gap-2 py-3">
+            <XCircle className="h-4 w-4 text-muted-foreground" />
+            <span className="hidden sm:inline">DNF</span>
+            <span className="text-xs text-muted-foreground">({data.stats.dnf})</span>
           </TabsTrigger>
         </TabsList>
-        <TabsContent value="read" className="mt-6">
-          <MyBooksList userBooks={readBooks} emptyMessage="No books marked as read yet" />
-        </TabsContent>
         <TabsContent value="reading" className="mt-6">
           <MyBooksList userBooks={readingBooks} emptyMessage="Not currently reading anything" />
         </TabsContent>
         <TabsContent value="want_to_read" className="mt-6">
           <MyBooksList userBooks={wantToReadBooks} emptyMessage="No books on your want to read list" />
+        </TabsContent>
+        <TabsContent value="read" className="mt-6">
+          <MyBooksList userBooks={readBooks} emptyMessage="No books marked as read yet" />
+        </TabsContent>
+        <TabsContent value="dnf" className="mt-6">
+          <MyBooksList userBooks={dnfBooks} emptyMessage="No books marked as did not finish" />
         </TabsContent>
       </Tabs>
     </div>

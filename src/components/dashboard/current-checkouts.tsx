@@ -17,20 +17,24 @@ interface CurrentCheckoutsProps {
   onReturnComplete?: () => void
 }
 
-function getDueStatus(dueDate: string, currentDate: Date): { label: string; color: string; urgent: boolean } {
+const LATE_FEE_PER_DAY = 0.25
+
+function getDueStatus(dueDate: string, currentDate: Date): { label: string; color: string; urgent: boolean; daysOverdue: number; lateFee: number } {
   const due = new Date(dueDate)
   const daysUntilDue = Math.ceil((due.getTime() - currentDate.getTime()) / (1000 * 60 * 60 * 24))
 
   if (daysUntilDue < 0) {
-    return { label: `${Math.abs(daysUntilDue)}d overdue`, color: 'text-red-500 bg-red-500/10', urgent: true }
+    const daysOverdue = Math.abs(daysUntilDue)
+    const lateFee = daysOverdue * LATE_FEE_PER_DAY
+    return { label: `${daysOverdue}d overdue`, color: 'text-red-500 bg-red-500/10', urgent: true, daysOverdue, lateFee }
   } else if (daysUntilDue === 0) {
-    return { label: 'Due today', color: 'text-red-500 bg-red-500/10', urgent: true }
+    return { label: 'Due today', color: 'text-red-500 bg-red-500/10', urgent: true, daysOverdue: 0, lateFee: 0 }
   } else if (daysUntilDue <= 2) {
-    return { label: `${daysUntilDue}d left`, color: 'text-orange-500 bg-orange-500/10', urgent: true }
+    return { label: `${daysUntilDue}d left`, color: 'text-orange-500 bg-orange-500/10', urgent: true, daysOverdue: 0, lateFee: 0 }
   } else if (daysUntilDue <= 5) {
-    return { label: `${daysUntilDue}d left`, color: 'text-yellow-500 bg-yellow-500/10', urgent: false }
+    return { label: `${daysUntilDue}d left`, color: 'text-yellow-500 bg-yellow-500/10', urgent: false, daysOverdue: 0, lateFee: 0 }
   } else {
-    return { label: `${daysUntilDue}d left`, color: 'text-green-500 bg-green-500/10', urgent: false }
+    return { label: `${daysUntilDue}d left`, color: 'text-green-500 bg-green-500/10', urgent: false, daysOverdue: 0, lateFee: 0 }
   }
 }
 
@@ -129,16 +133,26 @@ export function CurrentCheckouts({ checkouts, checkoutLimit, onReturnComplete }:
                     <p className="text-sm text-muted-foreground line-clamp-1">
                       {checkout.book.author}
                     </p>
-                    <div className="flex items-center gap-2 mt-2">
+                    <div className="flex items-center gap-2 mt-2 flex-wrap">
                       <Badge variant="outline" className={dueStatus.color}>
                         {dueStatus.urgent && <AlertCircle className="h-3 w-3 mr-1" />}
                         <Calendar className="h-3 w-3 mr-1" />
                         {dueStatus.label}
                       </Badge>
+                      {dueStatus.lateFee > 0 && (
+                        <Badge variant="destructive">
+                          Late fee: ${dueStatus.lateFee.toFixed(2)}
+                        </Badge>
+                      )}
                     </div>
                     <p className="text-xs text-muted-foreground mt-1">
                       Due: {new Date(checkout.due_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                     </p>
+                    {dueStatus.daysOverdue > 0 && (
+                      <p className="text-xs text-red-500 mt-1 font-medium">
+                        ${LATE_FEE_PER_DAY.toFixed(2)}/day late fee applies
+                      </p>
+                    )}
                   </div>
                   <div className="flex items-center">
                     <Button
@@ -161,6 +175,7 @@ export function CurrentCheckouts({ checkouts, checkoutLimit, onReturnComplete }:
         onOpenChange={setDialogOpen}
         checkout={selectedCheckout}
         onReturnComplete={onReturnComplete}
+        currentDate={currentDate}
       />
     </Card>
   )

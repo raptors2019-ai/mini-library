@@ -30,9 +30,14 @@ export function ActionProvider({ children }: ActionProviderProps) {
     const statuses = searchParams.get('statuses')
     if (statuses) currentFilters.statuses = statuses.split(',')
 
+    // Extract book ID if on a book detail page
+    const bookPageMatch = pathname.match(/^\/books\/([a-zA-Z0-9-]+)$/)
+    const currentBookId = bookPageMatch ? bookPageMatch[1] : undefined
+
     return {
       currentPath: pathname,
       currentFilters: Object.keys(currentFilters).length > 0 ? currentFilters : undefined,
+      currentBookId,
     }
   }, [pathname, searchParams])
 

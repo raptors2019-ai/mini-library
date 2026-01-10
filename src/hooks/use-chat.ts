@@ -7,6 +7,9 @@ import type { AppAction } from '@/lib/actions/types'
 
 interface UseChatOptions {
   onAction?: (action: AppAction) => void
+  context?: {
+    currentBookId?: string
+  }
 }
 
 interface UseChatReturn {
@@ -30,7 +33,7 @@ function updateAssistantMessage(
 }
 
 export function useChat(options: UseChatOptions = {}): UseChatReturn {
-  const { onAction } = options
+  const { onAction, context } = options
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [isSearching, setIsSearching] = useState(false)
@@ -72,7 +75,7 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: apiMessages }),
+        body: JSON.stringify({ messages: apiMessages, context }),
       })
 
       if (!response.ok) {
@@ -163,7 +166,7 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
       setIsSearching(false)
       setSearchQuery(null)
     }
-  }, [messages, onAction])
+  }, [messages, onAction, context])
 
   const clearMessages = useCallback(() => {
     setMessages([])

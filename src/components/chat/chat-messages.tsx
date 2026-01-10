@@ -6,9 +6,11 @@ import type { ChatMessage as ChatMessageType } from '@/lib/chat/types'
 
 interface ChatMessagesProps {
   messages: ChatMessageType[]
+  onSuggestionClick?: (suggestion: string) => void
+  currentBookTitle?: string
 }
 
-export function ChatMessages({ messages }: ChatMessagesProps) {
+export function ChatMessages({ messages, onSuggestionClick, currentBookTitle }: ChatMessagesProps) {
   const containerRef = useRef<HTMLDivElement>(null)
 
   // Auto-scroll to bottom on new messages
@@ -28,18 +30,26 @@ export function ChatMessages({ messages }: ChatMessagesProps) {
         </p>
         <div className="mt-4 space-y-2">
           <p className="text-xs text-muted-foreground">Try asking:</p>
-          <div className="flex flex-wrap gap-1 justify-center">
-            {[
-              'Show me mystery books',
-              'Any sci-fi available?',
-              'Recommend something',
-            ].map((suggestion) => (
-              <span
+          <div className="flex flex-wrap gap-1.5 justify-center">
+            {(currentBookTitle
+              ? [
+                  'Tell me about this book',
+                  'Find similar books',
+                  'Is this book available?',
+                ]
+              : [
+                  'What mystery books do you have?',
+                  'Show me your top-rated books',
+                  'Recommend a book for me',
+                ]
+            ).map((suggestion) => (
+              <button
                 key={suggestion}
-                className="text-xs bg-muted px-2 py-1 rounded-full text-muted-foreground"
+                onClick={() => onSuggestionClick?.(suggestion)}
+                className="text-xs bg-muted hover:bg-muted/80 px-3 py-1.5 rounded-full text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
               >
                 {suggestion}
-              </span>
+              </button>
             ))}
           </div>
         </div>

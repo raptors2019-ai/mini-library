@@ -58,6 +58,16 @@ export const CHECKOUT_LIMITS = {
   },
 } as const
 
+// Hold duration when book becomes available (in hours)
+export const HOLD_DURATION = {
+  standard: 24,  // 1 day for standard members
+  premium: 48,   // 2 days for premium/librarian/admin
+} as const
+
+export function getHoldDurationHours(role: string | null | undefined): number {
+  return isPriorityRole(role) ? HOLD_DURATION.premium : HOLD_DURATION.standard
+}
+
 export function isPremiumRole(role: string | null | undefined): boolean {
   return role !== null && role !== undefined && PRIORITY_ROLES.includes(role as UserRole)
 }

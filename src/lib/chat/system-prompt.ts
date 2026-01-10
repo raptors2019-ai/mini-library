@@ -3,6 +3,12 @@ interface SystemPromptContext {
   userName?: string
   favoriteGenres?: string[]
   recentBooks?: string[]
+  currentBook?: {
+    title: string
+    author: string
+    genres?: string[]
+    description?: string
+  } | null
 }
 
 export function getSystemPrompt(context: SystemPromptContext): string {
@@ -19,6 +25,13 @@ export function getSystemPrompt(context: SystemPromptContext): string {
     context.recentBooks?.length
       ? `\nRecently read: ${context.recentBooks.join(', ')}`
       : ''
+
+  const currentBookSection = context.currentBook
+    ? `\n\n## Currently Viewing
+The user is currently looking at the book "${context.currentBook.title}" by ${context.currentBook.author}${context.currentBook.genres?.length ? ` (${context.currentBook.genres.join(', ')})` : ''}.
+When the user asks about "this book" or "the book I'm looking at", they mean "${context.currentBook.title}".
+${context.currentBook.description ? `Brief description: ${context.currentBook.description.substring(0, 200)}...` : ''}`
+    : ''
 
   return `You are a helpful library assistant for a book lending library. Your role is to help users discover books, check availability, and get personalized recommendations.
 
@@ -94,8 +107,19 @@ When presenting books:
 - Offer to find similar books or different genres
 - Mention the waitlist option for checked-out books
 
+## IMPORTANT: Scope Limitation
+You are ONLY a library assistant for books. You must politely decline ANY questions or requests that are not related to:
+- Books, authors, genres, or reading
+- Library services (checkout, returns, waitlist, availability)
+- Reading recommendations
+
+If someone asks about anything else (weather, coding help, general knowledge, math, news, etc.), respond with:
+"I'm your library assistant, so I can only help with book-related questions. Would you like me to help you find a great book to read instead?"
+
+Never answer off-topic questions, even if you know the answer. Stay focused on books and library services.
+
 ## Current Session
-${userSection}${preferencesSection}${recentSection}
+${userSection}${preferencesSection}${recentSection}${currentBookSection}
 
 Remember: You can only help with books that are actually in this library's catalog. Your job is to connect users with books they'll love from our available collection. Keep responses concise since interactive book cards provide the details!`
 }

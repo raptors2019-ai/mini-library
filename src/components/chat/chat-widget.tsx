@@ -1,22 +1,29 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import { ChatBubble } from './chat-bubble'
 import { ChatWindow } from './chat-window'
 import { useChat } from '@/hooks/use-chat'
-import { useActions } from '@/context/action-context'
+import { useActions, useAppContext } from '@/context/action-context'
 
 export function ChatWidget(): React.ReactNode {
   const [isOpen, setIsOpen] = useState(false)
   const [hasBeenOpened, setHasBeenOpened] = useState(false)
 
-  // Get action dispatcher from context
+  // Get action dispatcher and context from provider
   const { dispatch } = useActions()
+  const appContext = useAppContext()
 
   const handleAction = useCallback(dispatch, [dispatch])
 
+  // Build chat context from app context
+  const chatContext = useMemo(() => ({
+    currentBookId: appContext.currentBookId,
+  }), [appContext.currentBookId])
+
   const { messages, isLoading, isSearching, searchQuery, error, sendMessage, clearMessages } = useChat({
     onAction: handleAction,
+    context: chatContext,
   })
 
   function handleOpen(): void {
@@ -40,6 +47,7 @@ export function ChatWidget(): React.ReactNode {
         onClear={clearMessages}
         onMinimize={handleClose}
         onClose={handleClose}
+        currentBookTitle={appContext.currentBookId ? 'current' : undefined}
       />
     )
   }

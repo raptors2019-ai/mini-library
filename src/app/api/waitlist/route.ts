@@ -18,6 +18,19 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: 'Book ID required' }, { status: 400 })
   }
 
+  // Check if user already has this book checked out - makes no sense to join waitlist
+  const { data: userCheckout } = await supabase
+    .from('checkouts')
+    .select('id')
+    .eq('book_id', book_id)
+    .eq('user_id', user.id)
+    .eq('status', 'active')
+    .single()
+
+  if (userCheckout) {
+    return NextResponse.json({ error: 'You already have this book checked out' }, { status: 400 })
+  }
+
   // Check if already on waitlist (active or cancelled)
   const { data: existing } = await supabase
     .from('waitlist')

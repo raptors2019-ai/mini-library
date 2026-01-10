@@ -9,14 +9,10 @@ const VALID_ROLES: UserRole[] = ['guest', 'member', 'premium', 'librarian', 'adm
 const PREMIUM_ROLES: UserRole[] = ['premium', 'librarian', 'admin']
 
 /**
- * DEV ONLY: Switch user role for testing
- * This endpoint should be disabled in production
+ * Switch user role for demo/testing purposes
+ * Available to all logged-in users to facilitate testing different user experiences
  */
 export async function POST(request: NextRequest): Promise<NextResponse> {
-  // Only allow in development
-  if (process.env.NODE_ENV === 'production') {
-    return NextResponse.json({ error: 'Not available in production' }, { status: 403 })
-  }
 
   const supabase = await createClient()
 
@@ -62,11 +58,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 }
 
 export async function GET(): Promise<NextResponse> {
-  // Only allow in development
-  if (process.env.NODE_ENV === 'production') {
-    return NextResponse.json({ error: 'Not available in production' }, { status: 403 })
-  }
-
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()

@@ -2,13 +2,14 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { BookPlus, Check, Loader2, Star } from 'lucide-react'
+import { BookPlus, Check, Loader2, Star, Clock, BookMarked, ChevronDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
+  DropdownMenuLabel,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import type { UserBookStatus } from '@/types/database'
@@ -29,11 +30,11 @@ const STATUS_LABELS: Record<UserBookStatus, string> = {
   dnf: 'Did Not Finish',
 }
 
-const STATUS_EMOJIS: Record<UserBookStatus, string> = {
-  want_to_read: '📚',
-  reading: '📖',
-  read: '✅',
-  dnf: '🚫',
+const STATUS_ICONS: Record<UserBookStatus, React.ReactNode> = {
+  want_to_read: <Clock className="h-4 w-4 text-amber-500" />,
+  reading: <BookMarked className="h-4 w-4 text-blue-500" />,
+  read: <Check className="h-4 w-4 text-green-500" />,
+  dnf: <span className="text-xs">🚫</span>,
 }
 
 export function AddToMyBooksButton({
@@ -117,40 +118,61 @@ export function AddToMyBooksButton({
     }
   }
 
+  // Show loading state
   if (loading) {
     return (
-      <Button variant={variant} size={size} disabled>
+      <Button variant={variant} size={size} disabled className="w-full">
         <Loader2 className="h-4 w-4 animate-spin" />
         {showLabel && <span className="ml-2">Saving...</span>}
       </Button>
     )
   }
 
+  // If not added yet, show two simple button options
+  if (!status) {
+    return (
+      <div className="flex gap-2 w-full">
+        <Button
+          variant="outline"
+          size={size}
+          className="flex-1 gap-2"
+          onClick={() => handleStatusChange('want_to_read')}
+        >
+          <Clock className="h-4 w-4 text-amber-500" />
+          Want to Read
+        </Button>
+        <Button
+          variant="outline"
+          size={size}
+          className="flex-1 gap-2"
+          onClick={() => handleStatusChange('reading')}
+        >
+          <BookMarked className="h-4 w-4 text-blue-500" />
+          Reading
+        </Button>
+      </div>
+    )
+  }
+
+  // Once added, show dropdown to change status
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant={status ? 'secondary' : variant} size={size}>
-          {status ? (
-            <>
-              <Check className="h-4 w-4" />
-              {showLabel && <span className="ml-2">{STATUS_LABELS[status]}</span>}
-            </>
-          ) : (
-            <>
-              <BookPlus className="h-4 w-4" />
-              {showLabel && <span className="ml-2">Add to My Books</span>}
-            </>
-          )}
+        <Button variant="secondary" size={size} className="w-full gap-2">
+          {STATUS_ICONS[status]}
+          {showLabel && <span>{STATUS_LABELS[status]}</span>}
+          <ChevronDown className="h-4 w-4 ml-auto opacity-50" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-48">
-        {(Object.keys(STATUS_LABELS) as UserBookStatus[]).map((s) => (
+      <DropdownMenuContent align="end" className="w-52">
+        <DropdownMenuLabel className="text-xs text-muted-foreground">Change Status</DropdownMenuLabel>
+        {(['want_to_read', 'reading', 'read', 'dnf'] as UserBookStatus[]).map((s) => (
           <DropdownMenuItem
             key={s}
             onClick={() => handleStatusChange(s)}
-            className="cursor-pointer"
+            className="cursor-pointer gap-2"
           >
-            <span className="mr-2">{STATUS_EMOJIS[s]}</span>
+            {STATUS_ICONS[s]}
             {STATUS_LABELS[s]}
             {status === s && <Check className="h-4 w-4 ml-auto" />}
           </DropdownMenuItem>
@@ -179,17 +201,13 @@ export function AddToMyBooksButton({
           </div>
         </div>
 
-        {status && (
-          <>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              onClick={handleRemove}
-              className="cursor-pointer text-destructive"
-            >
-              Remove from My Books
-            </DropdownMenuItem>
-          </>
-        )}
+        <DropdownMenuSeparator />
+        <DropdownMenuItem
+          onClick={handleRemove}
+          className="cursor-pointer text-destructive"
+        >
+          Remove from My Books
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   )

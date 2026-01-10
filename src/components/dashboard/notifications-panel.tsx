@@ -51,6 +51,8 @@ export function NotificationsPanel({ notifications }: NotificationsPanelProps) {
   const markAllAsRead = async () => {
     await fetch('/api/notifications/read-all', { method: 'PUT' })
     setReadIds(new Set(notifications.map(n => n.id)))
+    // Refresh the page to update the header notification count
+    router.refresh()
   }
 
   const currentUnreadCount = notifications.filter(n => !isRead(n)).length

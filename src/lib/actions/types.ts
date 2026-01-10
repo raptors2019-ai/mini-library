@@ -63,6 +63,8 @@ export interface AppContext {
     genres?: string[]
     statuses?: string[]
   }
+  /** Book ID if user is on a book detail page */
+  currentBookId?: string
 }
 
 /**

@@ -107,7 +107,7 @@ export function BookCarouselCard({
         </div>
       </Link>
 
-      <CardContent className="p-3">
+      <CardContent className="p-3 flex flex-col h-[120px]">
         <Link href={`/books/${id}`}>
           <h3 className="font-semibold text-sm line-clamp-2 leading-tight mb-1 hover:text-primary transition-colors">
             {title}
@@ -126,7 +126,9 @@ export function BookCarouselCard({
           </div>
         )}
 
-        {renderActionButton()}
+        <div className="mt-auto">
+          {renderActionButton()}
+        </div>
       </CardContent>
     </Card>
   )

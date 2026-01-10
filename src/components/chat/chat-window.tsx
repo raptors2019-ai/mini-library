@@ -17,6 +17,7 @@ interface ChatWindowProps {
   onClear: () => void
   onMinimize: () => void
   onClose: () => void
+  currentBookTitle?: string
 }
 
 export function ChatWindow({
@@ -29,6 +30,7 @@ export function ChatWindow({
   onClear,
   onMinimize,
   onClose,
+  currentBookTitle,
 }: ChatWindowProps) {
   return (
     <div className="fixed bottom-6 right-6 z-50 flex flex-col w-[360px] h-[500px] bg-background border rounded-xl shadow-xl overflow-hidden animate-in slide-in-from-bottom-2 fade-in-0 duration-200">
@@ -75,7 +77,7 @@ export function ChatWindow({
       </div>
 
       {/* Messages */}
-      <ChatMessages messages={messages} />
+      <ChatMessages messages={messages} onSuggestionClick={onSend} currentBookTitle={currentBookTitle} />
 
       {/* Searching Indicator */}
       {isSearching && (

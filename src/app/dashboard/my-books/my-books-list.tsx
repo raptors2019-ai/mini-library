@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
-import { BookOpen, Star, MoreVertical, Trash2, Edit } from 'lucide-react'
+import { BookOpen, Star, MoreVertical, Trash2, Eye, CheckCircle, BookMarked, Clock, XCircle } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -12,8 +12,11 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuLabel,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import type { UserBookStatus } from '@/types/database'
 import type { UserBookWithBook } from '@/types/database'
 
 interface MyBooksListProps {
@@ -43,6 +46,22 @@ export function MyBooksList({ userBooks, emptyMessage }: MyBooksListProps) {
     })
     router.refresh()
   }
+
+  const handleStatusChange = async (id: string, status: UserBookStatus) => {
+    await fetch(`/api/user/books/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status }),
+    })
+    router.refresh()
+  }
+
+  const statusOptions: { value: UserBookStatus; label: string; icon: React.ReactNode }[] = [
+    { value: 'reading', label: 'Currently Reading', icon: <BookMarked className="h-4 w-4 text-blue-500" /> },
+    { value: 'want_to_read', label: 'Want to Read', icon: <Clock className="h-4 w-4 text-amber-500" /> },
+    { value: 'read', label: 'Read', icon: <CheckCircle className="h-4 w-4 text-green-500" /> },
+    { value: 'dnf', label: 'Did Not Finish', icon: <XCircle className="h-4 w-4 text-muted-foreground" /> },
+  ]
 
   if (userBooks.length === 0) {
     return (
@@ -143,20 +162,34 @@ export function MyBooksList({ userBooks, emptyMessage }: MyBooksListProps) {
                     <MoreVertical className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
+                <DropdownMenuContent align="end" className="w-48">
                   <DropdownMenuItem asChild>
                     <Link href={`/books/${userBook.book.id}`}>
-                      <Edit className="h-4 w-4 mr-2" />
+                      <Eye className="h-4 w-4 mr-2" />
                       View Book
                     </Link>
                   </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuLabel className="text-xs text-muted-foreground">Move to</DropdownMenuLabel>
+                  {statusOptions
+                    .filter(opt => opt.value !== userBook.status)
+                    .map(opt => (
+                      <DropdownMenuItem
+                        key={opt.value}
+                        onClick={() => handleStatusChange(userBook.id, opt.value)}
+                      >
+                        {opt.icon}
+                        <span className="ml-2">{opt.label}</span>
+                      </DropdownMenuItem>
+                    ))}
+                  <DropdownMenuSeparator />
                   <DropdownMenuItem
                     onClick={() => handleDelete(userBook.id)}
                     disabled={deletingId === userBook.id}
                     className="text-destructive"
                   >
                     <Trash2 className="h-4 w-4 mr-2" />
-                    {deletingId === userBook.id ? 'Removing...' : 'Remove'}
+                    {deletingId === userBook.id ? 'Removing...' : 'Remove from list'}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>

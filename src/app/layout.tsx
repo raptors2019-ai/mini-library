@@ -8,6 +8,7 @@ import { Header } from "@/components/header";
 import { Toaster } from "@/components/ui/sonner";
 import { ChatWidget } from "@/components/chat";
 import { SimulationBanner } from "@/components/simulation-banner";
+import { Footer } from "@/components/footer";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -32,7 +33,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen bg-background`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen bg-background flex flex-col`}
       >
         <ThemeProvider
           attribute="class"
@@ -43,9 +44,10 @@ export default function RootLayout({
             <ActionProvider>
               <SimulationBanner />
               <Header />
-              <main className="container py-6">
+              <main className="container py-6 flex-1">
                 {children}
               </main>
+              <Footer />
               <Toaster />
               <ChatWidget />
             </ActionProvider>

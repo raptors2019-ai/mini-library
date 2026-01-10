@@ -231,8 +231,8 @@ export function Header(): React.ReactNode {
         <div className="ml-auto flex items-center space-x-2">
           {/* Admin: Date simulator for demo purposes */}
           {isAdmin && <DateSimulator />}
-          {/* Dev-only role switcher */}
-          {process.env.NODE_ENV === 'development' && user && <RoleSwitcher />}
+          {/* Role switcher for demo/testing */}
+          {user && <RoleSwitcher />}
           <ThemeToggle />
           {user && <NotificationBell />}
 

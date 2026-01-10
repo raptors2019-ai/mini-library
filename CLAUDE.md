@@ -188,6 +188,40 @@ All in `src/app/api/`:
 - `recommendations/` - Personalized book recommendations
 - `recommendations/because-you-read` - "Because you read X" suggestions
 
+### Recommendation System (Demo Talking Points)
+
+The recommendation engine uses a **three-tier fallback system** to ensure users always get relevant suggestions:
+
+**Tier 1: AI-Powered Personalization (Best)**
+- Uses 1536-dimensional embeddings from OpenAI's `text-embedding-3-small` model
+- Each user builds a "taste profile" based on books they rate highly
+- Cosine similarity (via pgvector) finds books semantically similar to their taste
+- Threshold: 0.3 similarity score (higher = more relevant)
+- **Demo highlight**: "Our AI understands what you like, not just genres but themes and writing style"
+
+**Tier 2: Genre-Based Matching (Good)**
+- Falls back to user's explicitly selected favorite genres
+- Uses PostgreSQL array overlap to find matching books
+- **Demo highlight**: "Even without AI taste data, we match your genre preferences"
+
+**Tier 3: Popular/New Books (Fallback)**
+- Shows recently added books when no personalized data available
+- Ensures new users still see compelling content
+- **Demo highlight**: "New users see trending titles while we learn their preferences"
+
+**"Because You Read" Feature**
+- Takes user's 4+ star rated books
+- For each, finds similar books using embedding similarity
+- Groups recommendations by source book (e.g., "Because you loved Atomic Habits...")
+- Falls back to genre overlap if embedding search fails
+
+**Key Technical Points:**
+- `match_books()` - Semantic search across all books
+- `find_similar_books()` - Find books similar to a specific book
+- Both use pgvector's `<=>` operator for cosine distance
+- Embeddings stored in `books.embedding` column (1536-dim vector)
+- User taste in `user_preferences.taste_embedding`
+
 **Admin (librarian/admin only):**
 - `admin/stats` - Dashboard statistics
 - `admin/users` - User directory and role management

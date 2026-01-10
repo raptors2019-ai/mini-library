@@ -100,42 +100,59 @@ export function CheckoutDialog({
     })
   }
 
-  // Success state - show confirmation
+  // Success state - show celebration
   if (success && dueDate) {
     return (
       <Dialog open={open} onOpenChange={handleClose}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-green-600">
-              <BookCheck className="h-5 w-5" />
-              Checkout Complete!
+        <DialogContent className="sm:max-w-md overflow-hidden">
+          {/* Celebratory background animation */}
+          <div className="absolute inset-0 overflow-hidden pointer-events-none">
+            <div className="absolute -top-4 -left-4 w-24 h-24 bg-green-400/20 rounded-full blur-2xl animate-pulse" />
+            <div className="absolute -bottom-4 -right-4 w-32 h-32 bg-primary/20 rounded-full blur-2xl animate-pulse delay-75" />
+          </div>
+
+          <DialogHeader className="relative">
+            <div className="mx-auto mb-4 w-16 h-16 bg-green-100 dark:bg-green-900/50 rounded-full flex items-center justify-center animate-in zoom-in-50 duration-300">
+              <BookCheck className="h-8 w-8 text-green-600 dark:text-green-400" />
+            </div>
+            <DialogTitle className="text-center text-2xl animate-in fade-in-0 slide-in-from-bottom-2 duration-300">
+              You got it! 🎉
             </DialogTitle>
+            <DialogDescription className="text-center animate-in fade-in-0 slide-in-from-bottom-2 duration-300 delay-75">
+              Enjoy your reading!
+            </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="rounded-lg bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-900 p-4">
-              <p className="font-medium text-green-800 dark:text-green-200">
+
+          <div className="space-y-4 py-4 relative animate-in fade-in-0 slide-in-from-bottom-4 duration-500 delay-100">
+            <div className="rounded-xl bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 border border-green-200 dark:border-green-800 p-4 shadow-sm">
+              <p className="font-semibold text-green-800 dark:text-green-200 line-clamp-2">
                 {bookTitle}
               </p>
               <p className="text-sm text-green-600 dark:text-green-400">
                 by {bookAuthor}
               </p>
             </div>
-            <div className="flex items-start gap-3 p-4 rounded-lg bg-muted">
-              <Calendar className="h-5 w-5 text-primary mt-0.5" />
-              <div>
-                <p className="font-medium">Return by</p>
-                <p className="text-lg font-semibold text-primary">
+
+            <div className="flex items-center gap-4 p-4 rounded-xl bg-muted/50 border">
+              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                <Calendar className="h-6 w-6 text-primary" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm text-muted-foreground">Return by</p>
+                <p className="text-lg font-bold text-foreground">
                   {formatDate(dueDate)}
-                </p>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Please return the book on or before this date to avoid late fees.
                 </p>
               </div>
             </div>
+
+            <p className="text-xs text-center text-muted-foreground">
+              We&apos;ll remind you before the due date. Happy reading!
+            </p>
           </div>
-          <DialogFooter>
-            <Button onClick={handleClose} className="w-full">
-              Got it!
+
+          <DialogFooter className="animate-in fade-in-0 slide-in-from-bottom-2 duration-300 delay-200">
+            <Button onClick={handleClose} className="w-full" size="lg">
+              Start Reading
             </Button>
           </DialogFooter>
         </DialogContent>

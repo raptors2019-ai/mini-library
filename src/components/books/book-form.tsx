@@ -45,7 +45,7 @@ type BookFormValues = z.infer<typeof bookSchema>
 
 interface BookFormProps {
   book?: Book
-  mode: 'create' | 'edit'
+  mode: 'create' | 'edit' | 'request'
 }
 
 export function BookForm({ book, mode }: BookFormProps) {
@@ -104,8 +104,19 @@ export function BookForm({ book, mode }: BookFormProps) {
   const onSubmit = async (values: BookFormValues) => {
     setLoading(true)
     try {
-      const url = mode === 'create' ? '/api/books' : `/api/books/${book?.id}`
-      const method = mode === 'create' ? 'POST' : 'PATCH'
+      let url: string
+      let method: string
+
+      if (mode === 'request') {
+        url = '/api/book-requests'
+        method = 'POST'
+      } else if (mode === 'create') {
+        url = '/api/books'
+        method = 'POST'
+      } else {
+        url = `/api/books/${book?.id}`
+        method = 'PATCH'
+      }
 
       const response = await fetch(url, {
         method,
@@ -120,15 +131,23 @@ export function BookForm({ book, mode }: BookFormProps) {
 
       if (!response.ok) {
         const data = await response.json()
-        throw new Error(data.error || 'Failed to save book')
+        throw new Error(data.error || 'Failed to save')
       }
 
-      const savedBook = await response.json()
-      toast.success(mode === 'create' ? 'Book created!' : 'Book updated!')
-      router.push(`/books/${savedBook.id}`)
+      if (mode === 'request') {
+        toast.success(
+          'Book request submitted! A librarian will review it and you\'ll be notified when it\'s added.',
+          { duration: 5000 }
+        )
+        router.push('/books')
+      } else {
+        const savedBook = await response.json()
+        toast.success(mode === 'create' ? 'Book created!' : 'Book updated!')
+        router.push(`/books/${savedBook.id}`)
+      }
       router.refresh()
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to save book')
+      toast.error(error instanceof Error ? error.message : 'Failed to save')
     } finally {
       setLoading(false)
     }
@@ -333,7 +352,7 @@ export function BookForm({ book, mode }: BookFormProps) {
         <div className="flex gap-4">
           <Button type="submit" disabled={loading}>
             {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-            {mode === 'create' ? 'Create Book' : 'Update Book'}
+            {mode === 'request' ? 'Submit Request' : mode === 'create' ? 'Create Book' : 'Update Book'}
           </Button>
           <Button
             type="button"

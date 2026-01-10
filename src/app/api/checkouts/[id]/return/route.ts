@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createNotification, notificationTemplates } from '@/lib/notifications'
 import { NextRequest, NextResponse } from 'next/server'
 import { revalidatePath } from 'next/cache'
-import { isAdminRole } from '@/lib/constants'
+import { isAdminRole, getHoldDurationHours } from '@/lib/constants'
 
 interface RouteParams {
   params: Promise<{ id: string }>
@@ -80,9 +80,17 @@ export async function PUT(
       console.error('Failed to update book status to on_hold:', bookUpdateError)
     }
 
-    // Update waitlist entry
+    // Get next person's profile to determine hold duration
+    const { data: nextUserProfile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', nextInLine.user_id)
+      .single()
+
+    // Calculate hold expiration based on user's role (premium gets longer hold)
+    const holdHours = getHoldDurationHours(nextUserProfile?.role)
     const expiresAt = new Date()
-    expiresAt.setHours(expiresAt.getHours() + 24)
+    expiresAt.setHours(expiresAt.getHours() + holdHours)
 
     await supabase
       .from('waitlist')
@@ -93,8 +101,9 @@ export async function PUT(
       })
       .eq('id', nextInLine.id)
 
-    // Notify the next person
-    const template = notificationTemplates.waitlistAvailable(bookTitle)
+    // Notify the next person with expiration info
+    const expirationLabel = holdHours === 24 ? '1 day' : `${holdHours / 24} days`
+    const template = notificationTemplates.waitlistAvailable(bookTitle, expirationLabel)
     await createNotification({
       supabase,
       userId: nextInLine.user_id,

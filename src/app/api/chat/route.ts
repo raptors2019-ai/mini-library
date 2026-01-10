@@ -12,7 +12,7 @@ const MAX_TOOL_ROUNDS = 5 // Prevent infinite loops
 export async function POST(request: NextRequest): Promise<Response> {
   try {
     const body: ChatRequest = await request.json()
-    const { messages } = body
+    const { messages, context: appContext } = body
 
     if (!messages || !Array.isArray(messages)) {
       return Response.json({ error: 'Messages array is required' }, { status: 400 })
@@ -20,6 +20,19 @@ export async function POST(request: NextRequest): Promise<Response> {
 
     // Get user context if authenticated
     const supabase = await createClient()
+
+    // If user is viewing a specific book, fetch its details
+    let currentBook: { title: string; author: string; genres?: string[]; description?: string } | null = null
+    if (appContext?.currentBookId) {
+      const { data: book } = await supabase
+        .from('books')
+        .select('title, author, genres, description')
+        .eq('id', appContext.currentBookId)
+        .single()
+      if (book) {
+        currentBook = book
+      }
+    }
     const {
       data: { user },
     } = await supabase.auth.getUser()
@@ -75,7 +88,7 @@ export async function POST(request: NextRequest): Promise<Response> {
       }
     }
 
-    const systemPrompt = getSystemPrompt(userContext)
+    const systemPrompt = getSystemPrompt({ ...userContext, currentBook })
     const openai = getOpenAIClient()
 
     // Build initial messages for OpenAI

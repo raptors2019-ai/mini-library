@@ -43,13 +43,24 @@ export function NotificationBell() {
 
     fetchNotifications()
 
-    // Set up real-time subscription
+    // Set up real-time subscription for new and updated notifications
     const channel = supabase
       .channel('notifications')
       .on(
         'postgres_changes',
         {
           event: 'INSERT',
+          schema: 'public',
+          table: 'notifications',
+        },
+        () => {
+          fetchNotifications()
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
           schema: 'public',
           table: 'notifications',
         },
@@ -124,8 +135,19 @@ export function NotificationBell() {
     )
   }
 
+  // Auto-mark notifications as read when dropdown is opened
+  const handleOpenChange = async (isOpen: boolean) => {
+    setOpen(isOpen)
+    // When opening the dropdown and there are unread notifications, mark them all as read
+    if (isOpen && unreadCount > 0) {
+      await fetch('/api/notifications/read-all', { method: 'PUT' })
+      setNotifications(prev => prev.map(n => ({ ...n, read: true })))
+      setUnreadCount(0)
+    }
+  }
+
   return (
-    <DropdownMenu open={open} onOpenChange={setOpen}>
+    <DropdownMenu open={open} onOpenChange={handleOpenChange}>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" size="icon" className="relative">
           <Bell className="h-5 w-5" />

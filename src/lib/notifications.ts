@@ -66,10 +66,10 @@ export const notificationTemplates = {
       : `You're #${position} on the waitlist for "${bookTitle}". We'll notify you when it's available.`,
   }),
 
-  waitlistAvailable: (bookTitle: string) => ({
+  waitlistAvailable: (bookTitle: string, expirationLabel?: string) => ({
     type: 'waitlist_available' as NotificationType,
     title: 'Book Available!',
-    message: `"${bookTitle}" is now available for you. You have 24 hours to claim it.`,
+    message: `"${bookTitle}" is now available for you. You have ${expirationLabel || '24 hours'} to claim it before it's offered to the next person.`,
   }),
 
   waitlistExpired: (bookTitle: string) => ({
