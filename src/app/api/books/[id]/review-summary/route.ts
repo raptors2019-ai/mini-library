@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
-import { getHardcoverBookData, getHardcoverReviews } from '@/lib/hardcover'
+import { getHardcoverBookData, getHardcoverBookByTitleAuthor, getHardcoverReviews } from '@/lib/hardcover'
 import { generateReviewSummary } from '@/lib/openai'
 import { NextRequest, NextResponse } from 'next/server'
 
@@ -19,10 +19,10 @@ export async function GET(
   const { id } = await params
   const supabase = await createClient()
 
-  // Get the book with ISBN and any existing summary
+  // Get the book with ISBN, title, author, and any existing summary
   const { data: book, error } = await supabase
     .from('books')
-    .select('isbn, title, review_summary, review_summary_generated_at')
+    .select('isbn, title, author, review_summary, review_summary_generated_at')
     .eq('id', id)
     .single()
 
@@ -39,14 +39,6 @@ export async function GET(
     })
   }
 
-  // No ISBN means we can't fetch external reviews
-  if (!book.isbn) {
-    return NextResponse.json({
-      summary: null,
-      reason: 'No ISBN available for external review lookup',
-    })
-  }
-
   // Check if OpenAI is configured
   if (!process.env.OPENAI_API_KEY) {
     return NextResponse.json({
@@ -55,8 +47,13 @@ export async function GET(
     })
   }
 
-  // Fetch book data from Hardcover to get the slug
-  const hardcoverData = await getHardcoverBookData(book.isbn)
+  // Try to find on Hardcover - first by ISBN, then by title/author
+  let hardcoverData = book.isbn ? await getHardcoverBookData(book.isbn) : null
+
+  // Fallback to title/author search if ISBN search failed
+  if (!hardcoverData && book.title && book.author) {
+    hardcoverData = await getHardcoverBookByTitleAuthor(book.title, book.author)
+  }
 
   if (!hardcoverData?.slug) {
     return NextResponse.json({
