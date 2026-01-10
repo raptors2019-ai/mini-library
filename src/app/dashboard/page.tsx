@@ -9,6 +9,7 @@ import { WaitlistStatus } from '@/components/dashboard/waitlist-status'
 import { OnboardingPrompt } from '@/components/dashboard/onboarding-prompt'
 import { RecommendationsRow } from '@/components/dashboard/recommendations-row'
 import { BecauseYouRead } from '@/components/dashboard/because-you-read'
+import { MyBooksCallout } from '@/components/dashboard/my-books-callout'
 import { DashboardActions } from './dashboard-actions'
 
 async function getDashboardData() {
@@ -31,6 +32,7 @@ async function getDashboardData() {
     { count: waitlistCount },
     { count: unreadNotifications },
     { data: preferences },
+    { data: allUserBooks },
   ] = await Promise.all([
     supabase
       .from('user_books')
@@ -59,7 +61,18 @@ async function getDashboardData() {
       .select('onboarding_completed')
       .eq('user_id', user.id)
       .single(),
+    supabase
+      .from('user_books')
+      .select('status')
+      .eq('user_id', user.id),
   ])
+
+  // Calculate reading list stats
+  const readingListStats = {
+    reading: allUserBooks?.filter(ub => ub.status === 'reading').length || 0,
+    wantToRead: allUserBooks?.filter(ub => ub.status === 'want_to_read').length || 0,
+    read: allUserBooks?.filter(ub => ub.status === 'read').length || 0,
+  }
 
   // Get current checkouts with book details (include both active and overdue)
   const { data: checkouts } = await supabase
@@ -130,6 +143,7 @@ async function getDashboardData() {
     notifications: notifications || [],
     waitlistEntries: enrichedWaitlistEntries,
     onboardingCompleted: preferences?.onboarding_completed || false,
+    readingListStats,
   }
 }
 
@@ -157,11 +171,10 @@ export default async function DashboardPage() {
         checkoutLimit={data.stats.checkoutLimit}
         waitlistCount={data.stats.waitlistCount}
         booksRated={data.stats.booksRated}
-        booksReadList={data.booksReadList}
-        booksRatedList={data.booksRatedList}
-        checkoutsList={data.checkouts}
-        waitlistList={data.waitlistEntries}
       />
+
+      {/* View My Reading List Link */}
+      <MyBooksCallout stats={data.readingListStats} />
 
       {/* Main Content Grid */}
       <div className="grid lg:grid-cols-2 gap-6">

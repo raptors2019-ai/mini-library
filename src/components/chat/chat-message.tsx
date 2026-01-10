@@ -1,10 +1,9 @@
 'use client'
 
-import { Bot, User, Search } from 'lucide-react'
+import { Bot, User } from 'lucide-react'
 import Link from 'next/link'
 import ReactMarkdown from 'react-markdown'
 import { ChatBookCard } from './chat-book-card'
-import { Button } from '@/components/ui/button'
 import type { ChatMessage as ChatMessageType } from '@/lib/chat/types'
 import { cn } from '@/lib/utils'
 
@@ -15,7 +14,6 @@ interface ChatMessageProps {
 export function ChatMessage({ message }: ChatMessageProps) {
   const isUser = message.role === 'user'
   const hasBooks = message.books && message.books.length > 0
-  const hasSearchQuery = message.searchQuery && message.searchQuery.length > 0
 
   return (
     <div className={cn('flex gap-2', isUser ? 'flex-row-reverse' : 'flex-row')}>
@@ -86,20 +84,6 @@ export function ChatMessage({ message }: ChatMessageProps) {
               <p className="text-xs text-muted-foreground">
                 +{message.books!.length - 5} more books
               </p>
-            )}
-            {/* See more results button */}
-            {hasSearchQuery && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full mt-2"
-                asChild
-              >
-                <Link href={`/search?q=${encodeURIComponent(message.searchQuery!)}`}>
-                  <Search className="h-3.5 w-3.5 mr-2" />
-                  See all results for &ldquo;{message.searchQuery}&rdquo;
-                </Link>
-              </Button>
             )}
           </div>
         )}

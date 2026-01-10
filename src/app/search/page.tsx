@@ -68,9 +68,10 @@ export default function SearchPage() {
     }
   }, [])
 
-  // Auto-search if query param is present (e.g., from chat "See more" link)
+  // Sync query state and auto-search when URL query param changes (e.g., from chat)
   useEffect(() => {
     if (initialQuery) {
+      setQuery(initialQuery) // Update the input field to show the new query
       performSearch(initialQuery, true)
     }
   }, [initialQuery, performSearch])

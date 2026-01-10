@@ -20,24 +20,49 @@ async function getMyBooksData() {
     .eq('user_id', user.id)
     .order('updated_at', { ascending: false })
 
+  // Get user preferences for yearly goal
+  const { data: preferences } = await supabase
+    .from('user_preferences')
+    .select('yearly_reading_goal')
+    .eq('user_id', user.id)
+    .single()
+
+  const readBooks = userBooks?.filter(ub => ub.status === 'read') || []
+  const ratedBooks = userBooks?.filter(ub => ub.rating) || []
+
+  // Calculate average rating
+  const avgRating = ratedBooks.length > 0
+    ? ratedBooks.reduce((sum, ub) => sum + (ub.rating || 0), 0) / ratedBooks.length
+    : 0
+
+  // Calculate books read this year
+  const currentYear = new Date().getFullYear()
+  const booksThisYear = readBooks.filter(ub => {
+    if (!ub.date_finished) return false
+    return new Date(ub.date_finished).getFullYear() === currentYear
+  }).length
+
   // Calculate stats
   const stats = {
-    totalRead: userBooks?.filter(ub => ub.status === 'read').length || 0,
+    totalRead: readBooks.length,
     currentlyReading: userBooks?.filter(ub => ub.status === 'reading').length || 0,
     wantToRead: userBooks?.filter(ub => ub.status === 'want_to_read').length || 0,
     dnf: userBooks?.filter(ub => ub.status === 'dnf').length || 0,
-    totalRated: userBooks?.filter(ub => ub.rating).length || 0,
-    totalPages: userBooks?.reduce((sum, ub) => {
-      if (ub.status === 'read' && ub.book?.page_count) {
+    totalRated: ratedBooks.length,
+    totalPages: readBooks.reduce((sum, ub) => {
+      if (ub.book?.page_count) {
         return sum + ub.book.page_count
       }
       return sum
-    }, 0) || 0,
+    }, 0),
+    avgRating,
+    booksThisYear,
+    yearlyGoal: preferences?.yearly_reading_goal || 0,
   }
 
   // Get top genres
   const genreCounts = new Map<string, number>()
-  userBooks?.filter(ub => ub.status === 'read').forEach(ub => {
+  readBooks.forEach(ub => {
     ub.book?.genres?.forEach((genre: string) => {
       genreCounts.set(genre, (genreCounts.get(genre) || 0) + 1)
     })
@@ -47,10 +72,22 @@ async function getMyBooksData() {
     .slice(0, 3)
     .map(([genre, count]) => ({ genre, count }))
 
+  // Get favorite author (most read)
+  const authorCounts = new Map<string, number>()
+  readBooks.forEach(ub => {
+    if (ub.book?.author) {
+      authorCounts.set(ub.book.author, (authorCounts.get(ub.book.author) || 0) + 1)
+    }
+  })
+  const topAuthor = Array.from(authorCounts.entries())
+    .sort((a, b) => b[1] - a[1])[0]
+  const favoriteAuthor = topAuthor ? { name: topAuthor[0], count: topAuthor[1] } : null
+
   return {
     userBooks: userBooks || [],
     stats,
     topGenres,
+    favoriteAuthor,
   }
 }
 
@@ -86,7 +123,11 @@ export default async function MyBooksPage() {
       </div>
 
       {/* Reading Stats */}
-      <ReadingStats stats={data.stats} topGenres={data.topGenres} />
+      <ReadingStats
+        stats={data.stats}
+        topGenres={data.topGenres}
+        favoriteAuthor={data.favoriteAuthor}
+      />
 
       {/* Book Shelves */}
       <Tabs defaultValue="reading" className="w-full">

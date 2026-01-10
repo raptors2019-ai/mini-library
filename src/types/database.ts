@@ -273,6 +273,7 @@ export interface Database {
           reading_moods: string[]
           onboarding_completed: boolean
           taste_embedding: number[] | null
+          yearly_reading_goal: number
           created_at: string
           updated_at: string
         }
@@ -285,6 +286,7 @@ export interface Database {
           reading_moods?: string[]
           onboarding_completed?: boolean
           taste_embedding?: number[] | null
+          yearly_reading_goal?: number
           created_at?: string
           updated_at?: string
         }
@@ -297,6 +299,7 @@ export interface Database {
           reading_moods?: string[]
           onboarding_completed?: boolean
           taste_embedding?: number[] | null
+          yearly_reading_goal?: number
           created_at?: string
           updated_at?: string
         }
