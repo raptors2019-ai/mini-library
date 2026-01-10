@@ -90,6 +90,7 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
       const decoder = new TextDecoder()
       let accumulatedContent = ''
       let accumulatedBooks: Book[] = []
+      let lastSearchQuery: string | null = null
 
       while (true) {
         const { done, value } = await reader.read()
@@ -113,10 +114,13 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
                 break
 
               case 'tool_call':
-                if (chunk.toolCall?.name === 'search_books') {
+                if (chunk.toolCall?.name === 'search_books' || chunk.toolCall?.name === 'find_similar_books') {
                   setIsSearching(true)
-                  const query = chunk.toolCall.arguments?.query as string | undefined
-                  setSearchQuery(query || 'books')
+                  const query = (chunk.toolCall.arguments?.query || chunk.toolCall.arguments?.title) as string | undefined
+                  if (query) {
+                    lastSearchQuery = query
+                    setSearchQuery(query)
+                  }
                 }
                 break
 
@@ -127,6 +131,7 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
                   accumulatedBooks = [...accumulatedBooks, ...chunk.toolResult.books]
                   updateAssistantMessage(setMessages, assistantMessageId, {
                     books: accumulatedBooks,
+                    searchQuery: lastSearchQuery || undefined,
                   })
                 }
                 break
@@ -149,7 +154,15 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
                 updateAssistantMessage(setMessages, assistantMessageId, {
                   content: accumulatedContent,
                   books: accumulatedBooks.length > 0 ? accumulatedBooks : undefined,
+                  searchQuery: accumulatedBooks.length > 0 ? lastSearchQuery || undefined : undefined,
                 })
+                // Auto-navigate to search page when books are found
+                if (accumulatedBooks.length > 0 && lastSearchQuery && onAction) {
+                  onAction({
+                    type: 'open_search',
+                    payload: { query: lastSearchQuery }
+                  })
+                }
                 break
             }
           } catch {

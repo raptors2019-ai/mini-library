@@ -26,6 +26,7 @@ interface CheckoutDialogProps {
   bookAuthor: string
   loanDays?: number
   isPremium?: boolean
+  overdueCount?: number
 }
 
 export function CheckoutDialog({
@@ -36,6 +37,7 @@ export function CheckoutDialog({
   bookAuthor,
   loanDays,
   isPremium = false,
+  overdueCount = 0,
 }: CheckoutDialogProps) {
   const [agreed, setAgreed] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -153,6 +155,49 @@ export function CheckoutDialog({
           <DialogFooter className="animate-in fade-in-0 slide-in-from-bottom-2 duration-300 delay-200">
             <Button onClick={handleClose} className="w-full" size="lg">
               Start Reading
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    )
+  }
+
+  // Blocked state - user has overdue books
+  if (overdueCount > 0) {
+    return (
+      <Dialog open={open} onOpenChange={handleClose}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <div className="mx-auto mb-4 w-16 h-16 bg-red-100 dark:bg-red-900/50 rounded-full flex items-center justify-center">
+              <AlertTriangle className="h-8 w-8 text-red-600 dark:text-red-400" />
+            </div>
+            <DialogTitle className="text-center">Cannot Checkout</DialogTitle>
+            <DialogDescription className="text-center">
+              You have overdue books that need to be returned first.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <div className="rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900 p-4">
+              <p className="text-sm text-red-800 dark:text-red-200 font-medium mb-2">
+                {overdueCount} overdue {overdueCount === 1 ? 'book' : 'books'}
+              </p>
+              <p className="text-sm text-red-700 dark:text-red-300">
+                Please return your overdue books and pay any outstanding late fees before checking out new titles.
+              </p>
+            </div>
+          </div>
+          <DialogFooter className="flex-col gap-2">
+            <Button onClick={handleClose} variant="outline" className="w-full">
+              Close
+            </Button>
+            <Button
+              onClick={() => {
+                handleClose()
+                window.location.href = '/dashboard'
+              }}
+              className="w-full"
+            >
+              Go to Dashboard
             </Button>
           </DialogFooter>
         </DialogContent>

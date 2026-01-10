@@ -6,6 +6,8 @@ export interface ChatMessage {
   role: 'user' | 'assistant'
   content: string
   books?: Book[]
+  /** Search query used to find books - enables "See more" button */
+  searchQuery?: string
   timestamp: Date
 }
 

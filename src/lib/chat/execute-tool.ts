@@ -183,7 +183,7 @@ async function getBookDetails(args: GetBookDetailsArgs): Promise<ToolExecutionRe
       .from('checkouts')
       .select('due_date')
       .eq('book_id', args.book_id)
-      .eq('status', 'active')
+      .in('status', ['active', 'overdue'])
       .single()
     currentCheckout = checkout
   }
@@ -219,12 +219,12 @@ async function checkAvailability(args: CheckAvailabilityArgs): Promise<ToolExecu
   let waitlistCount = 0
 
   if (!isAvailable) {
-    // Get due date
+    // Get due date (include overdue checkouts - book is still checked out)
     const { data: checkout } = await supabase
       .from('checkouts')
       .select('due_date')
       .eq('book_id', args.book_id)
-      .eq('status', 'active')
+      .in('status', ['active', 'overdue'])
       .single()
     dueDate = checkout?.due_date
 
@@ -598,7 +598,26 @@ async function requestBook(args: RequestBookArgs, userId?: string): Promise<Tool
 }
 
 function showBooksOnPage(args: ShowBooksOnPageArgs): ToolExecutionResult {
-  // Build the action to send to the client
+  // If search query provided, use the search page with semantic search
+  if (args.search) {
+    const action: AppAction = {
+      type: 'open_search',
+      payload: {
+        query: args.search,
+      },
+    }
+
+    return {
+      success: true,
+      action,
+      data: {
+        message: `Opening search page for "${args.search}"`,
+        query: args.search,
+      },
+    }
+  }
+
+  // For genre/status filters, use the books page
   const action: AppAction = {
     type: 'apply_filters',
     payload: {
@@ -610,7 +629,6 @@ function showBooksOnPage(args: ShowBooksOnPageArgs): ToolExecutionResult {
 
   // Build description for the response
   const filters: string[] = []
-  if (args.search) filters.push(`search: "${args.search}"`)
   if (args.genres?.length) filters.push(`genres: ${args.genres.join(', ')}`)
   if (args.statuses?.length) filters.push(`status: ${args.statuses.join(', ')}`)
 
@@ -624,7 +642,6 @@ function showBooksOnPage(args: ShowBooksOnPageArgs): ToolExecutionResult {
     data: {
       message: description,
       filters: {
-        search: args.search,
         genres: args.genres,
         statuses: args.statuses,
       },

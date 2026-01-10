@@ -49,12 +49,12 @@ export default async function BookDetailPage({ params }: BookDetailPageProps) {
     notFound()
   }
 
-  // Get current checkout
+  // Get current checkout (include overdue - book is still checked out)
   const { data: checkout } = await supabase
     .from('checkouts')
     .select('*, user:profiles(id, full_name, email)')
     .eq('book_id', id)
-    .eq('status', 'active')
+    .in('status', ['active', 'overdue'])
     .single()
 
   // Get waitlist count
@@ -69,7 +69,8 @@ export default async function BookDetailPage({ params }: BookDetailPageProps) {
   const { data: { user } } = await supabase.auth.getUser()
   let userRole = null
   let userWaitlistEntry = null
-  let userActiveCheckout = null
+  let userActiveCheckout = 0
+  let userOverdueCount = 0
   let userBookEntry: { status: UserBookStatus; rating: number | null; review: string | null } | null = null
   let userLoanDays = 14
   let userCheckoutLimit = 2
@@ -93,12 +94,21 @@ export default async function BookDetailPage({ params }: BookDetailPageProps) {
       .single()
     userWaitlistEntry = waitlistEntry
 
+    // Get active + overdue checkout count
     const { count } = await supabase
       .from('checkouts')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', user.id)
-      .eq('status', 'active')
+      .in('status', ['active', 'overdue'])
     userActiveCheckout = count || 0
+
+    // Get overdue count specifically (to block new checkouts)
+    const { count: overdueCount } = await supabase
+      .from('checkouts')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .eq('status', 'overdue')
+    userOverdueCount = overdueCount || 0
 
     const { data: userBook } = await supabase
       .from('user_books')
@@ -161,9 +171,10 @@ export default async function BookDetailPage({ params }: BookDetailPageProps) {
                     bookId={book.id}
                     bookTitle={book.title}
                     bookAuthor={book.author}
-                    disabled={!user || userActiveCheckout! >= userCheckoutLimit}
+                    disabled={!user || userActiveCheckout >= userCheckoutLimit}
                     loanDays={userLoanDays}
                     isPremium={isPriorityRole(userRole)}
+                    overdueCount={userOverdueCount}
                   />
                 ) : (
                   <WaitlistButton

@@ -89,6 +89,14 @@ export function ActionProvider({ children }: ActionProviderProps) {
         setCommandPaletteOpen(false)
         break
       }
+
+      case 'open_search': {
+        const { query } = action.payload
+        // Navigate to search page and trigger search
+        const searchParams = new URLSearchParams({ q: query })
+        router.push(`/search?${searchParams.toString()}`)
+        break
+      }
     }
   }, [router])
 

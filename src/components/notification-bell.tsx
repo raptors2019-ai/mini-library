@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Bell, CheckCheck } from 'lucide-react'
@@ -13,77 +13,17 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Badge } from '@/components/ui/badge'
-import { createClient } from '@/lib/supabase/client'
-import type { Notification } from '@/types/database'
-
-interface NotificationWithBook extends Notification {
-  book?: { id: string; title: string; cover_url: string | null } | null
-}
+import { useNotifications, type NotificationWithBook } from '@/context/notification-context'
 
 export function NotificationBell() {
   const router = useRouter()
-  const [notifications, setNotifications] = useState<NotificationWithBook[]>([])
-  const [unreadCount, setUnreadCount] = useState(0)
-  const [loading, setLoading] = useState(true)
   const [open, setOpen] = useState(false)
-  const supabase = createClient()
-
-  useEffect(() => {
-    let mounted = true
-
-    const fetchNotifications = async () => {
-      const response = await fetch('/api/notifications?limit=5')
-      if (response.ok && mounted) {
-        const data = await response.json()
-        setNotifications(data.notifications || [])
-        setUnreadCount(data.unread_count || 0)
-      }
-      if (mounted) setLoading(false)
-    }
-
-    fetchNotifications()
-
-    // Set up real-time subscription for new and updated notifications
-    const channel = supabase
-      .channel('notifications')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'notifications',
-        },
-        () => {
-          fetchNotifications()
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'notifications',
-        },
-        () => {
-          fetchNotifications()
-        }
-      )
-      .subscribe()
-
-    return () => {
-      mounted = false
-      supabase.removeChannel(channel)
-    }
-  }, [supabase])
+  const { notifications, unreadCount, loading, markAsRead, markAllAsRead } = useNotifications()
 
   const handleNotificationClick = async (notification: NotificationWithBook) => {
     // Mark as read if unread
     if (!notification.read) {
-      await fetch(`/api/notifications/${notification.id}/read`, { method: 'PUT' })
-      setNotifications(prev =>
-        prev.map(n => (n.id === notification.id ? { ...n, read: true } : n))
-      )
-      setUnreadCount(prev => Math.max(0, prev - 1))
+      await markAsRead(notification.id)
     }
 
     // Close dropdown
@@ -101,12 +41,6 @@ export function NotificationBell() {
     } else {
       router.push('/dashboard')
     }
-  }
-
-  const markAllAsRead = async () => {
-    await fetch('/api/notifications/read-all', { method: 'PUT' })
-    setNotifications(prev => prev.map(n => ({ ...n, read: true })))
-    setUnreadCount(0)
   }
 
   const NOTIFICATION_ICONS: Record<string, string> = {
@@ -140,11 +74,12 @@ export function NotificationBell() {
     setOpen(isOpen)
     // When opening the dropdown and there are unread notifications, mark them all as read
     if (isOpen && unreadCount > 0) {
-      await fetch('/api/notifications/read-all', { method: 'PUT' })
-      setNotifications(prev => prev.map(n => ({ ...n, read: true })))
-      setUnreadCount(0)
+      await markAllAsRead()
     }
   }
+
+  // Get only first 5 for the dropdown
+  const displayNotifications = notifications.slice(0, 5)
 
   return (
     <DropdownMenu open={open} onOpenChange={handleOpenChange}>
@@ -180,13 +115,13 @@ export function NotificationBell() {
           )}
         </div>
         <DropdownMenuSeparator />
-        {notifications.length === 0 ? (
+        {displayNotifications.length === 0 ? (
           <div className="px-3 py-6 text-center text-sm text-muted-foreground">
             No notifications
           </div>
         ) : (
           <>
-            {notifications.map(notification => (
+            {displayNotifications.map(notification => (
               <DropdownMenuItem
                 key={notification.id}
                 className={`flex items-start gap-2 p-3 cursor-pointer ${

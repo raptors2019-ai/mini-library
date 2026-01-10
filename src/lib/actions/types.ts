@@ -45,6 +45,13 @@ export interface CloseCommandPaletteAction {
   type: 'close_command_palette'
 }
 
+export interface OpenSearchAction {
+  type: 'open_search'
+  payload: {
+    query: string
+  }
+}
+
 export type AppAction =
   | NavigateAction
   | ApplyFiltersAction
@@ -52,6 +59,7 @@ export type AppAction =
   | ShowNotificationAction
   | OpenCommandPaletteAction
   | CloseCommandPaletteAction
+  | OpenSearchAction
 
 /**
  * Current app context that AI can use to understand where the user is

@@ -24,7 +24,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     .select('id')
     .eq('book_id', book_id)
     .eq('user_id', user.id)
-    .eq('status', 'active')
+    .in('status', ['active', 'overdue'])
     .single()
 
   if (userCheckout) {
@@ -54,7 +54,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       .from('checkouts')
       .select('due_date')
       .eq('book_id', book_id)
-      .eq('status', 'active')
+      .in('status', ['active', 'overdue'])
       .single(),
     supabase
       .from('waitlist')

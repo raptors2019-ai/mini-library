@@ -12,6 +12,7 @@ interface CheckoutButtonProps {
   disabled?: boolean
   loanDays?: number
   isPremium?: boolean
+  overdueCount?: number
 }
 
 export function CheckoutButton({
@@ -21,18 +22,28 @@ export function CheckoutButton({
   disabled,
   loanDays,
   isPremium,
+  overdueCount = 0,
 }: CheckoutButtonProps) {
   const [dialogOpen, setDialogOpen] = useState(false)
+
+  // Block checkout if user has overdue books
+  const hasOverdue = overdueCount > 0
+  const isDisabled = disabled || hasOverdue
 
   return (
     <>
       <Button
         className="w-full"
         onClick={() => setDialogOpen(true)}
-        disabled={disabled}
+        disabled={isDisabled}
+        variant={hasOverdue ? 'destructive' : 'default'}
       >
         <BookCheck className="h-4 w-4 mr-2" />
-        {disabled ? 'Checkout limit reached' : 'Checkout Book'}
+        {hasOverdue
+          ? 'Return overdue books first'
+          : disabled
+            ? 'Checkout limit reached'
+            : 'Checkout Book'}
       </Button>
       <CheckoutDialog
         open={dialogOpen}
@@ -42,6 +53,7 @@ export function CheckoutButton({
         bookAuthor={bookAuthor}
         loanDays={loanDays}
         isPremium={isPremium}
+        overdueCount={overdueCount}
       />
     </>
   )

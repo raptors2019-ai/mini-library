@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { Search, Sparkles, ArrowRight } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -12,6 +13,7 @@ import { Badge } from '@/components/ui/badge'
 
 const SEARCH_TYPE_LABELS: Record<string, string> = {
   semantic: 'AI Search',
+  hybrid: 'AI + Text Search',
   text_fallback: 'Text Search (fallback)',
   text: 'Text Search',
 }
@@ -24,14 +26,17 @@ const EXAMPLE_QUERIES = [
 ]
 
 export default function SearchPage() {
-  const [query, setQuery] = useState('')
+  const searchParams = useSearchParams()
+  const initialQuery = searchParams.get('q') || ''
+
+  const [query, setQuery] = useState(initialQuery)
   const [books, setBooks] = useState<Book[]>([])
   const [loading, setLoading] = useState(false)
   const [searched, setSearched] = useState(false)
   const [useSemanticSearch, setUseSemanticSearch] = useState(true)
   const [searchType, setSearchType] = useState<string>('')
 
-  const performSearch = async (searchQuery: string, semantic: boolean = useSemanticSearch) => {
+  const performSearch = useCallback(async (searchQuery: string, semantic: boolean = true) => {
     if (!searchQuery.trim()) return
 
     setLoading(true)
@@ -61,11 +66,18 @@ export default function SearchPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
+
+  // Auto-search if query param is present (e.g., from chat "See more" link)
+  useEffect(() => {
+    if (initialQuery) {
+      performSearch(initialQuery, true)
+    }
+  }, [initialQuery, performSearch])
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault()
-    performSearch(query)
+    performSearch(query, useSemanticSearch)
   }
 
   const handleExampleClick = (example: string) => {

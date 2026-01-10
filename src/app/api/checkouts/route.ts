@@ -60,25 +60,25 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: 'Book ID required' }, { status: 400 })
   }
 
-  // Check if user already has this book checked out
+  // Check if user already has this book checked out (including overdue)
   const { data: existingUserCheckout } = await supabase
     .from('checkouts')
     .select('id')
     .eq('book_id', book_id)
     .eq('user_id', user.id)
-    .eq('status', 'active')
+    .in('status', ['active', 'overdue'])
     .single()
 
   if (existingUserCheckout) {
     return NextResponse.json({ error: 'You already have this book checked out' }, { status: 400 })
   }
 
-  // Check if anyone has an active checkout for this book (inventory = 1)
+  // Check if anyone has a checkout for this book (inventory = 1)
   const { data: existingCheckout } = await supabase
     .from('checkouts')
     .select('id')
     .eq('book_id', book_id)
-    .eq('status', 'active')
+    .in('status', ['active', 'overdue'])
     .single()
 
   if (existingCheckout) {

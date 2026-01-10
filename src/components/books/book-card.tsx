@@ -39,17 +39,28 @@ export function BookCard({ book, showAddButton = false, userBookStatus, userBook
               <BookOpen className="h-16 w-16 text-muted-foreground/50" />
             </div>
           )}
+          {/* Genre Badge - top left */}
+          {book.genres && book.genres.length > 0 && (
+            <div className="absolute top-2 left-2">
+              <Badge
+                variant="secondary"
+                className="text-xs bg-background/80 backdrop-blur-sm shadow-sm"
+              >
+                {book.genres[0]}
+              </Badge>
+            </div>
+          )}
+          {/* Status Badge - top right */}
           <div className="absolute top-2 right-2">
             <Badge
-              variant="outline"
               className={
                 book.status === 'available'
-                  ? 'bg-white text-green-600 border-green-200 shadow-sm'
+                  ? 'bg-emerald-500 text-white hover:bg-emerald-600 shadow-sm'
                   : book.status === 'checked_out'
-                  ? 'bg-white text-orange-600 border-orange-200 shadow-sm'
+                  ? 'bg-orange-500 text-white hover:bg-orange-600 shadow-sm'
                   : book.status === 'on_hold'
-                  ? 'bg-white text-blue-600 border-blue-200 shadow-sm'
-                  : 'bg-white text-gray-600 border-gray-200 shadow-sm'
+                  ? 'bg-blue-500 text-white hover:bg-blue-600 shadow-sm'
+                  : 'bg-gray-500 text-white hover:bg-gray-600 shadow-sm'
               }
             >
               {BOOK_STATUS_LABELS[book.status]}
@@ -63,20 +74,6 @@ export function BookCard({ book, showAddButton = false, userBookStatus, userBook
           <p className="text-sm text-muted-foreground mt-1 line-clamp-1">
             {book.author}
           </p>
-          {book.genres && book.genres.length > 0 && (
-            <div className="flex flex-wrap gap-1 mt-2">
-              {book.genres.slice(0, 2).map((genre) => (
-                <Badge key={genre} variant="secondary" className="text-xs">
-                  {genre}
-                </Badge>
-              ))}
-              {book.genres.length > 2 && (
-                <Badge variant="secondary" className="text-xs">
-                  +{book.genres.length - 2}
-                </Badge>
-              )}
-            </div>
-          )}
         </CardContent>
       </Link>
       {showAddButton && (

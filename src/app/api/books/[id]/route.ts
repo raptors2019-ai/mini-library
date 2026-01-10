@@ -23,12 +23,12 @@ export async function GET(
     return jsonError('Book not found', 404)
   }
 
-  // Get current checkout if exists
+  // Get current checkout if exists (include overdue - book is still checked out)
   const { data: checkout } = await supabase
     .from('checkouts')
     .select('*, user:profiles(id, full_name, email)')
     .eq('book_id', id)
-    .eq('status', 'active')
+    .in('status', ['active', 'overdue'])
     .single()
 
   // Get waitlist count

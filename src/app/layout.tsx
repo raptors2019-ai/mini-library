@@ -4,6 +4,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ActionProvider } from "@/providers/action-provider";
+import { NotificationProvider } from "@/providers/notification-provider";
 import { Header } from "@/components/header";
 import { Toaster } from "@/components/ui/sonner";
 import { ChatWidget } from "@/components/chat";
@@ -41,16 +42,18 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <Suspense fallback={null}>
-            <ActionProvider>
-              <SimulationBanner />
-              <Header />
-              <main className="container py-6 flex-1">
-                {children}
-              </main>
-              <Footer />
-              <Toaster />
-              <ChatWidget />
-            </ActionProvider>
+            <NotificationProvider>
+              <ActionProvider>
+                <SimulationBanner />
+                <Header />
+                <main className="container py-6 flex-1">
+                  {children}
+                </main>
+                <Footer />
+                <Toaster />
+                <ChatWidget />
+              </ActionProvider>
+            </NotificationProvider>
           </Suspense>
         </ThemeProvider>
       </body>

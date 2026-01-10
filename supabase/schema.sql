@@ -253,34 +253,42 @@ RETURNS TABLE (
   publish_date DATE,
   genres TEXT[],
   status TEXT,
+  review_summary TEXT,
+  review_summary_generated_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ,
   updated_at TIMESTAMPTZ,
+  created_by UUID,
   similarity FLOAT
 )
 LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
 AS $$
 BEGIN
   RETURN QUERY
   SELECT
-    books.id,
-    books.isbn,
-    books.title,
-    books.author,
-    books.description,
-    books.ai_summary,
-    books.cover_url,
-    books.page_count,
-    books.publish_date,
-    books.genres,
-    books.status,
-    books.created_at,
-    books.updated_at,
-    1 - (books.embedding <=> query_embedding) AS similarity
-  FROM books
-  WHERE books.embedding IS NOT NULL
-    AND books.status != 'inactive'
-    AND 1 - (books.embedding <=> query_embedding) > match_threshold
-  ORDER BY books.embedding <=> query_embedding
+    b.id,
+    b.isbn,
+    b.title,
+    b.author,
+    b.description,
+    b.ai_summary,
+    b.cover_url,
+    b.page_count,
+    b.publish_date,
+    b.genres,
+    b.status::text,
+    b.review_summary,
+    b.review_summary_generated_at,
+    b.created_at,
+    b.updated_at,
+    b.created_by,
+    (1 - (b.embedding <=> query_embedding))::float AS similarity
+  FROM books b
+  WHERE b.embedding IS NOT NULL
+    AND b.status != 'inactive'
+    AND 1 - (b.embedding <=> query_embedding) > match_threshold
+  ORDER BY b.embedding <=> query_embedding
   LIMIT match_count;
 END;
 $$;
@@ -302,19 +310,24 @@ RETURNS TABLE (
   publish_date DATE,
   genres TEXT[],
   status TEXT,
+  review_summary TEXT,
+  review_summary_generated_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ,
   updated_at TIMESTAMPTZ,
+  created_by UUID,
   similarity FLOAT
 )
 LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
 AS $$
 DECLARE
   source_embedding VECTOR(1536);
 BEGIN
   -- Get the source book's embedding
-  SELECT books.embedding INTO source_embedding
-  FROM books
-  WHERE books.id = book_id;
+  SELECT b.embedding INTO source_embedding
+  FROM books b
+  WHERE b.id = book_id;
 
   IF source_embedding IS NULL THEN
     RETURN;
@@ -322,25 +335,28 @@ BEGIN
 
   RETURN QUERY
   SELECT
-    books.id,
-    books.isbn,
-    books.title,
-    books.author,
-    books.description,
-    books.ai_summary,
-    books.cover_url,
-    books.page_count,
-    books.publish_date,
-    books.genres,
-    books.status,
-    books.created_at,
-    books.updated_at,
-    1 - (books.embedding <=> source_embedding) AS similarity
-  FROM books
-  WHERE books.embedding IS NOT NULL
-    AND books.id != book_id
-    AND books.status != 'inactive'
-  ORDER BY books.embedding <=> source_embedding
+    b.id,
+    b.isbn,
+    b.title,
+    b.author,
+    b.description,
+    b.ai_summary,
+    b.cover_url,
+    b.page_count,
+    b.publish_date,
+    b.genres,
+    b.status::text,
+    b.review_summary,
+    b.review_summary_generated_at,
+    b.created_at,
+    b.updated_at,
+    b.created_by,
+    (1 - (b.embedding <=> source_embedding))::float AS similarity
+  FROM books b
+  WHERE b.embedding IS NOT NULL
+    AND b.id != book_id
+    AND b.status != 'inactive'
+  ORDER BY b.embedding <=> source_embedding
   LIMIT match_count;
 END;
 $$;

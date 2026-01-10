@@ -61,12 +61,12 @@ async function getDashboardData() {
       .single(),
   ])
 
-  // Get current checkouts with book details
+  // Get current checkouts with book details (include both active and overdue)
   const { data: checkouts } = await supabase
     .from('checkouts')
     .select('*, book:books(*)')
     .eq('user_id', user.id)
-    .eq('status', 'active')
+    .in('status', ['active', 'overdue'])
     .order('due_date', { ascending: true })
 
   // Get recent notifications
@@ -93,7 +93,7 @@ async function getDashboardData() {
         .from('checkouts')
         .select('due_date')
         .eq('book_id', entry.book_id)
-        .eq('status', 'active')
+        .in('status', ['active', 'overdue'])
         .single()
 
       let estimatedDays: number | null = null
@@ -169,7 +169,7 @@ export default async function DashboardPage() {
         <DashboardActions checkouts={data.checkouts} checkoutLimit={data.stats.checkoutLimit} />
 
         {/* Notifications */}
-        <NotificationsPanel notifications={data.notifications} />
+        <NotificationsPanel />
       </div>
 
       {/* Waitlist */}

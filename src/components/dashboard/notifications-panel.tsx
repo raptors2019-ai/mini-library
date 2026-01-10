@@ -1,17 +1,12 @@
 'use client'
 
-import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Bell, CheckCheck, ChevronRight } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import type { Notification } from '@/types/database'
-
-interface NotificationsPanelProps {
-  notifications: Notification[]
-}
+import { useNotifications, type NotificationWithBook } from '@/context/notification-context'
 
 const NOTIFICATION_ICONS: Record<string, string> = {
   checkout_confirmed: '📚',
@@ -21,25 +16,25 @@ const NOTIFICATION_ICONS: Record<string, string> = {
   waitlist_available: '🎉',
   waitlist_expired: '😔',
   book_returned: '✅',
+  book_request_submitted: '📝',
+  book_request_approved: '✅',
+  book_request_declined: '❌',
+  book_request_fulfilled: '🎉',
+  admin_new_book_request: '📬',
 }
 
 function getNotificationIcon(type: string): string {
   return NOTIFICATION_ICONS[type] ?? '📢'
 }
 
-export function NotificationsPanel({ notifications }: NotificationsPanelProps) {
+export function NotificationsPanel() {
   const router = useRouter()
-  const [readIds, setReadIds] = useState<Set<string>>(new Set())
+  const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications()
 
-  const isRead = (notification: Notification) => {
-    return notification.read || readIds.has(notification.id)
-  }
-
-  const handleNotificationClick = async (notification: Notification) => {
+  const handleNotificationClick = async (notification: NotificationWithBook) => {
     // Mark as read if unread
-    if (!isRead(notification)) {
-      await fetch(`/api/notifications/${notification.id}/read`, { method: 'PUT' })
-      setReadIds(prev => new Set([...prev, notification.id]))
+    if (!notification.read) {
+      await markAsRead(notification.id)
     }
 
     // Navigate to book if book_id exists
@@ -48,14 +43,8 @@ export function NotificationsPanel({ notifications }: NotificationsPanelProps) {
     }
   }
 
-  const markAllAsRead = async () => {
-    await fetch('/api/notifications/read-all', { method: 'PUT' })
-    setReadIds(new Set(notifications.map(n => n.id)))
-    // Refresh the page to update the header notification count
-    router.refresh()
-  }
-
-  const currentUnreadCount = notifications.filter(n => !isRead(n)).length
+  // Show only first 5 notifications in the dashboard panel
+  const displayNotifications = notifications.slice(0, 5)
 
   return (
     <Card>
@@ -64,14 +53,14 @@ export function NotificationsPanel({ notifications }: NotificationsPanelProps) {
           <CardTitle className="text-lg flex items-center gap-2">
             <Bell className="h-5 w-5" />
             Notifications
-            {currentUnreadCount > 0 && (
+            {unreadCount > 0 && (
               <Badge variant="destructive" className="ml-2">
-                {currentUnreadCount}
+                {unreadCount}
               </Badge>
             )}
           </CardTitle>
           <div className="flex items-center gap-1">
-            {currentUnreadCount > 0 && (
+            {unreadCount > 0 && (
               <Button
                 variant="ghost"
                 size="sm"
@@ -92,32 +81,31 @@ export function NotificationsPanel({ notifications }: NotificationsPanelProps) {
         </div>
       </CardHeader>
       <CardContent>
-        {notifications.length === 0 ? (
+        {displayNotifications.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
             <Bell className="h-12 w-12 mx-auto mb-3 opacity-50" />
             <p>No notifications</p>
           </div>
         ) : (
           <div className="space-y-2">
-            {notifications.map((notification) => {
-              const read = isRead(notification)
+            {displayNotifications.map((notification) => {
               const hasLink = !!notification.book_id
 
               return (
                 <div
                   key={notification.id}
                   className={`flex items-start gap-3 p-3 rounded-lg border transition-all ${
-                    !read ? 'bg-muted/50 border-primary/20' : 'bg-card border-transparent'
+                    !notification.read ? 'bg-muted/50 border-primary/20' : 'bg-card border-transparent'
                   } ${hasLink ? 'cursor-pointer hover:bg-muted/70' : ''}`}
                   onClick={() => hasLink && handleNotificationClick(notification)}
                 >
                   <span className="text-xl mt-0.5">{getNotificationIcon(notification.type)}</span>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start gap-2">
-                      <p className={`text-sm flex-1 ${!read ? 'font-medium' : ''}`}>
+                      <p className={`text-sm flex-1 ${!notification.read ? 'font-medium' : ''}`}>
                         {notification.title}
                       </p>
-                      {!read && (
+                      {!notification.read && (
                         <div className="h-2 w-2 rounded-full bg-primary shrink-0 mt-1.5" />
                       )}
                     </div>
