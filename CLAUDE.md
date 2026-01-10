@@ -9,6 +9,12 @@ This section tracks active development tasks. Update as tasks are completed and 
 | Status | Task |
 |--------|------|
 | Pending | Enable leaked password protection in Supabase Dashboard (manual) |
+| Pending | Add checkout management to admin panel (/admin/checkouts) |
+| Pending | Add email notifications for due dates and waitlist |
+| Pending | Add book import feature (CSV/bulk upload) |
+| Pending | Add reading statistics and analytics dashboard |
+| Pending | Improve test coverage (target 80%) |
+| Pending | Add E2E tests with Playwright |
 
 **Recently Completed:**
 - Add admin panel with book management (/admin/books)
@@ -81,7 +87,12 @@ Five tables with Row Level Security (RLS):
 - `/books`, `/search` - Public book browsing
 - `/login`, `/register` - Auth (redirects authenticated users to dashboard)
 - `/dashboard` - User dashboard (protected, requires auth)
-- `/admin` - Admin panel (protected, requires librarian or admin role)
+- `/dashboard/my-books` - User's book collection and reading status
+- `/dashboard/notifications` - User notifications
+- `/onboarding` - New user onboarding wizard
+- `/admin` - Admin dashboard (protected, requires librarian or admin role)
+- `/admin/books` - Book catalog management
+- `/admin/users` - User directory and role management
 
 ### Auth & Middleware
 
@@ -101,17 +112,32 @@ Three client patterns in `src/lib/supabase/`:
 ### API Routes
 
 All in `src/app/api/`:
-- `books/` - CRUD, search, ISBN lookup, AI enrichment, similar books
-- `books/[id]/enrich` - Generate AI summary and embeddings for a book
+
+**Books:**
+- `books/` - CRUD, search, ISBN lookup, AI enrichment
+- `books/[id]/enrich` - Generate AI summary and embeddings
 - `books/[id]/similar` - Find semantically similar books
-- `search/semantic` - AI-powered semantic search (POST with query)
+- `books/[id]/reviews` - Book reviews CRUD
+- `search/semantic` - AI-powered semantic search (POST)
+
+**User:**
+- `user/books` - User's book collection (want to read, reading, read)
+- `user/preferences` - User reading preferences
+- `user/taste-profile` - AI taste profile for recommendations
 - `checkouts/` - Create checkouts
-- `checkouts/[id]/return` - Return book (handles waitlist notifications)
+- `checkouts/[id]/return` - Return book (handles waitlist)
 - `waitlist/` - Join/leave waitlist
 - `notifications/` - Get user notifications
 - `notifications/[id]/read` - Mark notification as read
-- `notifications/read-all` - Mark all notifications as read
-- `admin/stats` - Dashboard statistics (librarian/admin only)
+- `notifications/read-all` - Mark all as read
+
+**Recommendations:**
+- `recommendations/` - Personalized book recommendations
+- `recommendations/because-you-read` - "Because you read X" suggestions
+
+**Admin (librarian/admin only):**
+- `admin/stats` - Dashboard statistics
+- `admin/users` - User directory and role management
 
 ### AI Features
 
