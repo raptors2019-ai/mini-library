@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
-import { Library, Plus } from 'lucide-react'
+import { BookOpen, Plus } from 'lucide-react'
 import { BookFilters } from '@/components/books/book-filters'
 import { BookCarousel } from '@/components/books/book-carousel'
 import { BookGrid } from '@/components/books/book-grid'
@@ -172,8 +172,8 @@ async function BooksContent({ searchParams }: BooksPageProps) {
     <>
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="flex items-center gap-2">
-          <Library className="h-6 w-6" />
-          <h1 className="text-3xl font-bold">Library</h1>
+          <BookOpen className="h-6 w-6" />
+          <h1 className="text-3xl font-bold">Books</h1>
         </div>
         {canAddBooks && (
           <Link href="/books/new">

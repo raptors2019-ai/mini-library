@@ -18,7 +18,14 @@ export type NotificationType =
   | 'waitlist_available'
   | 'waitlist_expired'
   | 'book_returned'
+  | 'book_request_submitted'
+  | 'book_request_approved'
+  | 'book_request_declined'
+  | 'book_request_fulfilled'
+  | 'admin_new_book_request'
   | 'system'
+
+export type BookRequestStatus = 'pending' | 'approved' | 'declined' | 'fulfilled'
 
 export type UserBookStatus = 'want_to_read' | 'reading' | 'read' | 'dnf'
 export type PreferredLength = 'short' | 'medium' | 'long' | 'any'
@@ -295,6 +302,65 @@ export interface Database {
           updated_at?: string
         }
       }
+      book_requests: {
+        Row: {
+          id: string
+          user_id: string
+          title: string
+          author: string
+          isbn: string | null
+          description: string | null
+          cover_url: string | null
+          page_count: number | null
+          publish_date: string | null
+          genres: string[] | null
+          status: BookRequestStatus
+          admin_notes: string | null
+          reviewed_by: string | null
+          reviewed_at: string | null
+          book_id: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          title: string
+          author: string
+          isbn?: string | null
+          description?: string | null
+          cover_url?: string | null
+          page_count?: number | null
+          publish_date?: string | null
+          genres?: string[] | null
+          status?: BookRequestStatus
+          admin_notes?: string | null
+          reviewed_by?: string | null
+          reviewed_at?: string | null
+          book_id?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          title?: string
+          author?: string
+          isbn?: string | null
+          description?: string | null
+          cover_url?: string | null
+          page_count?: number | null
+          publish_date?: string | null
+          genres?: string[] | null
+          status?: BookRequestStatus
+          admin_notes?: string | null
+          reviewed_by?: string | null
+          reviewed_at?: string | null
+          book_id?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
     }
     Views: {
       [_ in never]: never
@@ -342,4 +408,12 @@ export type WaitlistWithBook = Waitlist & {
 
 export type WaitlistWithBookAndEstimate = WaitlistWithBook & {
   estimated_days: number | null
+}
+
+export type BookRequest = Database['public']['Tables']['book_requests']['Row']
+
+export type BookRequestWithUser = BookRequest & {
+  user: Profile
+  reviewer?: Profile
+  book?: Book
 }

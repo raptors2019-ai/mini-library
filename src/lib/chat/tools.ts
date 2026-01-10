@@ -125,4 +125,73 @@ export const chatTools: ChatCompletionTool[] = [
       },
     },
   },
+  {
+    type: 'function',
+    function: {
+      name: 'lookup_book_external',
+      description:
+        'Search external book databases (Google Books) to find books that are NOT in our library catalog. Use this when search_books returns no results and the user wants a specific book. This helps identify the exact book with ISBN and details before submitting a request.',
+      parameters: {
+        type: 'object',
+        properties: {
+          title: {
+            type: 'string',
+            description: 'The title of the book to search for',
+          },
+          author: {
+            type: 'string',
+            description: 'Optional: The author name to help narrow down results',
+          },
+        },
+        required: ['title'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'request_book',
+      description:
+        'Submit a request to add a book to the library catalog. Use this AFTER using lookup_book_external to confirm the exact book details with the user. Only available for authenticated users. The request goes to librarians for review.',
+      parameters: {
+        type: 'object',
+        properties: {
+          title: {
+            type: 'string',
+            description: 'The confirmed book title',
+          },
+          author: {
+            type: 'string',
+            description: 'The confirmed author name',
+          },
+          isbn: {
+            type: 'string',
+            description: 'The ISBN from the lookup (important for auto-creating the book later)',
+          },
+          description: {
+            type: 'string',
+            description: 'Book description from the lookup',
+          },
+          cover_url: {
+            type: 'string',
+            description: 'Cover image URL from the lookup',
+          },
+          page_count: {
+            type: 'number',
+            description: 'Number of pages',
+          },
+          publish_date: {
+            type: 'string',
+            description: 'Publication date',
+          },
+          genres: {
+            type: 'array',
+            items: { type: 'string' },
+            description: 'Book genres/categories',
+          },
+        },
+        required: ['title', 'author'],
+      },
+    },
+  },
 ]

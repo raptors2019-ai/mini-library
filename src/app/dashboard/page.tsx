@@ -139,7 +139,7 @@ export default async function DashboardPage() {
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold">Welcome back, {firstName}!</h1>
-        <p className="text-muted-foreground mt-1">
+        <p className="text-subheading mt-1">
           Here&apos;s what&apos;s happening with your library account.
         </p>
       </div>

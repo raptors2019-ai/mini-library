@@ -83,4 +83,37 @@ export const notificationTemplates = {
     title: 'Book Returned',
     message: `You have successfully returned "${bookTitle}". Thank you!`,
   }),
+
+  // Book request notifications
+  bookRequestSubmitted: (bookTitle: string) => ({
+    type: 'book_request_submitted' as NotificationType,
+    title: 'Book Request Submitted',
+    message: `Your request for "${bookTitle}" has been submitted. You'll be notified when a librarian reviews it.`,
+  }),
+
+  bookRequestApproved: (bookTitle: string) => ({
+    type: 'book_request_approved' as NotificationType,
+    title: 'Book Request Approved',
+    message: `Good news! Your request for "${bookTitle}" has been approved and will be added to the library soon.`,
+  }),
+
+  bookRequestDeclined: (bookTitle: string, reason?: string) => ({
+    type: 'book_request_declined' as NotificationType,
+    title: 'Book Request Declined',
+    message: reason
+      ? `Your request for "${bookTitle}" was declined. Reason: ${reason}`
+      : `Your request for "${bookTitle}" was declined.`,
+  }),
+
+  bookRequestFulfilled: (bookTitle: string) => ({
+    type: 'book_request_fulfilled' as NotificationType,
+    title: 'Book Now Available',
+    message: `"${bookTitle}" is now available in the library! Check it out today.`,
+  }),
+
+  adminNewBookRequest: (bookTitle: string, author: string, requesterName: string) => ({
+    type: 'admin_new_book_request' as NotificationType,
+    title: 'New Book Request',
+    message: `${requesterName} has requested "${bookTitle}" by ${author}. Review it in the admin panel.`,
+  }),
 }

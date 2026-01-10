@@ -92,13 +92,13 @@ export default async function Home() {
     <div className="flex flex-col gap-8 overflow-hidden">
       {/* Hero Section */}
       <section className="flex flex-col items-center text-center gap-6 py-8">
-        <div className="flex items-center gap-2 text-primary">
+        <div className="flex items-center gap-2 text-accent dark:text-primary">
           <Book className="h-12 w-12" />
         </div>
         <h1 className="text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl">
           {isLoggedIn ? `Welcome back, ${userInfo.firstName}!` : 'Your Modern Library'}
         </h1>
-        <p className="max-w-[600px] text-lg text-muted-foreground">
+        <p className="max-w-[600px] text-lg text-subheading">
           {isLoggedIn
             ? 'Discover your next great read with personalized recommendations.'
             : 'Discover, borrow, and explore books with AI-powered search and recommendations. A smarter way to manage your reading journey.'}
@@ -157,12 +157,13 @@ export default async function Home() {
 
       {/* Features Grid */}
       <section className="py-8">
-        <h2 className="text-2xl font-bold text-center mb-8">Why Choose Our Library</h2>
+        <h2 className="text-2xl font-bold text-center mb-2">Why Choose Our Library</h2>
+        <p className="text-center text-subheading mb-8">Modern features for modern readers</p>
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {features.map((feature) => (
-            <Card key={feature.title}>
+            <Card key={feature.title} className="hover:border-accent/50 transition-colors">
               <CardHeader>
-                <feature.icon className="h-8 w-8 text-primary mb-2" />
+                <feature.icon className="h-8 w-8 text-accent dark:text-primary mb-2" />
                 <CardTitle className="text-lg">{feature.title}</CardTitle>
               </CardHeader>
               <CardContent>
@@ -174,11 +175,11 @@ export default async function Home() {
       </section>
 
       {/* CTA Section */}
-      <section className="flex flex-col items-center text-center gap-4 py-12 border-t">
+      <section className="flex flex-col items-center text-center gap-4 py-12 border-t border-accent/20">
         {isLoggedIn ? (
           <>
             <h2 className="text-2xl font-bold">Ready to find your next book?</h2>
-            <p className="text-muted-foreground">
+            <p className="text-subheading">
               Use AI-powered search to discover exactly what you&apos;re looking for.
             </p>
             <Button asChild size="lg">
@@ -191,7 +192,7 @@ export default async function Home() {
         ) : (
           <>
             <h2 className="text-2xl font-bold">Ready to start reading?</h2>
-            <p className="text-muted-foreground">
+            <p className="text-subheading">
               Sign up for free and get access to our entire collection.
             </p>
             <Button asChild size="lg">

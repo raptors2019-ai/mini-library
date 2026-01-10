@@ -74,12 +74,12 @@ export function BookCarousel({
     <section className="py-8 w-full min-w-0 overflow-hidden">
       {/* Section Header */}
       <div className="mb-6 flex items-center justify-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-          <Icon className="h-5 w-5 text-primary" />
+        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-accent/10 dark:bg-primary/10">
+          <Icon className="h-5 w-5 text-accent dark:text-primary" />
         </div>
         <div className="text-center">
           <h2 className="text-2xl font-bold tracking-tight">{title}</h2>
-          <p className="text-sm text-muted-foreground">{subtitle}</p>
+          <p className="text-sm text-subheading">{subtitle}</p>
         </div>
       </div>
 

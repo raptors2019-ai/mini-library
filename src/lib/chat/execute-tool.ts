@@ -8,7 +8,10 @@ import type {
   CheckAvailabilityArgs,
   GetRecommendationsArgs,
   FindSimilarBooksArgs,
+  LookupBookExternalArgs,
+  RequestBookArgs,
 } from './types'
+import { createNotification, notificationTemplates } from '@/lib/notifications'
 
 interface ToolExecutionResult {
   success: boolean
@@ -36,6 +39,10 @@ export async function executeTool(
         return await findSimilarBooks(args as unknown as FindSimilarBooksArgs)
       case 'get_available_genres':
         return getAvailableGenres()
+      case 'lookup_book_external':
+        return await lookupBookExternal(args as unknown as LookupBookExternalArgs)
+      case 'request_book':
+        return await requestBook(args as unknown as RequestBookArgs, userId)
       default:
         return { success: false, error: `Unknown tool: ${toolName}` }
     }
@@ -374,6 +381,181 @@ function getAvailableGenres(): ToolExecutionResult {
     data: {
       genres: GENRES,
       count: GENRES.length,
+    },
+  }
+}
+
+interface GoogleBooksResult {
+  title: string
+  author: string
+  isbn: string | null
+  description: string | null
+  cover_url: string | null
+  page_count: number | null
+  publish_date: string | null
+  genres: string[]
+}
+
+async function lookupBookExternal(args: LookupBookExternalArgs): Promise<ToolExecutionResult> {
+  try {
+    // Build Google Books API query
+    let query = args.title
+    if (args.author) {
+      query += `+inauthor:${args.author}`
+    }
+
+    const response = await fetch(
+      `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=5`
+    )
+
+    if (!response.ok) {
+      return { success: false, error: 'Failed to search external book database' }
+    }
+
+    const data = await response.json()
+
+    if (!data.items || data.items.length === 0) {
+      return {
+        success: true,
+        data: {
+          found: false,
+          message: `No books found matching "${args.title}"${args.author ? ` by ${args.author}` : ''}`,
+          results: [],
+        },
+      }
+    }
+
+    // Parse results
+    const results: GoogleBooksResult[] = data.items.map((item: { volumeInfo: {
+      title?: string
+      authors?: string[]
+      industryIdentifiers?: Array<{ type: string; identifier: string }>
+      description?: string
+      imageLinks?: { thumbnail?: string }
+      pageCount?: number
+      publishedDate?: string
+      categories?: string[]
+    } }) => {
+      const info = item.volumeInfo
+      let coverUrl = info.imageLinks?.thumbnail || null
+      if (coverUrl) {
+        coverUrl = coverUrl.replace('http://', 'https://').replace('zoom=1', 'zoom=2')
+      }
+
+      // Get ISBN (prefer ISBN_13)
+      const isbn13 = info.industryIdentifiers?.find((id: { type: string }) => id.type === 'ISBN_13')
+      const isbn10 = info.industryIdentifiers?.find((id: { type: string }) => id.type === 'ISBN_10')
+      const isbn = isbn13?.identifier || isbn10?.identifier || null
+
+      return {
+        title: info.title || 'Unknown Title',
+        author: info.authors?.join(', ') || 'Unknown Author',
+        isbn,
+        description: info.description || null,
+        cover_url: coverUrl,
+        page_count: info.pageCount || null,
+        publish_date: info.publishedDate || null,
+        genres: info.categories || [],
+      }
+    })
+
+    return {
+      success: true,
+      data: {
+        found: true,
+        message: `Found ${results.length} book(s) matching your search. Please confirm which one you'd like to request.`,
+        results,
+      },
+    }
+  } catch (error) {
+    console.error('External book lookup error:', error)
+    return { success: false, error: 'Failed to search external book database' }
+  }
+}
+
+async function requestBook(args: RequestBookArgs, userId?: string): Promise<ToolExecutionResult> {
+  if (!userId) {
+    return {
+      success: false,
+      error: 'You must be logged in to request books. Please sign in first.',
+    }
+  }
+
+  const supabase = await createClient()
+
+  // Check if user already has a pending request for this book
+  const { data: existing } = await supabase
+    .from('book_requests')
+    .select('id')
+    .eq('user_id', userId)
+    .ilike('title', args.title)
+    .eq('status', 'pending')
+    .single()
+
+  if (existing) {
+    return {
+      success: false,
+      error: `You already have a pending request for "${args.title}". You'll be notified when it's reviewed.`,
+    }
+  }
+
+  // Create the request with all available details
+  const { data: bookRequest, error } = await supabase
+    .from('book_requests')
+    .insert({
+      user_id: userId,
+      title: args.title,
+      author: args.author,
+      isbn: args.isbn || null,
+      description: args.description || null,
+      cover_url: args.cover_url || null,
+      page_count: args.page_count || null,
+      publish_date: args.publish_date || null,
+      genres: args.genres || null,
+    })
+    .select()
+    .single()
+
+  if (error) {
+    console.error('Failed to create book request:', error)
+    return { success: false, error: 'Failed to submit request. Please try again.' }
+  }
+
+  // Get user's name for notification
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('full_name, email')
+    .eq('id', userId)
+    .single()
+
+  const requesterName = profile?.full_name || profile?.email || 'A member'
+
+  // Notify all admins
+  const { data: admins } = await supabase
+    .from('profiles')
+    .select('id')
+    .in('role', ['librarian', 'admin'])
+
+  if (admins?.length) {
+    const template = notificationTemplates.adminNewBookRequest(args.title, args.author, requesterName)
+    for (const admin of admins) {
+      await createNotification({
+        supabase,
+        userId: admin.id,
+        type: template.type,
+        title: template.title,
+        message: template.message,
+      })
+    }
+  }
+
+  return {
+    success: true,
+    data: {
+      requestId: bookRequest.id,
+      title: args.title,
+      author: args.author,
+      message: `Your request for "${args.title}" by ${args.author} has been submitted! A librarian will review it soon. You'll be notified when it's approved.`,
     },
   }
 }

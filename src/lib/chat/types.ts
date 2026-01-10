@@ -51,12 +51,30 @@ export interface FindSimilarBooksArgs {
   limit?: number
 }
 
+export interface LookupBookExternalArgs {
+  title: string
+  author?: string
+}
+
+export interface RequestBookArgs {
+  title: string
+  author: string
+  isbn?: string
+  description?: string
+  cover_url?: string
+  page_count?: number
+  publish_date?: string
+  genres?: string[]
+}
+
 export type ToolArgs =
   | SearchBooksArgs
   | GetBookDetailsArgs
   | CheckAvailabilityArgs
   | GetRecommendationsArgs
   | FindSimilarBooksArgs
+  | LookupBookExternalArgs
+  | RequestBookArgs
   | Record<string, never> // for get_available_genres
 
 export interface StreamChunk {

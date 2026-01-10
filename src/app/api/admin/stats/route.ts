@@ -16,8 +16,10 @@ export async function GET(): Promise<NextResponse> {
     { count: activeCheckouts },
     { count: overdueCheckouts },
     { count: waitlistEntries },
+    { count: pendingBookRequests },
     { data: recentCheckouts },
     { data: topBooks },
+    { data: pendingRequests },
   ] = await Promise.all([
     supabase.from('books').select('*', { count: 'exact', head: true }).neq('status', 'inactive'),
     supabase.from('books').select('*', { count: 'exact', head: true }).eq('status', 'available'),
@@ -26,6 +28,7 @@ export async function GET(): Promise<NextResponse> {
     supabase.from('checkouts').select('*', { count: 'exact', head: true }).eq('status', 'active'),
     supabase.from('checkouts').select('*', { count: 'exact', head: true }).eq('status', 'overdue'),
     supabase.from('waitlist').select('*', { count: 'exact', head: true }).eq('status', 'waiting'),
+    supabase.from('book_requests').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
     supabase
       .from('checkouts')
       .select('*, book:books(title, cover_url), user:profiles(full_name, email)')
@@ -36,6 +39,12 @@ export async function GET(): Promise<NextResponse> {
       .from('books')
       .select('id, title, author, cover_url, status')
       .neq('status', 'inactive')
+      .order('created_at', { ascending: false })
+      .limit(5),
+    supabase
+      .from('book_requests')
+      .select('*, user:profiles!user_id(full_name, email)')
+      .eq('status', 'pending')
       .order('created_at', { ascending: false })
       .limit(5),
   ])
@@ -56,7 +65,11 @@ export async function GET(): Promise<NextResponse> {
     waitlist: {
       total: waitlistEntries || 0,
     },
+    book_requests: {
+      pending: pendingBookRequests || 0,
+    },
     recent_checkouts: recentCheckouts || [],
     recent_books: topBooks || [],
+    pending_requests: pendingRequests || [],
   })
 }

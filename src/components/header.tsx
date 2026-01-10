@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Search, Library, Settings, LogIn, LogOut, User, Menu, LayoutDashboard, type LucideIcon } from "lucide-react"
+import { Search, Library, Settings, LogIn, LogOut, User, Menu, LayoutDashboard, BookOpen, type LucideIcon } from "lucide-react"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { NotificationBell } from "@/components/notification-bell"
 import { RoleSwitcher } from "@/components/dev/role-switcher"
@@ -123,7 +123,7 @@ export function Header(): React.ReactNode {
   const homeHref = user ? "/dashboard" : "/"
 
   const navItems = [
-    { href: "/books", label: "Library", icon: Library },
+    { href: "/books", label: "Books", icon: BookOpen },
     { href: "/search", label: "Search", icon: Search },
   ]
 
