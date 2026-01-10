@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { Bell, Check, CheckCheck } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { Bell, CheckCheck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -20,9 +21,11 @@ interface NotificationWithBook extends Notification {
 }
 
 export function NotificationBell() {
+  const router = useRouter()
   const [notifications, setNotifications] = useState<NotificationWithBook[]>([])
   const [unreadCount, setUnreadCount] = useState(0)
   const [loading, setLoading] = useState(true)
+  const [open, setOpen] = useState(false)
   const supabase = createClient()
 
   useEffect(() => {
@@ -62,12 +65,25 @@ export function NotificationBell() {
     }
   }, [supabase])
 
-  const markAsRead = async (id: string) => {
-    await fetch(`/api/notifications/${id}/read`, { method: 'PUT' })
-    setNotifications(prev =>
-      prev.map(n => (n.id === id ? { ...n, read: true } : n))
-    )
-    setUnreadCount(prev => Math.max(0, prev - 1))
+  const handleNotificationClick = async (notification: NotificationWithBook) => {
+    // Mark as read if unread
+    if (!notification.read) {
+      await fetch(`/api/notifications/${notification.id}/read`, { method: 'PUT' })
+      setNotifications(prev =>
+        prev.map(n => (n.id === notification.id ? { ...n, read: true } : n))
+      )
+      setUnreadCount(prev => Math.max(0, prev - 1))
+    }
+
+    // Close dropdown
+    setOpen(false)
+
+    // Navigate to relevant page
+    if (notification.book_id) {
+      router.push(`/books/${notification.book_id}`)
+    } else {
+      router.push('/dashboard')
+    }
   }
 
   const markAllAsRead = async () => {
@@ -84,6 +100,8 @@ export function NotificationBell() {
         return '⏰'
       case 'overdue':
         return '⚠️'
+      case 'waitlist_joined':
+        return '📋'
       case 'waitlist_available':
         return '🎉'
       case 'waitlist_expired':
@@ -104,7 +122,7 @@ export function NotificationBell() {
   }
 
   return (
-    <DropdownMenu>
+    <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" size="icon" className="relative">
           <Bell className="h-5 w-5" />
@@ -126,7 +144,10 @@ export function NotificationBell() {
               variant="ghost"
               size="sm"
               className="h-auto p-1 text-xs"
-              onClick={markAllAsRead}
+              onClick={(e) => {
+                e.preventDefault()
+                markAllAsRead()
+              }}
             >
               <CheckCheck className="h-3 w-3 mr-1" />
               Mark all read
@@ -146,7 +167,7 @@ export function NotificationBell() {
                 className={`flex items-start gap-2 p-3 cursor-pointer ${
                   !notification.read ? 'bg-muted/50' : ''
                 }`}
-                onClick={() => !notification.read && markAsRead(notification.id)}
+                onClick={() => handleNotificationClick(notification)}
               >
                 <span className="text-lg mt-0.5">{getNotificationIcon(notification.type)}</span>
                 <div className="flex-1 min-w-0">
@@ -161,17 +182,7 @@ export function NotificationBell() {
                   </p>
                 </div>
                 {!notification.read && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-6 w-6 shrink-0"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      markAsRead(notification.id)
-                    }}
-                  >
-                    <Check className="h-3 w-3" />
-                  </Button>
+                  <div className="h-2 w-2 rounded-full bg-primary shrink-0 mt-1.5" />
                 )}
               </DropdownMenuItem>
             ))}

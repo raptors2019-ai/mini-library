@@ -1,7 +1,9 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
-import { Bell, Check, ChevronRight } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { Bell, CheckCheck, ChevronRight } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -10,7 +12,6 @@ import type { Notification } from '@/types/database'
 interface NotificationsPanelProps {
   notifications: Notification[]
   unreadCount: number
-  onMarkAsRead?: (id: string) => Promise<void>
 }
 
 function getNotificationIcon(type: string): string {
@@ -21,6 +22,8 @@ function getNotificationIcon(type: string): string {
       return '⏰'
     case 'overdue':
       return '⚠️'
+    case 'waitlist_joined':
+      return '📋'
     case 'waitlist_available':
       return '🎉'
     case 'waitlist_expired':
@@ -32,7 +35,37 @@ function getNotificationIcon(type: string): string {
   }
 }
 
-export function NotificationsPanel({ notifications, unreadCount, onMarkAsRead }: NotificationsPanelProps) {
+export function NotificationsPanel({ notifications, unreadCount: initialUnreadCount }: NotificationsPanelProps) {
+  const router = useRouter()
+  const [unreadCount, setUnreadCount] = useState(initialUnreadCount)
+  const [readIds, setReadIds] = useState<Set<string>>(new Set())
+
+  const isRead = (notification: Notification) => {
+    return notification.read || readIds.has(notification.id)
+  }
+
+  const handleNotificationClick = async (notification: Notification) => {
+    // Mark as read if unread
+    if (!isRead(notification)) {
+      await fetch(`/api/notifications/${notification.id}/read`, { method: 'PUT' })
+      setReadIds(prev => new Set([...prev, notification.id]))
+      setUnreadCount(prev => Math.max(0, prev - 1))
+    }
+
+    // Navigate to book if book_id exists
+    if (notification.book_id) {
+      router.push(`/books/${notification.book_id}`)
+    }
+  }
+
+  const markAllAsRead = async () => {
+    await fetch('/api/notifications/read-all', { method: 'PUT' })
+    setReadIds(new Set(notifications.map(n => n.id)))
+    setUnreadCount(0)
+  }
+
+  const currentUnreadCount = notifications.filter(n => !isRead(n)).length
+
   return (
     <Card>
       <CardHeader className="pb-3">
@@ -40,18 +73,31 @@ export function NotificationsPanel({ notifications, unreadCount, onMarkAsRead }:
           <CardTitle className="text-lg flex items-center gap-2">
             <Bell className="h-5 w-5" />
             Notifications
-            {unreadCount > 0 && (
+            {currentUnreadCount > 0 && (
               <Badge variant="destructive" className="ml-2">
-                {unreadCount}
+                {currentUnreadCount}
               </Badge>
             )}
           </CardTitle>
-          <Link href="/dashboard/notifications">
-            <Button variant="ghost" size="sm" className="text-xs">
-              View All
-              <ChevronRight className="h-4 w-4 ml-1" />
-            </Button>
-          </Link>
+          <div className="flex items-center gap-1">
+            {currentUnreadCount > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-xs h-8 px-2"
+                onClick={markAllAsRead}
+              >
+                <CheckCheck className="h-3.5 w-3.5 mr-1" />
+                Clear all
+              </Button>
+            )}
+            <Link href="/dashboard/notifications">
+              <Button variant="ghost" size="sm" className="text-xs h-8 px-2">
+                View All
+                <ChevronRight className="h-4 w-4 ml-1" />
+              </Button>
+            </Link>
+          </div>
         </div>
       </CardHeader>
       <CardContent>
@@ -61,38 +107,39 @@ export function NotificationsPanel({ notifications, unreadCount, onMarkAsRead }:
             <p>No notifications</p>
           </div>
         ) : (
-          <div className="space-y-3">
-            {notifications.map((notification) => (
-              <div
-                key={notification.id}
-                className={`flex items-start gap-3 p-3 rounded-lg border transition-colors ${
-                  !notification.read ? 'bg-muted/50 border-primary/20' : 'bg-card'
-                }`}
-              >
-                <span className="text-xl mt-0.5">{getNotificationIcon(notification.type)}</span>
-                <div className="flex-1 min-w-0">
-                  <p className={`text-sm ${!notification.read ? 'font-medium' : ''}`}>
-                    {notification.title}
-                  </p>
-                  <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">
-                    {notification.message}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {new Date(notification.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                  </p>
+          <div className="space-y-2">
+            {notifications.map((notification) => {
+              const read = isRead(notification)
+              const hasLink = !!notification.book_id
+
+              return (
+                <div
+                  key={notification.id}
+                  className={`flex items-start gap-3 p-3 rounded-lg border transition-all ${
+                    !read ? 'bg-muted/50 border-primary/20' : 'bg-card border-transparent'
+                  } ${hasLink ? 'cursor-pointer hover:bg-muted/70' : ''}`}
+                  onClick={() => hasLink && handleNotificationClick(notification)}
+                >
+                  <span className="text-xl mt-0.5">{getNotificationIcon(notification.type)}</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start gap-2">
+                      <p className={`text-sm flex-1 ${!read ? 'font-medium' : ''}`}>
+                        {notification.title}
+                      </p>
+                      {!read && (
+                        <div className="h-2 w-2 rounded-full bg-primary shrink-0 mt-1.5" />
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">
+                      {notification.message}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {new Date(notification.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                    </p>
+                  </div>
                 </div>
-                {!notification.read && onMarkAsRead && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 shrink-0"
-                    onClick={() => onMarkAsRead(notification.id)}
-                  >
-                    <Check className="h-4 w-4" />
-                  </Button>
-                )}
-              </div>
-            ))}
+              )
+            })}
           </div>
         )}
       </CardContent>

@@ -21,24 +21,26 @@ async function getDashboardData() {
     .eq('id', user.id)
     .single()
 
-  // Get stats
+  // Get stats and data for expandable cards
   const [
-    { count: booksRead },
-    { count: booksRated },
+    { data: booksReadData },
+    { data: booksRatedData },
     { count: waitlistCount },
     { count: unreadNotifications },
     { data: preferences },
   ] = await Promise.all([
     supabase
       .from('user_books')
-      .select('*', { count: 'exact', head: true })
+      .select('*, book:books(*)')
       .eq('user_id', user.id)
-      .eq('status', 'read'),
+      .eq('status', 'read')
+      .order('date_finished', { ascending: false }),
     supabase
       .from('user_books')
-      .select('*', { count: 'exact', head: true })
+      .select('*, book:books(*)')
       .eq('user_id', user.id)
-      .not('rating', 'is', null),
+      .not('rating', 'is', null)
+      .order('updated_at', { ascending: false }),
     supabase
       .from('waitlist')
       .select('*', { count: 'exact', head: true })
@@ -80,19 +82,50 @@ async function getDashboardData() {
     .in('status', ['waiting', 'notified'])
     .order('position', { ascending: true })
 
+  // Enrich waitlist entries with estimated availability
+  const enrichedWaitlistEntries = await Promise.all(
+    (waitlistEntries || []).map(async (entry) => {
+      // Get current checkout for this book to calculate estimated availability
+      const { data: currentCheckout } = await supabase
+        .from('checkouts')
+        .select('due_date')
+        .eq('book_id', entry.book_id)
+        .eq('status', 'active')
+        .single()
+
+      let estimatedDays: number | null = null
+      if (currentCheckout?.due_date) {
+        const dueDate = new Date(currentCheckout.due_date)
+        // Add 14 days per person ahead in queue
+        const additionalDays = (entry.position - 1) * 14
+        dueDate.setDate(dueDate.getDate() + additionalDays)
+        const now = new Date()
+        estimatedDays = Math.ceil((dueDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+        if (estimatedDays < 0) estimatedDays = 0
+      }
+
+      return {
+        ...entry,
+        estimated_days: estimatedDays,
+      }
+    })
+  )
+
   return {
     profile,
     stats: {
-      booksRead: booksRead || 0,
-      booksRated: booksRated || 0,
+      booksRead: booksReadData?.length || 0,
+      booksRated: booksRatedData?.length || 0,
       activeCheckouts: checkouts?.length || 0,
       checkoutLimit: profile?.checkout_limit || 2,
       waitlistCount: waitlistCount || 0,
       unreadNotifications: unreadNotifications || 0,
     },
+    booksReadList: booksReadData || [],
+    booksRatedList: booksRatedData || [],
     checkouts: checkouts || [],
     notifications: notifications || [],
-    waitlistEntries: waitlistEntries || [],
+    waitlistEntries: enrichedWaitlistEntries,
     onboardingCompleted: preferences?.onboarding_completed || false,
   }
 }
@@ -121,6 +154,10 @@ export default async function DashboardPage() {
         checkoutLimit={data.stats.checkoutLimit}
         waitlistCount={data.stats.waitlistCount}
         booksRated={data.stats.booksRated}
+        booksReadList={data.booksReadList}
+        booksRatedList={data.booksRatedList}
+        checkoutsList={data.checkouts}
+        waitlistList={data.waitlistEntries}
       />
 
       {/* Main Content Grid */}

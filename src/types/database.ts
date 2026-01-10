@@ -14,6 +14,7 @@ export type NotificationType =
   | 'checkout_confirmed'
   | 'due_soon'
   | 'overdue'
+  | 'waitlist_joined'
   | 'waitlist_available'
   | 'waitlist_expired'
   | 'book_returned'
@@ -337,4 +338,8 @@ export type UserBookWithBook = UserBook & {
 
 export type WaitlistWithBook = Waitlist & {
   book: Book
+}
+
+export type WaitlistWithBookAndEstimate = WaitlistWithBook & {
+  estimated_days: number | null
 }

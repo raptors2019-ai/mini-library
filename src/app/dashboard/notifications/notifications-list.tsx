@@ -2,9 +2,8 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
 import Image from 'next/image'
-import { Bell, Check, CheckCheck, BookOpen } from 'lucide-react'
+import { Bell, CheckCheck, BookOpen, ExternalLink } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import type { Notification } from '@/types/database'
@@ -26,6 +25,8 @@ function getNotificationIcon(type: string): string {
       return '⏰'
     case 'overdue':
       return '⚠️'
+    case 'waitlist_joined':
+      return '📋'
     case 'waitlist_available':
       return '🎉'
     case 'waitlist_expired':
@@ -42,11 +43,17 @@ export function NotificationsList({ notifications, unreadCount: initialUnreadCou
   const [unreadCount, setUnreadCount] = useState(initialUnreadCount)
   const [readIds, setReadIds] = useState<Set<string>>(new Set())
 
-  const markAsRead = async (id: string) => {
-    const response = await fetch(`/api/notifications/${id}/read`, { method: 'PUT' })
-    if (response.ok) {
-      setReadIds(prev => new Set([...prev, id]))
+  const handleNotificationClick = async (notification: NotificationWithBook) => {
+    // Mark as read if unread
+    if (!isRead(notification)) {
+      await fetch(`/api/notifications/${notification.id}/read`, { method: 'PUT' })
+      setReadIds(prev => new Set([...prev, notification.id]))
       setUnreadCount(prev => Math.max(0, prev - 1))
+    }
+
+    // Navigate to relevant page
+    if (notification.book_id) {
+      router.push(`/books/${notification.book_id}`)
     }
   }
 
@@ -83,60 +90,70 @@ export function NotificationsList({ notifications, unreadCount: initialUnreadCou
         </Card>
       ) : (
         <div className="space-y-3">
-          {notifications.map((notification) => (
-            <Card
-              key={notification.id}
-              className={`transition-colors ${!isRead(notification) ? 'border-primary/30 bg-muted/30' : ''}`}
-            >
-              <CardContent className="p-4">
-                <div className="flex gap-4">
-                  <span className="text-2xl">{getNotificationIcon(notification.type)}</span>
+          {notifications.map((notification) => {
+            const hasLink = !!notification.book_id
+            const read = isRead(notification)
 
-                  {notification.book && (
-                    <Link href={`/books/${notification.book.id}`} className="flex-shrink-0">
-                      <div className="w-12 h-16 relative bg-muted rounded overflow-hidden">
-                        {notification.book.cover_url ? (
-                          <Image
-                            src={notification.book.cover_url}
-                            alt={notification.book.title}
-                            fill
-                            className="object-cover"
-                          />
-                        ) : (
-                          <div className="flex items-center justify-center h-full">
-                            <BookOpen className="h-4 w-4 text-muted-foreground/50" />
-                          </div>
+            return (
+              <Card
+                key={notification.id}
+                className={`transition-all ${!read ? 'border-primary/30 bg-muted/30' : ''} ${
+                  hasLink ? 'cursor-pointer hover:bg-muted/50' : ''
+                }`}
+                onClick={() => hasLink && handleNotificationClick(notification)}
+              >
+                <CardContent className="p-4">
+                  <div className="flex gap-4">
+                    <span className="text-2xl">{getNotificationIcon(notification.type)}</span>
+
+                    {notification.book && (
+                      <div className="flex-shrink-0">
+                        <div className="w-12 h-16 relative bg-muted rounded overflow-hidden">
+                          {notification.book.cover_url ? (
+                            <Image
+                              src={notification.book.cover_url}
+                              alt={notification.book.title}
+                              fill
+                              className="object-cover"
+                            />
+                          ) : (
+                            <div className="flex items-center justify-center h-full">
+                              <BookOpen className="h-4 w-4 text-muted-foreground/50" />
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start gap-2">
+                        <p className={`flex-1 ${!read ? 'font-semibold' : ''}`}>
+                          {notification.title}
+                        </p>
+                        {!read && (
+                          <div className="h-2 w-2 rounded-full bg-primary shrink-0 mt-2" />
                         )}
                       </div>
-                    </Link>
-                  )}
-
-                  <div className="flex-1 min-w-0">
-                    <p className={`${!isRead(notification) ? 'font-semibold' : ''}`}>
-                      {notification.title}
-                    </p>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {notification.message}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-2">
-                      {new Date(notification.created_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
-                    </p>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {notification.message}
+                      </p>
+                      <div className="flex items-center gap-2 mt-2">
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(notification.created_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
+                        </p>
+                        {hasLink && (
+                          <span className="text-xs text-primary flex items-center gap-1">
+                            <ExternalLink className="h-3 w-3" />
+                            View book
+                          </span>
+                        )}
+                      </div>
+                    </div>
                   </div>
-
-                  {!isRead(notification) && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => markAsRead(notification.id)}
-                      className="shrink-0"
-                    >
-                      <Check className="h-4 w-4" />
-                    </Button>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                </CardContent>
+              </Card>
+            )
+          })}
         </div>
       )}
     </div>

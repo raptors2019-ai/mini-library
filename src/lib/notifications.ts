@@ -58,6 +58,14 @@ export const notificationTemplates = {
     message: `"${bookTitle}" is overdue. Please return it as soon as possible.`,
   }),
 
+  waitlistJoined: (bookTitle: string, position: number, estimatedDate?: string) => ({
+    type: 'waitlist_joined' as NotificationType,
+    title: 'Added to Waitlist',
+    message: estimatedDate
+      ? `You're #${position} on the waitlist for "${bookTitle}". Estimated availability: ${estimatedDate}.`
+      : `You're #${position} on the waitlist for "${bookTitle}". We'll notify you when it's available.`,
+  }),
+
   waitlistAvailable: (bookTitle: string) => ({
     type: 'waitlist_available' as NotificationType,
     title: 'Book Available!',
