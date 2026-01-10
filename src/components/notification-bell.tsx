@@ -83,8 +83,7 @@ export function NotificationBell() {
       router.push('/admin')
     } else if (notification.type === 'book_request_submitted' ||
                notification.type === 'book_request_approved' ||
-               notification.type === 'book_request_declined' ||
-               notification.type === 'book_request_fulfilled') {
+               notification.type === 'book_request_declined') {
       router.push('/dashboard')
     } else if (notification.book_id) {
       router.push(`/books/${notification.book_id}`)
