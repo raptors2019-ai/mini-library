@@ -116,15 +116,17 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
               case 'tool_call':
                 if (chunk.toolCall?.name === 'search_books' || chunk.toolCall?.name === 'find_similar_books') {
                   setIsSearching(true)
-                  // For search_books, use the query argument
-                  // For find_similar_books, use the title just for display (not for search page navigation)
+                  const toolName = chunk.toolCall.name
                   const displayQuery = (chunk.toolCall.arguments?.query || chunk.toolCall.arguments?.title) as string | undefined
                   if (displayQuery) {
                     setSearchQuery(displayQuery)
-                    // Only set lastSearchQuery for search_books, NOT find_similar_books
-                    // find_similar_books uses a book title which shouldn't be the search page query
-                    if (chunk.toolCall.name === 'search_books') {
+                    // For search_books, use the query directly
+                    // For find_similar_books, create a "similar to X" semantic search query
+                    if (toolName === 'search_books') {
                       lastSearchQuery = displayQuery
+                    } else if (toolName === 'find_similar_books') {
+                      // Create a semantic search query that will find similar books
+                      lastSearchQuery = `books similar to ${displayQuery}`
                     }
                   }
                 }

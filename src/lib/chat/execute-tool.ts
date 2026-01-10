@@ -347,18 +347,20 @@ async function findSimilarBooks(args: FindSimilarBooksArgs): Promise<ToolExecuti
   const limit = args.limit || 5
 
   let bookId = args.book_id
+  let sourceAuthor: string | null = null
 
   // If no book_id but title provided, search for the book first
   if (!bookId && args.title) {
     const { data: books } = await supabase
       .from('books')
-      .select('id, title')
+      .select('id, title, author')
       .neq('status', 'inactive')
       .ilike('title', `%${args.title}%`)
       .limit(1)
 
     if (books && books.length > 0) {
       bookId = books[0].id
+      sourceAuthor = books[0].author
     } else {
       return {
         success: false,
@@ -374,18 +376,36 @@ async function findSimilarBooks(args: FindSimilarBooksArgs): Promise<ToolExecuti
     }
   }
 
-  // Try RPC function first
+  // Get source book author if not already fetched
+  if (!sourceAuthor) {
+    const { data: sourceBook } = await supabase
+      .from('books')
+      .select('author')
+      .eq('id', bookId)
+      .single()
+    sourceAuthor = sourceBook?.author || null
+  }
+
+  // Try RPC function first - fetch extra books to filter out same author
   try {
     const { data: similar, error } = await supabase.rpc('find_similar_books', {
       book_id: bookId,
-      match_count: limit,
+      match_count: limit * 3, // Fetch more to have buffer after filtering
     })
 
     if (!error && similar?.length > 0) {
-      return {
-        success: true,
-        books: similar as Book[],
-        data: { type: 'semantic-similarity', count: similar.length },
+      // Filter out books by the same author (case-insensitive)
+      const sourceAuthorLower = sourceAuthor?.toLowerCase() || ''
+      const filteredBooks = (similar as Book[]).filter(
+        (book) => book.author.toLowerCase() !== sourceAuthorLower
+      ).slice(0, limit)
+
+      if (filteredBooks.length > 0) {
+        return {
+          success: true,
+          books: filteredBooks,
+          data: { type: 'semantic-similarity', count: filteredBooks.length },
+        }
       }
     }
   } catch {
@@ -395,7 +415,7 @@ async function findSimilarBooks(args: FindSimilarBooksArgs): Promise<ToolExecuti
   // Fallback: genre-based similarity
   const { data: sourceBook } = await supabase
     .from('books')
-    .select('genres, title')
+    .select('genres, title, author')
     .eq('id', bookId)
     .single()
 
@@ -406,13 +426,19 @@ async function findSimilarBooks(args: FindSimilarBooksArgs): Promise<ToolExecuti
     }
   }
 
-  const { data: similarBooks } = await supabase
+  // Exclude books by the same author in genre-based fallback too
+  let genreQuery = supabase
     .from('books')
     .select('*')
     .neq('id', bookId)
     .neq('status', 'inactive')
     .overlaps('genres', sourceBook.genres)
-    .limit(limit)
+
+  if (sourceBook.author) {
+    genreQuery = genreQuery.neq('author', sourceBook.author)
+  }
+
+  const { data: similarBooks } = await genreQuery.limit(limit)
 
   return {
     success: true,
