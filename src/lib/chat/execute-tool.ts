@@ -116,18 +116,19 @@ async function searchBooks(args: SearchBooksArgs): Promise<ToolExecutionResult> 
     .filter((word) => word.length >= 3) // Ignore short words like "by", "of", etc.
 
   if (words.length > 0) {
-    // Build OR conditions for each word across title, author, description, and genres
+    // Build OR conditions for each word across title, author, description, isbn, and genres
     const conditions = words.flatMap((word) => [
       `title.ilike.%${word}%`,
       `author.ilike.%${word}%`,
       `description.ilike.%${word}%`,
+      `isbn.ilike.%${word}%`,
       `genres.cs.{"${word.charAt(0).toUpperCase() + word.slice(1)}"}`, // Case-sensitive array contains for genres
     ])
     query = query.or(conditions.join(','))
   } else {
     // If no meaningful words, search with original query
     query = query.or(
-      `title.ilike.%${args.query}%,author.ilike.%${args.query}%,description.ilike.%${args.query}%`
+      `title.ilike.%${args.query}%,author.ilike.%${args.query}%,description.ilike.%${args.query}%,isbn.ilike.%${args.query}%`
     )
   }
 

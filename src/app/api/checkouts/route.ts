@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createNotification, notificationTemplates } from '@/lib/notifications'
 import { getCurrentDate, isOverdue } from '@/lib/simulated-date'
 import { NextRequest, NextResponse } from 'next/server'
+import { revalidatePath } from 'next/cache'
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   const supabase = await createClient()
@@ -59,7 +60,32 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: 'Book ID required' }, { status: 400 })
   }
 
-  // Check book availability
+  // Check if user already has this book checked out
+  const { data: existingUserCheckout } = await supabase
+    .from('checkouts')
+    .select('id')
+    .eq('book_id', book_id)
+    .eq('user_id', user.id)
+    .eq('status', 'active')
+    .single()
+
+  if (existingUserCheckout) {
+    return NextResponse.json({ error: 'You already have this book checked out' }, { status: 400 })
+  }
+
+  // Check if anyone has an active checkout for this book (inventory = 1)
+  const { data: existingCheckout } = await supabase
+    .from('checkouts')
+    .select('id')
+    .eq('book_id', book_id)
+    .eq('status', 'active')
+    .single()
+
+  if (existingCheckout) {
+    return NextResponse.json({ error: 'This book is already checked out' }, { status: 400 })
+  }
+
+  // Check book status (belt and suspenders)
   const { data: book } = await supabase
     .from('books')
     .select('status')
@@ -74,7 +100,26 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const dueDate = new Date(currentDate)
   dueDate.setDate(dueDate.getDate() + profile.hold_duration_days)
 
-  // Create checkout and update book status
+  // Update book status FIRST to prevent race conditions
+  // Only update if still available - this is atomic and prevents race conditions
+  const { data: updatedBooks, error: updateError } = await supabase
+    .from('books')
+    .update({ status: 'checked_out' })
+    .eq('id', book_id)
+    .eq('status', 'available')
+    .select('id')
+
+  if (updateError) {
+    console.error('Failed to update book status:', updateError)
+    return NextResponse.json({ error: 'Failed to checkout book' }, { status: 500 })
+  }
+
+  // If no rows were updated, book was already checked out (race condition)
+  if (!updatedBooks || updatedBooks.length === 0) {
+    return NextResponse.json({ error: 'Book is no longer available' }, { status: 400 })
+  }
+
+  // Create checkout record
   const { data: checkout, error: checkoutError } = await supabase
     .from('checkouts')
     .insert({
@@ -86,14 +131,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     .single()
 
   if (checkoutError) {
+    // Rollback book status if checkout creation fails
+    await supabase
+      .from('books')
+      .update({ status: 'available' })
+      .eq('id', book_id)
     return NextResponse.json({ error: checkoutError.message }, { status: 500 })
   }
-
-  // Update book status
-  await supabase
-    .from('books')
-    .update({ status: 'checked_out' })
-    .eq('id', book_id)
 
   // Get book title for notification
   const { data: bookData } = await supabase
@@ -115,6 +159,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       ...template,
     })
   }
+
+  // Revalidate the book page and books list to reflect the new status
+  revalidatePath(`/books/${book_id}`)
+  revalidatePath('/books')
+  revalidatePath('/dashboard')
 
   return NextResponse.json(checkout, { status: 201 })
 }

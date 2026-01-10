@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { createNotification, notificationTemplates } from '@/lib/notifications'
 import { NextRequest, NextResponse } from 'next/server'
+import { revalidatePath } from 'next/cache'
 import { isAdminRole } from '@/lib/constants'
 
 interface RouteParams {
@@ -125,6 +126,11 @@ export async function PUT(
     bookId,
     ...returnTemplate,
   })
+
+  // Revalidate pages to reflect the updated status
+  revalidatePath(`/books/${bookId}`)
+  revalidatePath('/books')
+  revalidatePath('/dashboard')
 
   return NextResponse.json({ success: true, waitlist_notified: !!nextInLine })
 }

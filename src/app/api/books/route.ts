@@ -35,7 +35,13 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   }
 
   if (search) {
-    query = query.or(`title.ilike.%${search}%,author.ilike.%${search}%,isbn.ilike.%${search}%`)
+    // Check if search looks like a UUID
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(search)
+    if (isUuid) {
+      query = query.eq('id', search)
+    } else {
+      query = query.or(`title.ilike.%${search}%,author.ilike.%${search}%,isbn.ilike.%${search}%`)
+    }
   }
 
   query = query.range(offset, offset + limit - 1)

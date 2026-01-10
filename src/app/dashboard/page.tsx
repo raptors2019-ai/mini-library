@@ -1,5 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
+
+// Force dynamic rendering - checkouts and notifications change frequently
+export const dynamic = 'force-dynamic'
 import { StatsCards } from '@/components/dashboard/stats-cards'
 import { NotificationsPanel } from '@/components/dashboard/notifications-panel'
 import { WaitlistStatus } from '@/components/dashboard/waitlist-status'

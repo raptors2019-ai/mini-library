@@ -11,7 +11,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover'
 import { Search, X, ChevronDown } from 'lucide-react'
-import { useCallback, useState, useTransition } from 'react'
+import { useCallback, useState, useTransition, useEffect } from 'react'
 import { GENRES, BOOK_STATUS_LABELS } from '@/lib/constants'
 import type { BookStatus } from '@/types/database'
 
@@ -27,6 +27,11 @@ export function BookFilters() {
   const [isPending, startTransition] = useTransition()
 
   const [searchInput, setSearchInput] = useState(searchParams.get('search') || '')
+
+  // Sync searchInput with URL params when they change (e.g., from command palette)
+  useEffect(() => {
+    setSearchInput(searchParams.get('search') || '')
+  }, [searchParams])
 
   // Parse multi-value params
   const selectedGenres = searchParams.get('genres')?.split(',').filter(Boolean) || []

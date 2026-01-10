@@ -7,7 +7,7 @@ import type { Book, UserBookStatus } from '@/types/database'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { BookOpen } from 'lucide-react'
-import { BOOK_STATUS_COLORS, BOOK_STATUS_LABELS } from '@/lib/constants'
+import { BOOK_STATUS_LABELS } from '@/lib/constants'
 import { AddToMyBooksButton } from './add-to-my-books-button'
 
 interface BookCardProps {
@@ -40,7 +40,18 @@ export function BookCard({ book, showAddButton = false, userBookStatus, userBook
             </div>
           )}
           <div className="absolute top-2 right-2">
-            <Badge variant="outline" className={BOOK_STATUS_COLORS[book.status]}>
+            <Badge
+              variant="outline"
+              className={
+                book.status === 'available'
+                  ? 'bg-white text-green-600 border-green-200 shadow-sm'
+                  : book.status === 'checked_out'
+                  ? 'bg-white text-orange-600 border-orange-200 shadow-sm'
+                  : book.status === 'on_hold'
+                  ? 'bg-white text-blue-600 border-blue-200 shadow-sm'
+                  : 'bg-white text-gray-600 border-gray-200 shadow-sm'
+              }
+            >
               {BOOK_STATUS_LABELS[book.status]}
             </Badge>
           </div>

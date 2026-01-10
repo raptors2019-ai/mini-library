@@ -1,5 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
 import { BookOpen, Plus } from 'lucide-react'
+
+// Force dynamic rendering - book statuses change frequently
+export const dynamic = 'force-dynamic'
 import { BookFilters } from '@/components/books/book-filters'
 import { BookCarousel } from '@/components/books/book-carousel'
 import { BookGrid } from '@/components/books/book-grid'
@@ -135,7 +138,13 @@ async function BooksContent({ searchParams }: BooksPageProps) {
   }
 
   if (params.search) {
-    query = query.or(`title.ilike.%${params.search}%,author.ilike.%${params.search}%,isbn.ilike.%${params.search}%`)
+    // Check if search looks like a UUID
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(params.search)
+    if (isUuid) {
+      query = query.eq('id', params.search)
+    } else {
+      query = query.or(`title.ilike.%${params.search}%,author.ilike.%${params.search}%,isbn.ilike.%${params.search}%`)
+    }
   }
 
   query = query.range(offset, offset + limit - 1)
