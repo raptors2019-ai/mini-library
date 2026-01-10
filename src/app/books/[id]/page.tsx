@@ -23,6 +23,7 @@ import { UserBookForm } from '@/components/books/user-book-form'
 import { WhyYouMightLike } from '@/components/books/why-you-might-like'
 import { ExternalRating } from '@/components/books/external-rating'
 import { ReviewCTA } from '@/components/books/review-cta'
+import { BookContentTabs } from '@/components/books/book-content-tabs'
 import { BOOK_STATUS_COLORS, BOOK_STATUS_LABELS, isAdminRole } from '@/lib/constants'
 import { estimateReadingTime } from '@/lib/utils'
 import type { BookStatus, UserBookStatus } from '@/types/database'
@@ -200,7 +201,7 @@ export default async function BookDetailPage({ params }: BookDetailPageProps) {
         </div>
 
         {/* Right Column - Book Details */}
-        <div className="space-y-8">
+        <div className="space-y-6">
           {/* Header Section */}
           <header className="space-y-4">
             {/* Status badges */}
@@ -266,82 +267,93 @@ export default async function BookDetailPage({ params }: BookDetailPageProps) {
             )}
           </header>
 
-          {/* External Rating & Reviews from Hardcover */}
+          {/* External Rating & Reviews from Hardcover - always visible */}
           <ExternalRating bookId={book.id} />
 
-          {/* Review CTA */}
-          <ReviewCTA
+          {/* Tabbed Content */}
+          <BookContentTabs
             reviewCount={reviewCount ?? 0}
-            hasUserReview={!!userBookEntry?.review}
-            isLoggedIn={!!user}
+            bookInfo={
+              <div className="space-y-6">
+                {/* Why You Might Like This */}
+                {user && book.genres && book.genres.length > 0 && (
+                  <WhyYouMightLike
+                    bookId={book.id}
+                    bookTitle={book.title}
+                    bookGenres={book.genres}
+                  />
+                )}
+
+                {/* Description */}
+                {book.description && (
+                  <section className="space-y-3">
+                    <h2 className="text-lg font-semibold">About this book</h2>
+                    <div className="prose prose-sm dark:prose-invert max-w-none">
+                      <p className="text-muted-foreground leading-relaxed whitespace-pre-wrap">
+                        {book.description}
+                      </p>
+                    </div>
+                  </section>
+                )}
+
+                {/* AI Summary */}
+                {book.ai_summary && (
+                  <section className="relative overflow-hidden rounded-xl bg-gradient-to-br from-primary/5 via-transparent to-accent/5 border border-primary/10 p-6">
+                    <div className="absolute -top-12 -right-12 h-24 w-24 rounded-full bg-primary/10 blur-2xl" />
+                    <div className="relative space-y-3">
+                      <div className="flex items-center gap-2">
+                        <Sparkles className="h-4 w-4 text-primary" />
+                        <h2 className="text-sm font-semibold uppercase tracking-wider text-primary">
+                          AI Summary
+                        </h2>
+                      </div>
+                      <p className="text-muted-foreground leading-relaxed">
+                        {book.ai_summary}
+                      </p>
+                    </div>
+                  </section>
+                )}
+
+                {/* Admin: Current Checkout Info */}
+                {checkout && canEdit && (
+                  <section className="rounded-xl border bg-card p-5">
+                    <div className="flex items-center gap-2 mb-3">
+                      <User className="h-4 w-4 text-muted-foreground" />
+                      <h3 className="font-semibold">Current Checkout</h3>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-medium">
+                          {(checkout.user as { full_name?: string })?.full_name || (checkout.user as { email?: string })?.email}
+                        </p>
+                        <p className="text-sm text-muted-foreground flex items-center gap-1.5 mt-1">
+                          <Clock className="h-3.5 w-3.5" />
+                          Due: {new Date(checkout.due_date).toLocaleDateString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            year: 'numeric'
+                          })}
+                        </p>
+                      </div>
+                    </div>
+                  </section>
+                )}
+              </div>
+            }
+            reviews={
+              <div className="space-y-6">
+                {/* Review CTA */}
+                <ReviewCTA
+                  reviewCount={reviewCount ?? 0}
+                  hasUserReview={!!userBookEntry?.review}
+                  isLoggedIn={!!user}
+                />
+
+                {/* Community Reviews */}
+                <BookReviews bookId={book.id} />
+              </div>
+            }
           />
-
-          {/* Why You Might Like This */}
-          {user && book.genres && book.genres.length > 0 && (
-            <WhyYouMightLike
-              bookId={book.id}
-              bookTitle={book.title}
-              bookGenres={book.genres}
-            />
-          )}
-
-          {/* Description */}
-          {book.description && (
-            <section className="space-y-3">
-              <h2 className="text-lg font-semibold">About this book</h2>
-              <div className="prose prose-sm dark:prose-invert max-w-none">
-                <p className="text-muted-foreground leading-relaxed whitespace-pre-wrap">
-                  {book.description}
-                </p>
-              </div>
-            </section>
-          )}
-
-          {/* AI Summary */}
-          {book.ai_summary && (
-            <section className="relative overflow-hidden rounded-xl bg-gradient-to-br from-primary/5 via-transparent to-accent/5 border border-primary/10 p-6">
-              <div className="absolute -top-12 -right-12 h-24 w-24 rounded-full bg-primary/10 blur-2xl" />
-              <div className="relative space-y-3">
-                <div className="flex items-center gap-2">
-                  <Sparkles className="h-4 w-4 text-primary" />
-                  <h2 className="text-sm font-semibold uppercase tracking-wider text-primary">
-                    AI Summary
-                  </h2>
-                </div>
-                <p className="text-muted-foreground leading-relaxed">
-                  {book.ai_summary}
-                </p>
-              </div>
-            </section>
-          )}
-
-          {/* Community Reviews */}
-          <BookReviews bookId={book.id} />
-
-          {/* Admin: Current Checkout Info */}
-          {checkout && canEdit && (
-            <section className="rounded-xl border bg-card p-5">
-              <div className="flex items-center gap-2 mb-3">
-                <User className="h-4 w-4 text-muted-foreground" />
-                <h3 className="font-semibold">Current Checkout</h3>
-              </div>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium">
-                    {(checkout.user as { full_name?: string })?.full_name || (checkout.user as { email?: string })?.email}
-                  </p>
-                  <p className="text-sm text-muted-foreground flex items-center gap-1.5 mt-1">
-                    <Clock className="h-3.5 w-3.5" />
-                    Due: {new Date(checkout.due_date).toLocaleDateString('en-US', {
-                      month: 'short',
-                      day: 'numeric',
-                      year: 'numeric'
-                    })}
-                  </p>
-                </div>
-              </div>
-            </section>
-          )}
         </div>
       </div>
 
