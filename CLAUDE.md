@@ -10,13 +10,18 @@ This section tracks active development tasks. Update as tasks are completed and 
 |--------|------|
 | Pending | Enable leaked password protection in Supabase Dashboard (manual) |
 | Pending | Add checkout management to admin panel (/admin/checkouts) |
-| Pending | Add email notifications for due dates and waitlist |
 | Pending | Add book import feature (CSV/bulk upload) |
 | Pending | Add reading statistics and analytics dashboard |
 | Pending | Improve test coverage (target 80%) |
 | Pending | Add E2E tests with Playwright |
 
 **Recently Completed:**
+- Add AI chat widget with OpenAI function calling (floating chatbot for book discovery)
+- Add Jest tests for chat functionality (24 tests)
+- Redesign Library page with category carousels (Trending, Top Rated, AI Picks)
+- Add genre badges to book carousel cards
+- Simplify header navigation (Library, Search, Admin)
+- Update home button to go to Dashboard when logged in
 - Add admin panel with book management (/admin/books)
 - Add user management to admin panel (/admin/users)
 - Add tests for utils, constants, and BookCard component (35 tests)
@@ -40,6 +45,54 @@ Run a single test file:
 ```bash
 npm test -- path/to/file.test.ts
 ```
+
+## Testing Guidelines
+
+### When to Write Tests
+- **Always** for new utility functions, constants, and type definitions
+- **Always** for AI/chat features to prevent hallucinations and verify tool behavior
+- **Recommended** for React components with complex logic
+- **Required** before merging PRs
+
+### Test Patterns
+
+**Unit Tests** (for utilities and pure functions):
+```typescript
+// src/lib/chat/system-prompt.test.ts
+describe('getSystemPrompt', () => {
+  it('includes critical guidelines about not hallucinating', () => {
+    const prompt = getSystemPrompt({ isAuthenticated: false })
+    expect(prompt).toContain('Never Hallucinate Books')
+  })
+})
+```
+
+**API Testing with curl** (for streaming/AI endpoints):
+```bash
+# Test chat API - verify tool calls and responses
+curl -s -X POST http://localhost:3000/api/chat \
+  -H "Content-Type: application/json" \
+  -d '{"messages": [{"role": "user", "content": "books similar to tim ferris"}]}'
+
+# Check for:
+# 1. Tool calls being made (search_books, etc.)
+# 2. Multiple search attempts if first fails
+# 3. Only books from actual results mentioned (no hallucinations)
+# 4. Proper streaming format (JSON lines)
+```
+
+### Testing Checklist for AI Features
+1. **Tool Execution**: Verify tools are called with correct parameters
+2. **Multi-round Tools**: Test that follow-up searches happen when needed
+3. **Hallucination Prevention**: Ensure only database results are mentioned
+4. **Error Handling**: Test graceful failures (API down, empty results)
+5. **Streaming**: Verify proper chunk format and completion
+
+### Current Test Coverage
+- `src/lib/utils.test.ts` - Utility functions
+- `src/lib/constants.test.ts` - Constants and role checks
+- `src/components/book-card.test.tsx` - BookCard component
+- `src/lib/chat/*.test.ts` - Chat system prompt, tools, and types
 
 ## Architecture
 
@@ -138,6 +191,36 @@ All in `src/app/api/`:
 **Admin (librarian/admin only):**
 - `admin/stats` - Dashboard statistics
 - `admin/users` - User directory and role management
+
+**Chat:**
+- `chat/` - Streaming chat API with OpenAI function calling (POST)
+
+### AI Chat Widget
+
+A floating chatbot for conversational book discovery. Located in `src/components/chat/`.
+
+**Features:**
+- Streaming responses with markdown rendering
+- OpenAI function calling (6 tools: search, recommendations, availability, etc.)
+- Multi-round tool execution (searches multiple times if needed)
+- Clickable book cards in responses
+- Personalization for logged-in users
+
+**Key Files:**
+- `src/lib/chat/tools.ts` - Tool definitions for function calling
+- `src/lib/chat/system-prompt.ts` - Library assistant persona
+- `src/lib/chat/execute-tool.ts` - Tool execution logic
+- `src/app/api/chat/route.ts` - Streaming API endpoint
+- `src/hooks/use-chat.ts` - React state management
+- `src/components/chat/chat-widget.tsx` - Root UI component
+
+**Testing the Chat:**
+```bash
+# Test with curl
+curl -s -X POST http://localhost:3000/api/chat \
+  -H "Content-Type: application/json" \
+  -d '{"messages": [{"role": "user", "content": "show me mystery books"}]}'
+```
 
 ### AI Features
 

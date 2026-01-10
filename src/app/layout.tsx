@@ -4,6 +4,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Header } from "@/components/header";
 import { Toaster } from "@/components/ui/sonner";
+import { ChatWidget } from "@/components/chat";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -40,6 +41,7 @@ export default function RootLayout({
             {children}
           </main>
           <Toaster />
+          <ChatWidget />
         </ThemeProvider>
       </body>
     </html>
