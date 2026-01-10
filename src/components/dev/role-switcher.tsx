@@ -81,18 +81,17 @@ export function RoleSwitcher() {
         <Button
           variant="outline"
           size="sm"
-          className="gap-2 border-dashed border-fuchsia-500/50 bg-fuchsia-500/10"
+          className="gap-2"
           disabled={loading}
         >
           <Shield className={`h-4 w-4 ${roleInfo.color}`} />
-          <span className="hidden sm:inline">DEV:</span>
           <span className={roleInfo.color}>{roleInfo.label}</span>
           <ChevronDown className="h-3 w-3" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-64">
         <DropdownMenuLabel className="text-xs text-muted-foreground">
-          Switch Role (Dev Only)
+          Switch Role (Demo)
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         {(Object.keys(ROLE_INFO) as UserRole[]).map((role) => {
