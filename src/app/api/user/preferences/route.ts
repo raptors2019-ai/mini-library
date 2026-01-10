@@ -1,13 +1,11 @@
-import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
+import { requireAuth, isErrorResponse, jsonError, jsonSuccess } from '@/lib/api-utils'
 
-export async function GET() {
-  const supabase = await createClient()
+export async function GET(): Promise<NextResponse> {
+  const auth = await requireAuth()
+  if (isErrorResponse(auth)) return auth
 
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  const { user, supabase } = auth
 
   const { data: preferences, error } = await supabase
     .from('user_preferences')
@@ -15,21 +13,19 @@ export async function GET() {
     .eq('user_id', user.id)
     .single()
 
+  // PGRST116 means no rows found - that's okay
   if (error && error.code !== 'PGRST116') {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return jsonError(error.message, 500)
   }
 
-  return NextResponse.json({ preferences: preferences || null })
+  return jsonSuccess({ preferences: preferences || null })
 }
 
-export async function PUT(request: NextRequest) {
-  const supabase = await createClient()
+export async function PUT(request: NextRequest): Promise<NextResponse> {
+  const auth = await requireAuth()
+  if (isErrorResponse(auth)) return auth
 
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-
+  const { user, supabase } = auth
   const body = await request.json()
   const {
     favorite_genres,
@@ -46,29 +42,30 @@ export async function PUT(request: NextRequest) {
     .eq('user_id', user.id)
     .single()
 
+  const updates = {
+    favorite_genres,
+    disliked_genres,
+    preferred_length,
+    reading_moods,
+    onboarding_completed,
+  }
+
   if (existing) {
-    // Update existing
     const { data, error } = await supabase
       .from('user_preferences')
-      .update({
-        favorite_genres,
-        disliked_genres,
-        preferred_length,
-        reading_moods,
-        onboarding_completed,
-      })
+      .update(updates)
       .eq('user_id', user.id)
       .select()
       .single()
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 })
+      return jsonError(error.message, 500)
     }
 
-    return NextResponse.json({ preferences: data })
+    return jsonSuccess({ preferences: data })
   }
 
-  // Create new
+  // Create new with defaults
   const { data, error } = await supabase
     .from('user_preferences')
     .insert({
@@ -83,8 +80,8 @@ export async function PUT(request: NextRequest) {
     .single()
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return jsonError(error.message, 500)
   }
 
-  return NextResponse.json({ preferences: data }, { status: 201 })
+  return jsonSuccess({ preferences: data }, 201)
 }

@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { getBooksWithCovers } from '@/lib/google-books'
-import { getHardcoverBookData, getHardcoverBookByTitleAuthor } from '@/lib/hardcover'
+import { findHardcoverBook } from '@/lib/hardcover'
 import { NextRequest, NextResponse } from 'next/server'
 
 export const revalidate = 3600 // Cache for 1 hour
@@ -27,18 +27,10 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   }
 
   // Fetch Hardcover ratings for each book (with parallelization)
-  // Try ISBN first, then fall back to title/author search
   const booksWithRatings = await Promise.all(
     books.map(async (book) => {
       try {
-        // Try ISBN first if available
-        let hardcoverData = book.isbn ? await getHardcoverBookData(book.isbn) : null
-
-        // Fallback to title/author search if ISBN lookup failed
-        if (!hardcoverData && book.title && book.author) {
-          hardcoverData = await getHardcoverBookByTitleAuthor(book.title, book.author)
-        }
-
+        const hardcoverData = await findHardcoverBook(book)
         return {
           ...book,
           hardcover_rating: hardcoverData?.rating || null,

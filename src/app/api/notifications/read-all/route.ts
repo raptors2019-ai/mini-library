@@ -1,13 +1,11 @@
-import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
+import { requireAuth, isErrorResponse, jsonError, jsonSuccess } from '@/lib/api-utils'
 
 export async function PUT(): Promise<NextResponse> {
-  const supabase = await createClient()
+  const auth = await requireAuth()
+  if (isErrorResponse(auth)) return auth
 
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  const { user, supabase } = auth
 
   const { error } = await supabase
     .from('notifications')
@@ -16,8 +14,8 @@ export async function PUT(): Promise<NextResponse> {
     .eq('read', false)
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return jsonError(error.message, 500)
   }
 
-  return NextResponse.json({ success: true })
+  return jsonSuccess({ success: true })
 }

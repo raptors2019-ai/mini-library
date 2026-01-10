@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
-import { isAdminRole } from '@/lib/constants'
+import { requireAdmin, isErrorResponse, jsonError, jsonSuccess } from '@/lib/api-utils'
 
 interface RouteParams {
   params: Promise<{ id: string }>
@@ -20,7 +20,7 @@ export async function GET(
     .single()
 
   if (error || !book) {
-    return NextResponse.json({ error: 'Book not found' }, { status: 404 })
+    return jsonError('Book not found', 404)
   }
 
   // Get current checkout if exists
@@ -38,10 +38,10 @@ export async function GET(
     .eq('book_id', id)
     .eq('status', 'waiting')
 
-  return NextResponse.json({
+  return jsonSuccess({
     ...(book as Record<string, unknown>),
     current_checkout: checkout || null,
-    waitlist_count: waitlistCount || 0
+    waitlist_count: waitlistCount || 0,
   })
 }
 
@@ -50,23 +50,10 @@ export async function PATCH(
   { params }: RouteParams
 ): Promise<NextResponse> {
   const { id } = await params
-  const supabase = await createClient()
+  const auth = await requireAdmin()
+  if (isErrorResponse(auth)) return auth
 
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .single()
-
-  if (!isAdminRole(profile?.role)) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-  }
-
+  const { supabase } = auth
   const body = await request.json()
 
   const { data: updatedBook, error } = await supabase
@@ -87,10 +74,10 @@ export async function PATCH(
     .single()
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return jsonError(error.message, 500)
   }
 
-  return NextResponse.json(updatedBook)
+  return jsonSuccess(updatedBook)
 }
 
 export async function DELETE(
@@ -98,21 +85,14 @@ export async function DELETE(
   { params }: RouteParams
 ): Promise<NextResponse> {
   const { id } = await params
-  const supabase = await createClient()
+  const auth = await requireAdmin()
+  if (isErrorResponse(auth)) return auth
 
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  const { supabase, profile } = auth
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .single()
-
-  if (!profile || profile.role !== 'admin') {
-    return NextResponse.json({ error: 'Forbidden - Admin only' }, { status: 403 })
+  // Only full admin can delete (not librarian)
+  if (profile.role !== 'admin') {
+    return jsonError('Forbidden - Admin only', 403)
   }
 
   const { error } = await supabase
@@ -121,8 +101,8 @@ export async function DELETE(
     .eq('id', id)
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return jsonError(error.message, 500)
   }
 
-  return NextResponse.json({ success: true })
+  return jsonSuccess({ success: true })
 }

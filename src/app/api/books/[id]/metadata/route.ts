@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { getBookMetadata } from '@/lib/google-books'
-import { getHardcoverBookData, getHardcoverReviews } from '@/lib/hardcover'
+import { findHardcoverBook, getHardcoverReviews } from '@/lib/hardcover'
 import { NextRequest, NextResponse } from 'next/server'
 
 interface RouteParams {
@@ -19,10 +19,10 @@ export async function GET(
   const { id } = await params
   const supabase = await createClient()
 
-  // Get the book's ISBN from database
+  // Get the book's ISBN, title, and author from database
   const { data: book, error } = await supabase
     .from('books')
-    .select('isbn')
+    .select('isbn, title, author')
     .eq('id', id)
     .single()
 
@@ -30,18 +30,11 @@ export async function GET(
     return NextResponse.json({ error: 'Book not found' }, { status: 404 })
   }
 
-  if (!book.isbn) {
-    return NextResponse.json({
-      metadata: null,
-      reason: 'No ISBN available'
-    })
-  }
+  // Fetch Google Books data if ISBN available
+  const googleData = book.isbn ? await getBookMetadata(book.isbn) : null
 
-  // Fetch from both sources in parallel
-  const [hardcoverData, googleData] = await Promise.all([
-    getHardcoverBookData(book.isbn),
-    getBookMetadata(book.isbn)
-  ])
+  // Find on Hardcover (tries ISBN first, then title/author)
+  const hardcoverData = await findHardcoverBook(book)
 
   // If we found the book on Hardcover, also fetch reviews
   let reviews = null

@@ -1,5 +1,5 @@
-import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
+import { requireAuth, isErrorResponse, jsonError, jsonSuccess } from '@/lib/api-utils'
 
 interface RouteParams {
   params: Promise<{ bookId: string }>
@@ -10,12 +10,10 @@ export async function DELETE(
   { params }: RouteParams
 ): Promise<NextResponse> {
   const { bookId } = await params
-  const supabase = await createClient()
+  const auth = await requireAuth()
+  if (isErrorResponse(auth)) return auth
 
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  const { user, supabase } = auth
 
   const { error } = await supabase
     .from('waitlist')
@@ -25,8 +23,8 @@ export async function DELETE(
     .eq('status', 'waiting')
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return jsonError(error.message, 500)
   }
 
-  return NextResponse.json({ success: true })
+  return jsonSuccess({ success: true })
 }

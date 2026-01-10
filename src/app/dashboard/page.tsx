@@ -166,10 +166,7 @@ export default async function DashboardPage() {
         <DashboardActions checkouts={data.checkouts} />
 
         {/* Notifications */}
-        <NotificationsPanel
-          notifications={data.notifications}
-          unreadCount={data.stats.unreadNotifications}
-        />
+        <NotificationsPanel notifications={data.notifications} />
       </div>
 
       {/* Waitlist */}

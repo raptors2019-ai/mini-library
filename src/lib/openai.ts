@@ -1,12 +1,19 @@
 import OpenAI from 'openai'
 
-function getOpenAIClient() {
-  if (!process.env.OPENAI_API_KEY) {
-    throw new Error('OPENAI_API_KEY environment variable is not set')
+let openaiClient: OpenAI | null = null
+
+/**
+ * Get the OpenAI client singleton
+ * Throws if OPENAI_API_KEY is not set
+ */
+export function getOpenAIClient(): OpenAI {
+  if (!openaiClient) {
+    if (!process.env.OPENAI_API_KEY) {
+      throw new Error('OPENAI_API_KEY environment variable is not set')
+    }
+    openaiClient = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
   }
-  return new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-  })
+  return openaiClient
 }
 
 /**

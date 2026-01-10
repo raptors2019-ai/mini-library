@@ -1,18 +1,11 @@
 import { NextRequest } from 'next/server'
-import OpenAI from 'openai'
 import { createClient } from '@/lib/supabase/server'
+import { getOpenAIClient } from '@/lib/openai'
 import { chatTools } from '@/lib/chat/tools'
 import { getSystemPrompt } from '@/lib/chat/system-prompt'
 import { executeTool } from '@/lib/chat/execute-tool'
 import type { ChatRequest, StreamChunk } from '@/lib/chat/types'
 import type { ChatCompletionMessageParam } from 'openai/resources/chat/completions'
-
-function getOpenAIClient() {
-  if (!process.env.OPENAI_API_KEY) {
-    throw new Error('OPENAI_API_KEY environment variable is not set')
-  }
-  return new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
-}
 
 const MAX_TOOL_ROUNDS = 5 // Prevent infinite loops
 

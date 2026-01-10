@@ -1,14 +1,11 @@
-import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
+import { requireAuth, isErrorResponse, jsonError, jsonSuccess } from '@/lib/api-utils'
 
-export async function GET(request: NextRequest) {
-  const supabase = await createClient()
+export async function GET(request: NextRequest): Promise<NextResponse> {
+  const auth = await requireAuth()
+  if (isErrorResponse(auth)) return auth
 
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-
+  const { user, supabase } = auth
   const { searchParams } = new URL(request.url)
   const status = searchParams.get('status')
   const limit = parseInt(searchParams.get('limit') || '50')
@@ -27,25 +24,22 @@ export async function GET(request: NextRequest) {
   const { data: userBooks, error } = await query
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return jsonError(error.message, 500)
   }
 
-  return NextResponse.json({ userBooks })
+  return jsonSuccess({ userBooks })
 }
 
-export async function POST(request: NextRequest) {
-  const supabase = await createClient()
+export async function POST(request: NextRequest): Promise<NextResponse> {
+  const auth = await requireAuth()
+  if (isErrorResponse(auth)) return auth
 
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-
+  const { user, supabase } = auth
   const body = await request.json()
   const { book_id, status = 'read', rating, review, date_started, date_finished } = body
 
   if (!book_id) {
-    return NextResponse.json({ error: 'Book ID required' }, { status: 400 })
+    return jsonError('Book ID required', 400)
   }
 
   // Check if already exists
@@ -66,10 +60,10 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 })
+      return jsonError(error.message, 500)
     }
 
-    return NextResponse.json({ userBook: data })
+    return jsonSuccess({ userBook: data })
   }
 
   // Create new entry
@@ -88,25 +82,22 @@ export async function POST(request: NextRequest) {
     .single()
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return jsonError(error.message, 500)
   }
 
-  return NextResponse.json({ userBook: data }, { status: 201 })
+  return jsonSuccess({ userBook: data }, 201)
 }
 
-export async function DELETE(request: NextRequest) {
-  const supabase = await createClient()
+export async function DELETE(request: NextRequest): Promise<NextResponse> {
+  const auth = await requireAuth()
+  if (isErrorResponse(auth)) return auth
 
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-
+  const { user, supabase } = auth
   const { searchParams } = new URL(request.url)
   const bookId = searchParams.get('book_id')
 
   if (!bookId) {
-    return NextResponse.json({ error: 'Book ID required' }, { status: 400 })
+    return jsonError('Book ID required', 400)
   }
 
   const { error } = await supabase
@@ -116,8 +107,8 @@ export async function DELETE(request: NextRequest) {
     .eq('book_id', bookId)
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return jsonError(error.message, 500)
   }
 
-  return NextResponse.json({ success: true })
+  return jsonSuccess({ success: true })
 }

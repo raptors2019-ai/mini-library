@@ -54,6 +54,22 @@ interface HardcoverSearchResponse {
 }
 
 /**
+ * Transform a Hardcover document to HardcoverBookData
+ */
+function toBookData(doc: HardcoverDocument): HardcoverBookData {
+  return {
+    id: parseInt(doc.id),
+    title: doc.title,
+    slug: doc.slug,
+    rating: doc.rating,
+    ratingsCount: doc.ratings_count || 0,
+    reviewsCount: doc.reviews_count || 0,
+    usersReadCount: doc.users_read_count || 0,
+    hardcoverUrl: `https://hardcover.app/books/${doc.slug}`,
+  }
+}
+
+/**
  * Search for a book on Hardcover by ISBN and return ratings/reviews data
  * @param isbn - The book's ISBN (10 or 13 digit)
  * @returns Book data with ratings or null if not found
@@ -118,18 +134,114 @@ export async function getHardcoverBookData(isbn: string): Promise<HardcoverBookD
       return null
     }
 
-    return {
-      id: parseInt(book.id),
-      title: book.title,
-      slug: book.slug,
-      rating: book.rating,
-      ratingsCount: book.ratings_count || 0,
-      reviewsCount: book.reviews_count || 0,
-      usersReadCount: book.users_read_count || 0,
-      hardcoverUrl: `https://hardcover.app/books/${book.slug}`,
-    }
+    return toBookData(book)
   } catch (error) {
     console.error('Failed to fetch from Hardcover:', error)
+    return null
+  }
+}
+
+/**
+ * Find book data on Hardcover using ISBN first, then falling back to title/author
+ * This is the recommended entry point for looking up any book
+ * @param book - Object with isbn, title, and author properties
+ * @returns Book data with ratings or null if not found
+ */
+export async function findHardcoverBook(book: {
+  isbn?: string | null
+  title?: string | null
+  author?: string | null
+}): Promise<HardcoverBookData | null> {
+  // Try ISBN first if available
+  if (book.isbn) {
+    const byIsbn = await getHardcoverBookData(book.isbn)
+    if (byIsbn) return byIsbn
+  }
+
+  // Fall back to title/author search
+  if (book.title && book.author) {
+    return getHardcoverBookByTitleAuthor(book.title, book.author)
+  }
+
+  return null
+}
+
+/**
+ * Search for a book on Hardcover by title and author (fallback when ISBN doesn't match)
+ * @param title - The book's title
+ * @param author - The book's author
+ * @returns Book data with ratings or null if not found
+ */
+export async function getHardcoverBookByTitleAuthor(
+  title: string,
+  author: string
+): Promise<HardcoverBookData | null> {
+  const apiToken = process.env.HARDCOVER_API_TOKEN
+
+  if (!apiToken) {
+    return null
+  }
+
+  // Search by "title author" to improve match accuracy
+  const searchQuery = `${title} ${author}`.replace(/"/g, '\\"')
+
+  const query = `
+    query SearchByTitle {
+      search(
+        query: "${searchQuery}",
+        query_type: "Book",
+        per_page: 5,
+        page: 1
+      ) {
+        results
+      }
+    }
+  `
+
+  try {
+    const response = await fetch(HARDCOVER_API, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiToken}`,
+      },
+      body: JSON.stringify({ query }),
+      next: { revalidate: 86400 }
+    })
+
+    if (!response.ok) return null
+
+    const data: HardcoverSearchResponse = await response.json()
+
+    if (data.errors) return null
+
+    const hits = data.data?.search?.results?.hits
+    if (!hits || hits.length === 0) return null
+
+    // Find the best match - prioritize exact title match, then shortest title containing our title
+    const normalizedTitle = title.toLowerCase().trim()
+
+    // First, look for exact title match
+    const exactMatch = hits.find(hit =>
+      hit.document.title.toLowerCase().trim() === normalizedTitle
+    )
+    if (exactMatch) {
+      return toBookData(exactMatch.document)
+    }
+
+    // Otherwise, find the shortest title that contains our search (likely the main book, not reviews/adaptations)
+    const matchingHits = hits.filter(hit => {
+      const hitTitle = hit.document.title.toLowerCase()
+      return hitTitle.includes(normalizedTitle) || normalizedTitle.includes(hitTitle)
+    })
+
+    // Sort by title length (shorter = more likely to be the main book)
+    const bestMatch = matchingHits.length > 0
+      ? matchingHits.sort((a, b) => a.document.title.length - b.document.title.length)[0]
+      : hits[0]
+
+    return toBookData(bestMatch.document)
+  } catch {
     return null
   }
 }
@@ -177,16 +289,16 @@ export async function getHardcoverBookById(bookId: number): Promise<HardcoverBoo
 
     if (!book) return null
 
-    return {
-      id: book.id,
+    // Convert to document format for toBookData
+    return toBookData({
+      id: String(book.id),
       title: book.title,
       slug: book.slug,
       rating: book.rating,
-      ratingsCount: book.ratings_count || 0,
-      reviewsCount: book.reviews_count || 0,
-      usersReadCount: book.users_read_count || 0,
-      hardcoverUrl: `https://hardcover.app/books/${book.slug}`,
-    }
+      ratings_count: book.ratings_count || 0,
+      reviews_count: book.reviews_count || 0,
+      users_read_count: book.users_read_count || 0,
+    })
   } catch {
     return null
   }

@@ -1,6 +1,6 @@
 'use client'
 
-import { Users, MessageSquare } from 'lucide-react'
+import { Users } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 
 interface CommunityStatsProps {

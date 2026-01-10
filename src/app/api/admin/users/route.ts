@@ -1,32 +1,22 @@
-import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
-import { isAdminRole } from '@/lib/constants'
+import {
+  requireAdmin,
+  isErrorResponse,
+  getPaginationParams,
+  createPaginationResponse,
+  jsonError,
+  jsonSuccess,
+} from '@/lib/api-utils'
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
-  const supabase = await createClient()
+  const auth = await requireAdmin()
+  if (isErrorResponse(auth)) return auth
 
-  // Check if user is admin
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .single()
-
-  if (!isAdminRole(profile?.role)) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-  }
-
+  const { supabase } = auth
   const { searchParams } = new URL(request.url)
   const search = searchParams.get('search')
   const role = searchParams.get('role')
-  const page = parseInt(searchParams.get('page') || '1')
-  const limit = parseInt(searchParams.get('limit') || '20')
-  const offset = (page - 1) * limit
+  const { page, limit, offset } = getPaginationParams(searchParams)
 
   let query = supabase
     .from('profiles')
@@ -46,16 +36,11 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   const { data: users, error, count } = await query
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return jsonError(error.message, 500)
   }
 
-  return NextResponse.json({
+  return jsonSuccess({
     users,
-    pagination: {
-      page,
-      limit,
-      total: count || 0,
-      totalPages: Math.ceil((count || 0) / limit)
-    }
+    pagination: createPaginationResponse(page, limit, count || 0),
   })
 }

@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Book, Search, LayoutDashboard, Settings, LogIn, LogOut, User, Menu } from "lucide-react"
+import { Search, Library, Settings, LogIn, LogOut, User, Menu, LayoutDashboard, type LucideIcon } from "lucide-react"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { NotificationBell } from "@/components/notification-bell"
 import { RoleSwitcher } from "@/components/dev/role-switcher"
@@ -26,7 +26,56 @@ import { createClient } from "@/lib/supabase/client"
 import { useEffect, useState } from "react"
 import type { Profile } from "@/types/database"
 
-export function Header() {
+interface NavItem {
+  href: string
+  label: string
+  icon: LucideIcon
+}
+
+interface NavLinkProps {
+  item: NavItem
+  pathname: string
+  variant: "desktop" | "mobile"
+  onNavigate?: () => void
+}
+
+function NavLink({ item, pathname, variant, onNavigate }: NavLinkProps): React.ReactNode {
+  const isActive = pathname === item.href || pathname.startsWith(item.href + "/")
+  const Icon = item.icon
+
+  if (variant === "mobile") {
+    return (
+      <Link
+        href={item.href}
+        onClick={onNavigate}
+        className={`flex items-center gap-3 px-3 py-3 min-h-[44px] rounded-md transition-colors hover:bg-hover-muted hover:text-hover ${
+          isActive ? "text-primary bg-primary/10" : "text-foreground/60"
+        }`}
+      >
+        <Icon className="h-5 w-5" />
+        <span className="text-base">{item.label}</span>
+      </Link>
+    )
+  }
+
+  return (
+    <Link
+      href={item.href}
+      className={`flex items-center space-x-1 px-3 py-2 rounded-md transition-colors hover:bg-hover-muted hover:text-hover ${
+        isActive ? "text-primary bg-primary/10" : "text-foreground/60"
+      }`}
+    >
+      <Icon className="h-4 w-4" />
+      <span>{item.label}</span>
+    </Link>
+  )
+}
+
+function getAvatarInitial(profile: Profile): string {
+  return profile.full_name?.charAt(0) || profile.email.charAt(0).toUpperCase()
+}
+
+export function Header(): React.ReactNode {
   const pathname = usePathname()
   const [user, setUser] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
@@ -34,28 +83,27 @@ export function Header() {
   const supabase = createClient()
 
   useEffect(() => {
-    async function getUser() {
+    async function fetchProfile(userId: string): Promise<void> {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single()
+      setUser(profile)
+    }
+
+    async function getUser(): Promise<void> {
       const { data: { user: authUser } } = await supabase.auth.getUser()
       if (authUser) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', authUser.id)
-          .single()
-        setUser(profile)
+        await fetchProfile(authUser.id)
       }
       setLoading(false)
     }
     getUser()
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (session?.user) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', session.user.id)
-          .single()
-        setUser(profile)
+        await fetchProfile(session.user.id)
       } else {
         setUser(null)
       }
@@ -64,19 +112,22 @@ export function Header() {
     return () => subscription.unsubscribe()
   }, [supabase])
 
-  const handleSignOut = async () => {
+  async function handleSignOut(): Promise<void> {
     await supabase.auth.signOut()
     window.location.href = '/'
   }
 
   const isAdmin = user?.role === 'admin' || user?.role === 'librarian'
 
+  // Home link goes to dashboard when logged in, otherwise to landing page
+  const homeHref = user ? "/dashboard" : "/"
+
   const navItems = [
-    { href: "/books", label: "Browse", icon: Book },
+    { href: "/books", label: "Library", icon: Library },
     { href: "/search", label: "Search", icon: Search },
   ]
 
-  // Build full nav items including conditional ones
+  // Build full nav items including conditional ones (Dashboard in mobile menu only)
   const allNavItems = [
     ...navItems,
     ...(user ? [{ href: "/dashboard", label: "Dashboard", icon: LayoutDashboard }] : []),
@@ -98,25 +149,19 @@ export function Header() {
             <SheetContent side="left" className="w-[280px] sm:w-[320px]">
               <SheetHeader>
                 <SheetTitle className="flex items-center gap-2">
-                  <Book className="h-5 w-5" />
+                  <Library className="h-5 w-5" />
                   Library
                 </SheetTitle>
               </SheetHeader>
               <nav className="flex flex-col gap-1 mt-6">
                 {allNavItems.map((item) => (
-                  <Link
+                  <NavLink
                     key={item.href}
-                    href={item.href}
-                    onClick={() => setMobileMenuOpen(false)}
-                    className={`flex items-center gap-3 px-3 py-3 min-h-[44px] rounded-md transition-colors hover:bg-hover-muted hover:text-hover ${
-                      pathname === item.href || pathname.startsWith(item.href + "/")
-                        ? "text-primary bg-primary/10"
-                        : "text-foreground/60"
-                    }`}
-                  >
-                    <item.icon className="h-5 w-5" />
-                    <span className="text-base">{item.label}</span>
-                  </Link>
+                    item={item}
+                    pathname={pathname}
+                    variant="mobile"
+                    onNavigate={() => setMobileMenuOpen(false)}
+                  />
                 ))}
               </nav>
               {/* Mobile menu footer with user info or sign in */}
@@ -126,7 +171,7 @@ export function Header() {
                     <Avatar className="h-10 w-10">
                       <AvatarImage src={user.avatar_url || undefined} alt={user.full_name || ""} />
                       <AvatarFallback>
-                        {user.full_name?.charAt(0) || user.email.charAt(0).toUpperCase()}
+                        {getAvatarInitial(user)}
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex flex-col min-w-0">
@@ -149,52 +194,22 @@ export function Header() {
           </Sheet>
         </div>
 
-        <Link href="/" className="mr-2 md:mr-6 flex items-center space-x-2">
-          <Book className="h-6 w-6" />
+        <Link href={homeHref} className="mr-2 md:mr-6 flex items-center space-x-2">
+          <Library className="h-6 w-6" />
           <span className="font-bold hidden sm:inline">Library</span>
         </Link>
 
         {/* Desktop nav - hidden on mobile */}
         <nav className="hidden md:flex items-center space-x-1 text-sm font-medium">
           {navItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`flex items-center space-x-1 px-3 py-2 rounded-md transition-colors hover:bg-hover-muted hover:text-hover ${
-                pathname === item.href
-                  ? "text-primary bg-primary/10"
-                  : "text-foreground/60"
-              }`}
-            >
-              <item.icon className="h-4 w-4" />
-              <span>{item.label}</span>
-            </Link>
+            <NavLink key={item.href} item={item} pathname={pathname} variant="desktop" />
           ))}
-          {user && (
-            <Link
-              href="/dashboard"
-              className={`flex items-center space-x-1 px-3 py-2 rounded-md transition-colors hover:bg-hover-muted hover:text-hover ${
-                pathname.startsWith("/dashboard")
-                  ? "text-primary bg-primary/10"
-                  : "text-foreground/60"
-              }`}
-            >
-              <LayoutDashboard className="h-4 w-4" />
-              <span>Dashboard</span>
-            </Link>
-          )}
           {isAdmin && (
-            <Link
-              href="/admin"
-              className={`flex items-center space-x-1 px-3 py-2 rounded-md transition-colors hover:bg-hover-muted hover:text-hover ${
-                pathname.startsWith("/admin")
-                  ? "text-primary bg-primary/10"
-                  : "text-foreground/60"
-              }`}
-            >
-              <Settings className="h-4 w-4" />
-              <span>Admin</span>
-            </Link>
+            <NavLink
+              item={{ href: "/admin", label: "Admin", icon: Settings }}
+              pathname={pathname}
+              variant="desktop"
+            />
           )}
         </nav>
 
@@ -213,7 +228,7 @@ export function Header() {
                   <Avatar className="h-8 w-8">
                     <AvatarImage src={user.avatar_url || undefined} alt={user.full_name || ""} />
                     <AvatarFallback>
-                      {user.full_name?.charAt(0) || user.email.charAt(0).toUpperCase()}
+                      {getAvatarInitial(user)}
                     </AvatarFallback>
                   </Avatar>
                 </Button>

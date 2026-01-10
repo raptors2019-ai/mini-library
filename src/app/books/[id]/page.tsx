@@ -61,17 +61,6 @@ export default async function BookDetailPage({ params }: BookDetailPageProps) {
     .eq('book_id', id)
     .eq('status', 'waiting')
 
-  // Get community stats (reader count and review count)
-  const { count: readerCount } = await supabase
-    .from('user_books')
-    .select('*', { count: 'exact', head: true })
-    .eq('book_id', id)
-
-  const { count: reviewCount } = await supabase
-    .from('user_books')
-    .select('*', { count: 'exact', head: true })
-    .eq('book_id', id)
-    .not('review', 'is', null)
 
   // Get current user and their role
   const { data: { user } } = await supabase.auth.getUser()

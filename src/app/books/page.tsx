@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import { Suspense } from 'react'
 import { getBooksWithCovers } from '@/lib/google-books'
-import { getHardcoverBookData, getHardcoverBookByTitleAuthor } from '@/lib/hardcover'
+import { findHardcoverBook } from '@/lib/hardcover'
 
 interface BooksPageProps {
   searchParams: Promise<{
@@ -46,30 +46,22 @@ async function getTrendingBooks() {
 async function getTopRatedBooks() {
   const supabase = await createClient()
 
-  // Get all active books - we'll search Hardcover by ISBN or title/author
+  // Get all active books
   const { data: books } = await supabase
     .from('books')
     .select('id, isbn, title, author, status, cover_url, genres')
     .neq('status', 'inactive')
-    .limit(30) // Fetch more to allow for sorting after getting Hardcover data
+    .limit(30)
 
   if (!books || books.length === 0) {
     return []
   }
 
   // Fetch Hardcover ratings for each book (with parallelization)
-  // Try ISBN first, then fall back to title/author search
   const booksWithRatings = await Promise.all(
     books.map(async (book) => {
       try {
-        // Try ISBN first if available
-        let hardcoverData = book.isbn ? await getHardcoverBookData(book.isbn) : null
-
-        // Fallback to title/author search if ISBN lookup failed
-        if (!hardcoverData && book.title && book.author) {
-          hardcoverData = await getHardcoverBookByTitleAuthor(book.title, book.author)
-        }
-
+        const hardcoverData = await findHardcoverBook(book)
         return {
           ...book,
           hardcover_rating: hardcoverData?.rating || null,
@@ -86,9 +78,8 @@ async function getTopRatedBooks() {
     .filter(book => book.hardcover_rating !== null && book.hardcover_rating > 0)
     .sort((a, b) => {
       // Sort by rating first, then by number of ratings
-      if ((b.hardcover_rating || 0) !== (a.hardcover_rating || 0)) {
-        return (b.hardcover_rating || 0) - (a.hardcover_rating || 0)
-      }
+      const ratingDiff = (b.hardcover_rating || 0) - (a.hardcover_rating || 0)
+      if (ratingDiff !== 0) return ratingDiff
       return (b.hardcover_ratings_count || 0) - (a.hardcover_ratings_count || 0)
     })
     .slice(0, 10)

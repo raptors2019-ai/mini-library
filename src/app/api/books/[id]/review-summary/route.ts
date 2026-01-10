@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
-import { getHardcoverBookData, getHardcoverBookByTitleAuthor, getHardcoverReviews } from '@/lib/hardcover'
+import { findHardcoverBook, getHardcoverReviews } from '@/lib/hardcover'
 import { generateReviewSummary } from '@/lib/openai'
 import { NextRequest, NextResponse } from 'next/server'
 
@@ -47,13 +47,8 @@ export async function GET(
     })
   }
 
-  // Try to find on Hardcover - first by ISBN, then by title/author
-  let hardcoverData = book.isbn ? await getHardcoverBookData(book.isbn) : null
-
-  // Fallback to title/author search if ISBN search failed
-  if (!hardcoverData && book.title && book.author) {
-    hardcoverData = await getHardcoverBookByTitleAuthor(book.title, book.author)
-  }
+  // Find on Hardcover (tries ISBN first, then title/author)
+  const hardcoverData = await findHardcoverBook(book)
 
   if (!hardcoverData?.slug) {
     return NextResponse.json({

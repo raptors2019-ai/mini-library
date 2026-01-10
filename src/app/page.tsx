@@ -2,7 +2,7 @@ import Link from "next/link"
 import { Book, Search, Sparkles, Clock, Users, LayoutDashboard } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { TrendingCarousel } from "@/components/landing/trending-carousel"
+import { BookCarousel } from "@/components/books/book-carousel"
 import { PersonalizedRecommendations } from "@/components/home/personalized-recommendations"
 import { createClient } from "@/lib/supabase/server"
 import { getBooksWithCovers } from "@/lib/google-books"
@@ -145,7 +145,14 @@ export default async function Home() {
 
       {/* Trending Books Carousel */}
       {trendingBooks.length > 0 && (
-        <TrendingCarousel books={trendingBooks} />
+        <div className="-mx-4 sm:-mx-6 lg:-mx-8">
+          <BookCarousel
+            books={trendingBooks}
+            title="Trending Now"
+            subtitle="Popular picks from our collection"
+            icon="trending"
+          />
+        </div>
       )}
 
       {/* Features Grid */}

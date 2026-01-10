@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Users, Search, ChevronLeft, ChevronRight, Shield, Mail } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -54,7 +54,7 @@ export default function AdminUsersPage() {
   const [total, setTotal] = useState(0)
   const [updatingId, setUpdatingId] = useState<string | null>(null)
 
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     setLoading(true)
     const params = new URLSearchParams({
       page: page.toString(),
@@ -71,16 +71,16 @@ export default function AdminUsersPage() {
       setTotal(data.pagination.total)
     }
     setLoading(false)
-  }
+  }, [page, search, role])
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Data fetching with async setState is valid
     fetchUsers()
-  }, [page, role])
+  }, [fetchUsers])
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
     setPage(1)
-    fetchUsers()
   }
 
   const handleRoleChange = async (userId: string, newRole: UserRole) => {

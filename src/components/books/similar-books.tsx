@@ -1,43 +1,15 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import Link from 'next/link'
 import { Sparkles } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { BookCoverImage } from './book-cover-image'
 import { Badge } from '@/components/ui/badge'
+import { CompactBookCard } from './compact-book-card'
 import type { Book } from '@/types/database'
 
 interface SimilarBooksProps {
   bookId: string
   limit?: number
-}
-
-interface CompactBookCardProps {
-  id: string
-  title: string
-  author: string
-  coverUrl: string | null
-}
-
-function CompactBookCard({ id, title, author, coverUrl }: CompactBookCardProps): React.ReactElement {
-  return (
-    <Link href={`/books/${id}`} className="group space-y-2">
-      <div className="aspect-[2/3] relative bg-muted rounded-lg overflow-hidden">
-        <BookCoverImage
-          src={coverUrl}
-          alt={title}
-          className="group-hover:scale-105 transition-transform duration-200"
-        />
-      </div>
-      <div>
-        <h4 className="font-medium text-sm line-clamp-2 group-hover:text-primary transition-colors">
-          {title}
-        </h4>
-        <p className="text-xs text-muted-foreground line-clamp-1">{author}</p>
-      </div>
-    </Link>
-  )
 }
 
 export function SimilarBooks({ bookId, limit = 5 }: SimilarBooksProps): React.ReactElement | null {

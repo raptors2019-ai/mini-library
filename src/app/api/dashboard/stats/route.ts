@@ -1,14 +1,11 @@
-import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
+import { requireAuth, isErrorResponse, jsonSuccess } from '@/lib/api-utils'
 
-export async function GET() {
-  const supabase = await createClient()
+export async function GET(): Promise<NextResponse> {
+  const auth = await requireAuth()
+  if (isErrorResponse(auth)) return auth
 
-  const { data: { user } } = await supabase.auth.getUser()
-
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  const { user, supabase } = auth
 
   // Get user profile for checkout limit
   const { data: profile } = await supabase
@@ -59,7 +56,7 @@ export async function GET() {
     .eq('user_id', user.id)
     .single()
 
-  return NextResponse.json({
+  return jsonSuccess({
     activeCheckouts: activeCheckouts || 0,
     checkoutLimit: profile?.checkout_limit || 2,
     booksRead: booksRead || 0,

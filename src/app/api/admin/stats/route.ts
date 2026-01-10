@@ -1,24 +1,11 @@
-import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
-import { isAdminRole } from '@/lib/constants'
+import { requireAdmin, isErrorResponse } from '@/lib/api-utils'
 
 export async function GET(): Promise<NextResponse> {
-  const supabase = await createClient()
+  const auth = await requireAdmin()
+  if (isErrorResponse(auth)) return auth
 
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .single()
-
-  if (!isAdminRole(profile?.role)) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-  }
+  const { supabase } = auth
 
   // Get all stats in parallel
   const [

@@ -165,18 +165,19 @@ export function StatsCards({
   booksRead,
   activeCheckouts,
   checkoutLimit,
-  waitlistCount,
+  waitlistCount: _waitlistCount,
   booksRated,
   booksReadList,
   booksRatedList,
   checkoutsList,
   waitlistList,
 }: StatsCardsProps) {
+  void _waitlistCount // Prop exists for interface consistency but we use localWaitlist.length
   const router = useRouter()
   const [expandedCard, setExpandedCard] = useState<string | null>(null)
   const [localWaitlist, setLocalWaitlist] = useState(waitlistList)
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null)
-  const [removingBookId, setRemovingBookId] = useState<string | null>(null)
+  const [, setRemovingBookId] = useState<string | null>(null)
 
   const toggleCard = (cardId: string) => {
     setExpandedCard(expandedCard === cardId ? null : cardId)

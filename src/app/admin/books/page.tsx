@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Book, Plus, Search, Edit, Trash2, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -58,7 +58,7 @@ export default function AdminBooksPage() {
   const [total, setTotal] = useState(0)
   const [enrichingId, setEnrichingId] = useState<string | null>(null)
 
-  const fetchBooks = async () => {
+  const fetchBooks = useCallback(async () => {
     setLoading(true)
     const params = new URLSearchParams({
       page: page.toString(),
@@ -75,16 +75,16 @@ export default function AdminBooksPage() {
       setTotal(data.pagination.total)
     }
     setLoading(false)
-  }
+  }, [page, search, status])
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Data fetching with async setState is valid
     fetchBooks()
-  }, [page, status])
+  }, [fetchBooks])
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
     setPage(1)
-    fetchBooks()
   }
 
   const handleDelete = async (bookId: string) => {

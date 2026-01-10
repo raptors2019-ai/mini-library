@@ -92,26 +92,18 @@ export function NotificationBell() {
     setUnreadCount(0)
   }
 
-  const getNotificationIcon = (type: string) => {
-    switch (type) {
-      case 'checkout_confirmed':
-        return '📚'
-      case 'due_soon':
-        return '⏰'
-      case 'overdue':
-        return '⚠️'
-      case 'waitlist_joined':
-        return '📋'
-      case 'waitlist_available':
-        return '🎉'
-      case 'waitlist_expired':
-        return '😔'
-      case 'book_returned':
-        return '✅'
-      default:
-        return '📢'
-    }
+  const NOTIFICATION_ICONS: Record<string, string> = {
+    checkout_confirmed: '📚',
+    due_soon: '⏰',
+    overdue: '⚠️',
+    waitlist_joined: '📋',
+    waitlist_available: '🎉',
+    waitlist_expired: '😔',
+    book_returned: '✅',
   }
+
+  const getNotificationIcon = (type: string): string =>
+    NOTIFICATION_ICONS[type] ?? '📢'
 
   if (loading) {
     return (

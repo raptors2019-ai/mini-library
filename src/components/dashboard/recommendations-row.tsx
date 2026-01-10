@@ -1,13 +1,13 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import Image from 'next/image'
 import Link from 'next/link'
-import { Sparkles, BookOpen, ChevronRight } from 'lucide-react'
+import { Sparkles, ChevronRight } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
+import { BookCoverImage } from '@/components/books/book-cover-image'
 import type { Book } from '@/types/database'
 
 interface RecommendationsRowProps {
@@ -104,18 +104,12 @@ export function RecommendationsRow({ onboardingCompleted }: RecommendationsRowPr
               className="flex-shrink-0 w-32 group"
             >
               <div className="aspect-[2/3] relative bg-muted rounded-lg overflow-hidden">
-                {book.cover_url ? (
-                  <Image
-                    src={book.cover_url}
-                    alt={book.title}
-                    fill
-                    className="object-cover transition-transform group-hover:scale-105"
-                  />
-                ) : (
-                  <div className="flex items-center justify-center h-full">
-                    <BookOpen className="h-8 w-8 text-muted-foreground/50" />
-                  </div>
-                )}
+                <BookCoverImage
+                  src={book.cover_url}
+                  alt={book.title}
+                  iconSize="sm"
+                  className="transition-transform group-hover:scale-105"
+                />
                 <Badge
                   className={`absolute top-1 right-1 text-xs ${
                     book.status === 'available'

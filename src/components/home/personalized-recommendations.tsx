@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { Sparkles, ChevronRight } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { BookCoverImage } from '@/components/books/book-cover-image'
+import { CompactBookCard } from '@/components/books/compact-book-card'
 import { AddToMyBooksButton } from '@/components/books/add-to-my-books-button'
 import type { Book } from '@/types/database'
 
@@ -92,26 +92,13 @@ export function PersonalizedRecommendations({ favoriteGenres }: PersonalizedReco
 
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4">
         {recommendations.map((book) => (
-          <div key={book.id} className="group space-y-2">
-            <Link href={`/books/${book.id}`}>
-              <div className="aspect-[2/3] relative bg-muted rounded-lg overflow-hidden">
-                <BookCoverImage
-                  src={book.cover_url}
-                  alt={book.title}
-                  className="group-hover:scale-105 transition-transform duration-200"
-                />
-              </div>
-            </Link>
-            <div>
-              <Link href={`/books/${book.id}`}>
-                <h3 className="font-medium text-sm line-clamp-2 group-hover:text-primary transition-colors">
-                  {book.title}
-                </h3>
-              </Link>
-              <p className="text-xs text-muted-foreground line-clamp-1">
-                {book.author}
-              </p>
-            </div>
+          <div key={book.id} className="space-y-2">
+            <CompactBookCard
+              id={book.id}
+              title={book.title}
+              author={book.author}
+              coverUrl={book.cover_url}
+            />
             <AddToMyBooksButton
               bookId={book.id}
               variant="ghost"

@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { ChevronRight, Sparkles } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { BookCoverImage } from '@/components/books/book-cover-image'
+import { CompactBookCard } from '@/components/books/compact-book-card'
 
 interface SourceBook {
   id: string
@@ -115,27 +116,13 @@ export function BecauseYouRead(): React.ReactElement | null {
           <CardContent>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               {rec.similarBooks.map((book) => (
-                <Link
+                <CompactBookCard
                   key={book.id}
-                  href={`/books/${book.id}`}
-                  className="group space-y-2"
-                >
-                  <div className="aspect-[2/3] relative bg-muted rounded-lg overflow-hidden">
-                    <BookCoverImage
-                      src={book.cover_url}
-                      alt={book.title}
-                      className="group-hover:scale-105 transition-transform duration-200"
-                    />
-                  </div>
-                  <div>
-                    <h4 className="font-medium text-sm line-clamp-2 group-hover:text-primary transition-colors">
-                      {book.title}
-                    </h4>
-                    <p className="text-xs text-muted-foreground line-clamp-1">
-                      {book.author}
-                    </p>
-                  </div>
-                </Link>
+                  id={book.id}
+                  title={book.title}
+                  author={book.author}
+                  coverUrl={book.cover_url}
+                />
               ))}
             </div>
           </CardContent>

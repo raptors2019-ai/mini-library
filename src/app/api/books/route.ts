@@ -1,7 +1,14 @@
 import { createClient } from '@/lib/supabase/server'
 import { generateEmbedding, generateBookSummary, generateGenres, createEmbeddingText } from '@/lib/openai'
 import { NextRequest, NextResponse } from 'next/server'
-import { isAdminRole } from '@/lib/constants'
+import {
+  requireAdmin,
+  isErrorResponse,
+  getPaginationParams,
+  createPaginationResponse,
+  jsonError,
+  jsonSuccess,
+} from '@/lib/api-utils'
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
   const supabase = await createClient()
@@ -10,9 +17,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   const status = searchParams.get('status')
   const genre = searchParams.get('genre')
   const search = searchParams.get('search')
-  const page = parseInt(searchParams.get('page') || '1')
-  const limit = parseInt(searchParams.get('limit') || '12')
-  const offset = (page - 1) * limit
+  const { page, limit, offset } = getPaginationParams(searchParams)
 
   let query = supabase
     .from('books')
@@ -38,43 +43,25 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   const { data: books, error, count } = await query
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return jsonError(error.message, 500)
   }
 
-  return NextResponse.json({
+  return jsonSuccess({
     books,
-    pagination: {
-      page,
-      limit,
-      total: count || 0,
-      totalPages: Math.ceil((count || 0) / limit)
-    }
+    pagination: createPaginationResponse(page, limit, count || 0),
   })
 }
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
-  const supabase = await createClient()
+  const auth = await requireAdmin()
+  if (isErrorResponse(auth)) return auth
 
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .single()
-
-  if (!isAdminRole(profile?.role)) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-  }
-
+  const { supabase, user } = auth
   const body = await request.json()
   const { title, author, isbn, description, cover_url, page_count, publish_date, genres, enrich_with_ai } = body
 
   if (!title || !author) {
-    return NextResponse.json({ error: 'Title and author are required' }, { status: 400 })
+    return jsonError('Title and author are required', 400)
   }
 
   let ai_summary: string | null = null
@@ -127,8 +114,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     .single()
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return jsonError(error.message, 500)
   }
 
-  return NextResponse.json(book, { status: 201 })
+  return jsonSuccess(book, 201)
 }

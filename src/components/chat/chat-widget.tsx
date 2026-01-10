@@ -5,19 +5,19 @@ import { ChatBubble } from './chat-bubble'
 import { ChatWindow } from './chat-window'
 import { useChat } from '@/hooks/use-chat'
 
-export function ChatWidget() {
+export function ChatWidget(): React.ReactNode {
   const [isOpen, setIsOpen] = useState(false)
   const [hasBeenOpened, setHasBeenOpened] = useState(false)
   const { messages, isLoading, isSearching, searchQuery, error, sendMessage, clearMessages } = useChat()
 
-  const handleOpen = () => {
+  function handleOpen(): void {
     setIsOpen(true)
-    if (!hasBeenOpened) {
-      setHasBeenOpened(true)
-    }
+    setHasBeenOpened(true)
   }
-  const handleClose = () => setIsOpen(false)
-  const handleMinimize = () => setIsOpen(false)
+
+  function handleClose(): void {
+    setIsOpen(false)
+  }
 
   if (isOpen) {
     return (
@@ -29,7 +29,7 @@ export function ChatWidget() {
         error={error}
         onSend={sendMessage}
         onClear={clearMessages}
-        onMinimize={handleMinimize}
+        onMinimize={handleClose}
         onClose={handleClose}
       />
     )

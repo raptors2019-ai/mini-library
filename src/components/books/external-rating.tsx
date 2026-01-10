@@ -3,7 +3,13 @@
 import { useEffect, useState } from 'react'
 import { Star, ExternalLink, Users, MessageSquare, BookOpen } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { formatCount } from '@/lib/utils'
+import {
+  formatCount,
+  stripHtml,
+  truncateText,
+  formatRelativeTime,
+  getInitials,
+} from '@/lib/utils'
 
 interface HardcoverReview {
   review: string
@@ -30,45 +36,6 @@ interface ExternalMetadata {
 interface ExternalRatingProps {
   bookId: string
   showReviews?: boolean
-}
-
-function stripHtml(html: string): string {
-  return html
-    .replace(/<br\s*\/?>/gi, ' ')
-    .replace(/<\/p>\s*<p>/gi, ' ')
-    .replace(/<[^>]*>/g, '')
-    .replace(/\s+/g, ' ')
-    .trim()
-}
-
-function truncateText(text: string, maxLength: number): string {
-  if (text.length <= maxLength) return text
-  const truncated = text.slice(0, maxLength)
-  const lastSpace = truncated.lastIndexOf(' ')
-  return truncated.slice(0, lastSpace > 0 ? lastSpace : maxLength) + '…'
-}
-
-function formatRelativeTime(dateString: string): string {
-  const date = new Date(dateString)
-  const now = new Date()
-  const diffMs = now.getTime() - date.getTime()
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
-
-  if (diffDays === 0) return 'today'
-  if (diffDays === 1) return 'yesterday'
-  if (diffDays < 7) return `${diffDays}d ago`
-  if (diffDays < 30) return `${Math.floor(diffDays / 7)}w ago`
-  if (diffDays < 365) return `${Math.floor(diffDays / 30)}mo ago`
-  return `${Math.floor(diffDays / 365)}y ago`
-}
-
-function getInitials(name: string | null, username: string | null): string {
-  const displayName = name || username || 'A'
-  const parts = displayName.split(' ')
-  if (parts.length >= 2) {
-    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
-  }
-  return displayName.slice(0, 2).toUpperCase()
 }
 
 // Animated star fill for visual interest
@@ -233,7 +200,7 @@ export function ExternalRating({ bookId, showReviews = true }: ExternalRatingPro
                 >
                   {/* Large decorative quote */}
                   <div className="absolute top-2 left-3 text-5xl font-serif text-primary/10 select-none leading-none">
-                    "
+                    &ldquo;
                   </div>
 
                   <div className="relative pl-6">

@@ -1,14 +1,12 @@
-import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
+import { requireAuth, isErrorResponse, jsonError, jsonSuccess } from '@/lib/api-utils'
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
-  const supabase = await createClient()
-  const { searchParams } = new URL(request.url)
+  const auth = await requireAuth()
+  if (isErrorResponse(auth)) return auth
 
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  const { user, supabase } = auth
+  const { searchParams } = new URL(request.url)
 
   const unreadOnly = searchParams.get('unread') === 'true'
   const limit = parseInt(searchParams.get('limit') || '20')
@@ -28,7 +26,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   const { data: notifications, error, count } = await query
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return jsonError(error.message, 500)
   }
 
   // Get unread count
@@ -38,13 +36,9 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     .eq('user_id', user.id)
     .eq('read', false)
 
-  return NextResponse.json({
+  return jsonSuccess({
     notifications,
     unread_count: unreadCount || 0,
-    pagination: {
-      total: count || 0,
-      limit,
-      offset
-    }
+    pagination: { total: count || 0, limit, offset },
   })
 }

@@ -1,20 +1,23 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
+import {
+  getPaginationParams,
+  createPaginationResponse,
+  jsonError,
+  jsonSuccess,
+} from '@/lib/api-utils'
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
   const supabase = await createClient()
   const { searchParams } = new URL(request.url)
 
   const query = searchParams.get('q')
-  const page = parseInt(searchParams.get('page') || '1')
-  const limit = parseInt(searchParams.get('limit') || '12')
-  const offset = (page - 1) * limit
+  const { page, limit, offset } = getPaginationParams(searchParams)
 
   if (!query) {
-    return NextResponse.json({ error: 'Search query required' }, { status: 400 })
+    return jsonError('Search query required', 400)
   }
 
-  // Full-text search using the GIN index
   const { data: books, error, count } = await supabase
     .from('books')
     .select('*', { count: 'exact' })
@@ -24,17 +27,12 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     .range(offset, offset + limit - 1)
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return jsonError(error.message, 500)
   }
 
-  return NextResponse.json({
+  return jsonSuccess({
     books,
     query,
-    pagination: {
-      page,
-      limit,
-      total: count || 0,
-      totalPages: Math.ceil((count || 0) / limit)
-    }
+    pagination: createPaginationResponse(page, limit, count || 0),
   })
 }

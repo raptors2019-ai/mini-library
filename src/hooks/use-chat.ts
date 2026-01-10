@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, type Dispatch, type SetStateAction } from 'react'
 import type { Book } from '@/types/database'
 import type { ChatMessage, StreamChunk } from '@/lib/chat/types'
 
@@ -12,6 +12,16 @@ interface UseChatReturn {
   error: string | null
   sendMessage: (content: string) => Promise<void>
   clearMessages: () => void
+}
+
+function updateAssistantMessage(
+  setMessages: Dispatch<SetStateAction<ChatMessage[]>>,
+  messageId: string,
+  updates: Partial<ChatMessage>
+): void {
+  setMessages((prev) =>
+    prev.map((m) => (m.id === messageId ? { ...m, ...updates } : m))
+  )
 }
 
 export function useChat(): UseChatReturn {
@@ -41,14 +51,10 @@ export function useChat(): UseChatReturn {
 
     // Create assistant message placeholder
     const assistantMessageId = crypto.randomUUID()
-    const assistantMessage: ChatMessage = {
-      id: assistantMessageId,
-      role: 'assistant',
-      content: '',
-      timestamp: new Date(),
-    }
-
-    setMessages((prev) => [...prev, assistantMessage])
+    setMessages((prev) => [
+      ...prev,
+      { id: assistantMessageId, role: 'assistant', content: '', timestamp: new Date() },
+    ])
 
     try {
       // Prepare messages for API (exclude the empty assistant message)
@@ -91,18 +97,13 @@ export function useChat(): UseChatReturn {
               case 'content':
                 if (chunk.content) {
                   accumulatedContent += chunk.content
-                  setMessages((prev) =>
-                    prev.map((m) =>
-                      m.id === assistantMessageId
-                        ? { ...m, content: accumulatedContent }
-                        : m
-                    )
-                  )
+                  updateAssistantMessage(setMessages, assistantMessageId, {
+                    content: accumulatedContent,
+                  })
                 }
                 break
 
               case 'tool_call':
-                // Show searching indicator with the query
                 if (chunk.toolCall?.name === 'search_books') {
                   setIsSearching(true)
                   const query = chunk.toolCall.arguments?.query as string | undefined
@@ -111,19 +112,13 @@ export function useChat(): UseChatReturn {
                 break
 
               case 'tool_result':
-                // Hide searching indicator when results come back
                 setIsSearching(false)
                 setSearchQuery(null)
-
                 if (chunk.toolResult?.books?.length) {
                   accumulatedBooks = [...accumulatedBooks, ...chunk.toolResult.books]
-                  setMessages((prev) =>
-                    prev.map((m) =>
-                      m.id === assistantMessageId
-                        ? { ...m, books: accumulatedBooks }
-                        : m
-                    )
-                  )
+                  updateAssistantMessage(setMessages, assistantMessageId, {
+                    books: accumulatedBooks,
+                  })
                 }
                 break
 
@@ -135,18 +130,10 @@ export function useChat(): UseChatReturn {
               case 'done':
                 setIsSearching(false)
                 setSearchQuery(null)
-                // Final update with all accumulated data
-                setMessages((prev) =>
-                  prev.map((m) =>
-                    m.id === assistantMessageId
-                      ? {
-                          ...m,
-                          content: accumulatedContent,
-                          books: accumulatedBooks.length > 0 ? accumulatedBooks : undefined,
-                        }
-                      : m
-                  )
-                )
+                updateAssistantMessage(setMessages, assistantMessageId, {
+                  content: accumulatedContent,
+                  books: accumulatedBooks.length > 0 ? accumulatedBooks : undefined,
+                })
                 break
             }
           } catch {

@@ -1,5 +1,5 @@
-import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
+import { requireAuth, isErrorResponse, jsonError, jsonSuccess } from '@/lib/api-utils'
 
 interface RouteParams {
   params: Promise<{ id: string }>
@@ -10,12 +10,10 @@ export async function PUT(
   { params }: RouteParams
 ): Promise<NextResponse> {
   const { id } = await params
-  const supabase = await createClient()
+  const auth = await requireAuth()
+  if (isErrorResponse(auth)) return auth
 
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  const { user, supabase } = auth
 
   const { error } = await supabase
     .from('notifications')
@@ -24,8 +22,8 @@ export async function PUT(
     .eq('user_id', user.id)
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return jsonError(error.message, 500)
   }
 
-  return NextResponse.json({ success: true })
+  return jsonSuccess({ success: true })
 }

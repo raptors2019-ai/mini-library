@@ -1,23 +1,48 @@
 "use client"
 
 import { useState, useRef, useCallback } from "react"
-import { TrendingUp } from "lucide-react"
-import { TrendingBookCard } from "./trending-book-card"
+import { TrendingUp, Star, Sparkles } from "lucide-react"
+import { BookCarouselCard } from "./book-carousel-card"
 import type { BookStatus } from "@/types/database"
 
-interface TrendingBook {
+export interface CarouselBook {
   id: string
   title: string
   author: string
   cover_url: string | null
   status: BookStatus
+  genres?: string[] | null
+  average_rating?: number | null
+  rating_count?: number
+  has_ai_summary?: boolean
 }
 
-interface TrendingCarouselProps {
-  books: TrendingBook[]
+type IconType = "trending" | "star" | "sparkles"
+
+const ICONS = {
+  trending: TrendingUp,
+  star: Star,
+  sparkles: Sparkles,
+} as const
+
+interface BookCarouselProps {
+  books: CarouselBook[]
+  title: string
+  subtitle: string
+  icon: IconType
+  showRating?: boolean
+  showAiBadge?: boolean
 }
 
-export function TrendingCarousel({ books }: TrendingCarouselProps) {
+export function BookCarousel({
+  books,
+  title,
+  subtitle,
+  icon,
+  showRating = false,
+  showAiBadge = false
+}: BookCarouselProps) {
+  const Icon = ICONS[icon]
   const [isPaused, setIsPaused] = useState(false)
   const touchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
@@ -46,15 +71,15 @@ export function TrendingCarousel({ books }: TrendingCarouselProps) {
   const duplicatedBooks = [...books, ...books]
 
   return (
-    <section className="py-12 w-full min-w-0 overflow-hidden">
+    <section className="py-8 w-full min-w-0 overflow-hidden">
       {/* Section Header */}
-      <div className="mb-8 flex items-center justify-center gap-3">
+      <div className="mb-6 flex items-center justify-center gap-3">
         <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-          <TrendingUp className="h-5 w-5 text-primary" />
+          <Icon className="h-5 w-5 text-primary" />
         </div>
         <div className="text-center">
-          <h2 className="text-2xl font-bold tracking-tight">Trending Now</h2>
-          <p className="text-sm text-muted-foreground">Popular picks from our collection</p>
+          <h2 className="text-2xl font-bold tracking-tight">{title}</h2>
+          <p className="text-sm text-muted-foreground">{subtitle}</p>
         </div>
       </div>
 
@@ -75,13 +100,17 @@ export function TrendingCarousel({ books }: TrendingCarouselProps) {
           className={`flex gap-4 px-4 w-fit carousel-animate ${isPaused ? 'carousel-paused' : ''}`}
         >
           {duplicatedBooks.map((book, index) => (
-            <TrendingBookCard
+            <BookCarouselCard
               key={`${book.id}-${index}`}
               id={book.id}
               title={book.title}
               author={book.author}
               coverUrl={book.cover_url}
               status={book.status}
+              genres={book.genres}
+              averageRating={showRating ? book.average_rating : undefined}
+              ratingCount={showRating ? book.rating_count : undefined}
+              showAiBadge={showAiBadge && book.has_ai_summary}
             />
           ))}
         </div>
