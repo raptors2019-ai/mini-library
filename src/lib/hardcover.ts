@@ -7,6 +7,16 @@
 
 const HARDCOVER_API = 'https://api.hardcover.app/v1/graphql'
 
+export interface HardcoverReview {
+  review: string
+  rating: number | null
+  createdAt: string
+  user: {
+    username: string | null
+    name: string | null
+  }
+}
+
 export interface HardcoverBookData {
   id: number
   title: string
@@ -16,22 +26,28 @@ export interface HardcoverBookData {
   reviewsCount: number
   usersReadCount: number
   hardcoverUrl: string
+  reviews?: HardcoverReview[]
 }
 
-interface HardcoverSearchResult {
-  id: number
+interface HardcoverDocument {
+  id: string
   title: string
   slug: string
   rating: number | null
   ratings_count: number
   reviews_count: number
   users_read_count: number
+  isbns?: string[]
 }
 
 interface HardcoverSearchResponse {
   data?: {
     search?: {
-      results: string // JSON string of results
+      results: {
+        hits?: Array<{
+          document: HardcoverDocument
+        }>
+      }
     }
   }
   errors?: Array<{ message: string }>
@@ -89,17 +105,21 @@ export async function getHardcoverBookData(isbn: string): Promise<HardcoverBookD
       return null
     }
 
-    // Parse the results JSON string
-    const resultsJson = data.data?.search?.results
-    if (!resultsJson) return null
+    // Get the first hit from results
+    const hits = data.data?.search?.results?.hits
+    if (!hits || hits.length === 0) return null
 
-    const results: HardcoverSearchResult[] = JSON.parse(resultsJson)
-    if (!results || results.length === 0) return null
+    const book = hits[0].document
 
-    const book = results[0]
+    // Verify the ISBN matches (search can return partial matches)
+    const bookIsbns = book.isbns?.map(i => i.replace(/-/g, '')) || []
+    if (!bookIsbns.includes(cleanIsbn)) {
+      // ISBN doesn't match, likely a false positive from search
+      return null
+    }
 
     return {
-      id: book.id,
+      id: parseInt(book.id),
       title: book.title,
       slug: book.slug,
       rating: book.rating,
@@ -169,5 +189,72 @@ export async function getHardcoverBookById(bookId: number): Promise<HardcoverBoo
     }
   } catch {
     return null
+  }
+}
+
+/**
+ * Get reviews for a book from Hardcover by slug
+ * @param slug - The Hardcover book slug
+ * @param limit - Number of reviews to fetch (default 5)
+ */
+export async function getHardcoverReviews(
+  slug: string,
+  limit: number = 5
+): Promise<HardcoverReview[]> {
+  const apiToken = process.env.HARDCOVER_API_TOKEN
+
+  if (!apiToken) {
+    return []
+  }
+
+  const query = `
+    query GetBookReviews {
+      books(where: {slug: {_eq: "${slug}"}}, limit: 1) {
+        user_books(
+          limit: ${limit},
+          where: {review: {_neq: ""}},
+          order_by: {created_at: desc}
+        ) {
+          review
+          rating
+          created_at
+          user {
+            username
+            name
+          }
+        }
+      }
+    }
+  `
+
+  try {
+    const response = await fetch(HARDCOVER_API, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiToken}`,
+      },
+      body: JSON.stringify({ query }),
+      next: { revalidate: 3600 } // Cache for 1 hour
+    })
+
+    if (!response.ok) return []
+
+    const data = await response.json()
+    const userBooks = data.data?.books?.[0]?.user_books
+
+    if (!userBooks || userBooks.length === 0) return []
+
+    return userBooks.map((ub: { review: string; rating: number | null; created_at: string; user: { username: string | null; name: string | null } }) => ({
+      review: ub.review,
+      rating: ub.rating,
+      createdAt: ub.created_at,
+      user: {
+        username: ub.user?.username || null,
+        name: ub.user?.name || null,
+      },
+    }))
+  } catch {
+    return []
   }
 }

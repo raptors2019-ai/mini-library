@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { getBookMetadata } from '@/lib/google-books'
-import { getHardcoverBookData } from '@/lib/hardcover'
+import { getHardcoverBookData, getHardcoverReviews } from '@/lib/hardcover'
 import { NextRequest, NextResponse } from 'next/server'
 
 interface RouteParams {
@@ -43,6 +43,12 @@ export async function GET(
     getBookMetadata(book.isbn)
   ])
 
+  // If we found the book on Hardcover, also fetch reviews
+  let reviews = null
+  if (hardcoverData?.slug) {
+    reviews = await getHardcoverReviews(hardcoverData.slug, 5)
+  }
+
   // Combine the best data from each source
   const metadata = {
     // Hardcover: ratings and community stats
@@ -51,6 +57,8 @@ export async function GET(
     reviewsCount: hardcoverData?.reviewsCount ?? null,
     usersReadCount: hardcoverData?.usersReadCount ?? null,
     hardcoverUrl: hardcoverData?.hardcoverUrl ?? null,
+    hardcoverSlug: hardcoverData?.slug ?? null,
+    reviews: reviews && reviews.length > 0 ? reviews : null,
 
     // Google Books: preview and publisher
     previewLink: googleData?.previewLink ?? null,

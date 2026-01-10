@@ -3,7 +3,6 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   ArrowLeft,
   Calendar,
@@ -11,7 +10,8 @@ import {
   FileText,
   User,
   Clock,
-  Users
+  Users,
+  Sparkles
 } from 'lucide-react'
 import { CheckoutButton } from '@/components/books/checkout-button'
 import { WaitlistButton } from '@/components/books/waitlist-button'
@@ -22,7 +22,6 @@ import { BookReviews } from '@/components/books/book-reviews'
 import { UserBookForm } from '@/components/books/user-book-form'
 import { WhyYouMightLike } from '@/components/books/why-you-might-like'
 import { ExternalRating } from '@/components/books/external-rating'
-import { CommunityStats } from '@/components/books/community-stats'
 import { ReviewCTA } from '@/components/books/review-cta'
 import { BOOK_STATUS_COLORS, BOOK_STATUS_LABELS, isAdminRole } from '@/lib/constants'
 import { estimateReadingTime } from '@/lib/utils'
@@ -88,7 +87,6 @@ export default async function BookDetailPage({ params }: BookDetailPageProps) {
       .single()
     userRole = profile?.role
 
-    // Check if user is on waitlist for this book
     const { data: waitlistEntry } = await supabase
       .from('waitlist')
       .select('*')
@@ -98,7 +96,6 @@ export default async function BookDetailPage({ params }: BookDetailPageProps) {
       .single()
     userWaitlistEntry = waitlistEntry
 
-    // Check user's active checkouts count
     const { count } = await supabase
       .from('checkouts')
       .select('*', { count: 'exact', head: true })
@@ -106,7 +103,6 @@ export default async function BookDetailPage({ params }: BookDetailPageProps) {
       .eq('status', 'active')
     userActiveCheckout = count || 0
 
-    // Check if user has this book in their reading list
     const { data: userBook } = await supabase
       .from('user_books')
       .select('status, rating, review')
@@ -122,97 +118,158 @@ export default async function BookDetailPage({ params }: BookDetailPageProps) {
   const isAvailable = book.status === 'available'
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex items-center gap-4">
+    <div className="flex flex-col gap-8 pb-12">
+      {/* Navigation */}
+      <div className="flex items-center justify-between">
         <Link href="/books">
-          <Button variant="ghost" size="sm">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Books
+          <Button variant="ghost" size="sm" className="gap-2 -ml-2">
+            <ArrowLeft className="h-4 w-4" />
+            <span className="hidden sm:inline">Back to Books</span>
           </Button>
         </Link>
         {canEdit && (
           <Link href={`/books/${id}/edit`}>
-            <Button variant="outline" size="sm">
-              <Edit className="h-4 w-4 mr-2" />
-              Edit Book
+            <Button variant="outline" size="sm" className="gap-2">
+              <Edit className="h-4 w-4" />
+              Edit
             </Button>
           </Link>
         )}
       </div>
 
-      <div className="grid lg:grid-cols-[280px_1fr] gap-6 lg:gap-8">
-        {/* Book Cover */}
-        <div className="space-y-4 mx-auto lg:mx-0 max-w-[280px] lg:max-w-none w-full">
-          <div className="aspect-[2/3] relative bg-muted rounded-lg overflow-hidden">
-            <BookCoverImage
-              src={book.cover_url}
-              alt={book.title}
-              priority
-              iconSize="lg"
-            />
+      {/* Main Content Grid */}
+      <div className="grid lg:grid-cols-[300px_1fr] gap-8 lg:gap-12">
+        {/* Left Column - Cover & Actions */}
+        <div className="space-y-6">
+          {/* Book Cover with shadow and depth */}
+          <div className="relative mx-auto lg:mx-0 max-w-[300px]">
+            <div className="aspect-[2/3] relative rounded-xl overflow-hidden shadow-2xl shadow-black/20 dark:shadow-black/40 ring-1 ring-black/5 dark:ring-white/10">
+              <BookCoverImage
+                src={book.cover_url}
+                alt={book.title}
+                priority
+                iconSize="lg"
+              />
+            </div>
+            {/* Decorative shadow underneath */}
+            <div className="absolute -bottom-4 left-4 right-4 h-8 bg-gradient-to-t from-black/10 to-transparent blur-xl -z-10" />
           </div>
 
           {/* Actions */}
-          {user && (
-            <div className="space-y-2">
-              {isAvailable ? (
-                <CheckoutButton
+          <div className="space-y-3 max-w-[300px] mx-auto lg:mx-0">
+            {user && (
+              <>
+                {isAvailable ? (
+                  <CheckoutButton
+                    bookId={book.id}
+                    disabled={!user || userActiveCheckout! >= 2}
+                  />
+                ) : (
+                  <WaitlistButton
+                    bookId={book.id}
+                    isOnWaitlist={!!userWaitlistEntry}
+                    waitlistPosition={userWaitlistEntry?.position}
+                  />
+                )}
+                <AddToMyBooksButton
                   bookId={book.id}
-                  disabled={!user || userActiveCheckout! >= 2}
+                  existingStatus={userBookEntry?.status}
+                  existingRating={userBookEntry?.rating}
                 />
-              ) : (
-                <WaitlistButton
-                  bookId={book.id}
-                  isOnWaitlist={!!userWaitlistEntry}
-                  waitlistPosition={userWaitlistEntry?.position}
-                />
-              )}
-              <AddToMyBooksButton
-                bookId={book.id}
-                existingStatus={userBookEntry?.status}
-                existingRating={userBookEntry?.rating}
-              />
-            </div>
-          )}
+              </>
+            )}
 
-          {!user && (
-            <Link href="/login">
-              <Button className="w-full">Sign in to checkout</Button>
-            </Link>
-          )}
+            {!user && (
+              <Link href="/login" className="block">
+                <Button className="w-full">Sign in to checkout</Button>
+              </Link>
+            )}
+          </div>
 
           {/* User's Rating/Review Form */}
           {user && (
-            <UserBookForm
-              bookId={book.id}
-              existingStatus={userBookEntry?.status}
-              existingRating={userBookEntry?.rating}
-              existingReview={userBookEntry?.review}
-            />
+            <div className="max-w-[300px] mx-auto lg:mx-0">
+              <UserBookForm
+                bookId={book.id}
+                existingStatus={userBookEntry?.status}
+                existingRating={userBookEntry?.rating}
+                existingReview={userBookEntry?.review}
+              />
+            </div>
           )}
         </div>
 
-        {/* Book Details */}
-        <div className="space-y-6">
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <Badge variant="outline" className={BOOK_STATUS_COLORS[book.status as BookStatus]}>
+        {/* Right Column - Book Details */}
+        <div className="space-y-8">
+          {/* Header Section */}
+          <header className="space-y-4">
+            {/* Status badges */}
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge
+                variant="outline"
+                className={`${BOOK_STATUS_COLORS[book.status as BookStatus]} font-medium`}
+              >
                 {BOOK_STATUS_LABELS[book.status as BookStatus]}
               </Badge>
-              {book.genres?.map((genre: string) => (
-                <Badge key={genre} variant="secondary">
-                  {genre}
+              {(waitlistCount ?? 0) > 0 && (
+                <Badge variant="secondary" className="gap-1.5">
+                  <Users className="h-3 w-3" />
+                  {waitlistCount} waiting
                 </Badge>
-              ))}
+              )}
             </div>
-            <h1 className="text-3xl font-bold">{book.title}</h1>
-            <p className="text-xl text-muted-foreground mt-1">{book.author}</p>
-          </div>
 
-          {/* External Rating from Hardcover + Google Books */}
+            {/* Title - Large and dramatic */}
+            <div>
+              <h1 className="text-4xl lg:text-5xl font-bold tracking-tight leading-[1.1]">
+                {book.title}
+              </h1>
+              <p className="mt-3 text-xl lg:text-2xl text-muted-foreground font-light">
+                by <span className="text-foreground font-normal">{book.author}</span>
+              </p>
+            </div>
+
+            {/* Book metadata - Clean inline display */}
+            <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-muted-foreground pt-2">
+              {book.publish_date && (
+                <span className="flex items-center gap-1.5">
+                  <Calendar className="h-4 w-4 opacity-60" />
+                  {new Date(book.publish_date).getFullYear()}
+                </span>
+              )}
+              {book.page_count && (
+                <span className="flex items-center gap-1.5">
+                  <FileText className="h-4 w-4 opacity-60" />
+                  {book.page_count} pages
+                </span>
+              )}
+              {estimateReadingTime(book.page_count) && (
+                <span className="flex items-center gap-1.5">
+                  <Clock className="h-4 w-4 opacity-60" />
+                  {estimateReadingTime(book.page_count)}
+                </span>
+              )}
+            </div>
+
+            {/* Genres - Pill style */}
+            {book.genres && book.genres.length > 0 && (
+              <div className="flex flex-wrap gap-2 pt-2">
+                {book.genres.map((genre: string) => (
+                  <span
+                    key={genre}
+                    className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-secondary/80 text-secondary-foreground hover:bg-secondary transition-colors"
+                  >
+                    {genre}
+                  </span>
+                ))}
+              </div>
+            )}
+          </header>
+
+          {/* External Rating & Reviews from Hardcover */}
           <ExternalRating bookId={book.id} />
 
-          {/* Review Call-to-Action */}
+          {/* Review CTA */}
           <ReviewCTA
             reviewCount={reviewCount ?? 0}
             hasUserReview={!!userBookEntry?.review}
@@ -228,117 +285,62 @@ export default async function BookDetailPage({ params }: BookDetailPageProps) {
             />
           )}
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            {book.isbn && (
-              <Card>
-                <CardContent className="p-4">
-                  <div className="text-sm text-muted-foreground">ISBN</div>
-                  <div className="font-medium">{book.isbn}</div>
-                </CardContent>
-              </Card>
-            )}
-            {book.page_count && (
-              <Card>
-                <CardContent className="p-4 flex items-center gap-2">
-                  <FileText className="h-4 w-4 text-muted-foreground" />
-                  <div>
-                    <div className="text-sm text-muted-foreground">Pages</div>
-                    <div className="font-medium">{book.page_count}</div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-            {estimateReadingTime(book.page_count) && (
-              <Card>
-                <CardContent className="p-4 flex items-center gap-2">
-                  <Clock className="h-4 w-4 text-muted-foreground" />
-                  <div>
-                    <div className="text-sm text-muted-foreground">Read Time</div>
-                    <div className="font-medium">{estimateReadingTime(book.page_count)}</div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-            {book.publish_date && (
-              <Card>
-                <CardContent className="p-4 flex items-center gap-2">
-                  <Calendar className="h-4 w-4 text-muted-foreground" />
-                  <div>
-                    <div className="text-sm text-muted-foreground">Published</div>
-                    <div className="font-medium">{new Date(book.publish_date).getFullYear()}</div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-            {(waitlistCount ?? 0) > 0 && (
-              <Card>
-                <CardContent className="p-4 flex items-center gap-2">
-                  <Users className="h-4 w-4 text-muted-foreground" />
-                  <div>
-                    <div className="text-sm text-muted-foreground">Waitlist</div>
-                    <div className="font-medium">{waitlistCount} waiting</div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-            {/* Community Stats */}
-            <CommunityStats
-              readerCount={readerCount ?? 0}
-              reviewCount={reviewCount ?? 0}
-            />
-          </div>
-
+          {/* Description */}
           {book.description && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Description</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground whitespace-pre-wrap">
+            <section className="space-y-3">
+              <h2 className="text-lg font-semibold">About this book</h2>
+              <div className="prose prose-sm dark:prose-invert max-w-none">
+                <p className="text-muted-foreground leading-relaxed whitespace-pre-wrap">
                   {book.description}
                 </p>
-              </CardContent>
-            </Card>
+              </div>
+            </section>
           )}
 
+          {/* AI Summary */}
           {book.ai_summary && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">AI Summary</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground whitespace-pre-wrap">
+            <section className="relative overflow-hidden rounded-xl bg-gradient-to-br from-primary/5 via-transparent to-accent/5 border border-primary/10 p-6">
+              <div className="absolute -top-12 -right-12 h-24 w-24 rounded-full bg-primary/10 blur-2xl" />
+              <div className="relative space-y-3">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-primary" />
+                  <h2 className="text-sm font-semibold uppercase tracking-wider text-primary">
+                    AI Summary
+                  </h2>
+                </div>
+                <p className="text-muted-foreground leading-relaxed">
                   {book.ai_summary}
                 </p>
-              </CardContent>
-            </Card>
+              </div>
+            </section>
           )}
 
-          {/* Community Ratings & Reviews */}
+          {/* Community Reviews */}
           <BookReviews bookId={book.id} />
 
+          {/* Admin: Current Checkout Info */}
           {checkout && canEdit && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <User className="h-4 w-4" />
-                  Current Checkout
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium">
-                      {(checkout.user as { full_name?: string })?.full_name || (checkout.user as { email?: string })?.email}
-                    </p>
-                    <p className="text-sm text-muted-foreground flex items-center gap-1">
-                      <Clock className="h-3 w-3" />
-                      Due: {new Date(checkout.due_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                    </p>
-                  </div>
+            <section className="rounded-xl border bg-card p-5">
+              <div className="flex items-center gap-2 mb-3">
+                <User className="h-4 w-4 text-muted-foreground" />
+                <h3 className="font-semibold">Current Checkout</h3>
+              </div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium">
+                    {(checkout.user as { full_name?: string })?.full_name || (checkout.user as { email?: string })?.email}
+                  </p>
+                  <p className="text-sm text-muted-foreground flex items-center gap-1.5 mt-1">
+                    <Clock className="h-3.5 w-3.5" />
+                    Due: {new Date(checkout.due_date).toLocaleDateString('en-US', {
+                      month: 'short',
+                      day: 'numeric',
+                      year: 'numeric'
+                    })}
+                  </p>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </section>
           )}
         </div>
       </div>
