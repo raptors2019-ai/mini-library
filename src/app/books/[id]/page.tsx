@@ -21,6 +21,7 @@ import { AddToMyBooksButton } from '@/components/books/add-to-my-books-button'
 import { UserBookForm } from '@/components/books/user-book-form'
 import { WhyYouMightLike } from '@/components/books/why-you-might-like'
 import { ExternalRating } from '@/components/books/external-rating'
+import { ReviewSummary } from '@/components/books/review-summary'
 import { HardcoverReviews } from '@/components/books/hardcover-reviews'
 import { BookContentTabs } from '@/components/books/book-content-tabs'
 import { BOOK_STATUS_COLORS, BOOK_STATUS_LABELS, isAdminRole } from '@/lib/constants'
@@ -339,7 +340,10 @@ export default async function BookDetailPage({ params }: BookDetailPageProps) {
               </div>
             }
             reviews={
-              <HardcoverReviews bookId={book.id} />
+              <div className="space-y-6">
+                <ReviewSummary bookId={book.id} />
+                <HardcoverReviews bookId={book.id} />
+              </div>
             }
           />
         </div>

@@ -74,6 +74,8 @@ export interface Database {
           genres: string[] | null
           status: BookStatus
           embedding: number[] | null
+          review_summary: string | null
+          review_summary_generated_at: string | null
           created_at: string
           updated_at: string
           created_by: string | null
@@ -91,6 +93,8 @@ export interface Database {
           genres?: string[] | null
           status?: BookStatus
           embedding?: number[] | null
+          review_summary?: string | null
+          review_summary_generated_at?: string | null
           created_at?: string
           updated_at?: string
           created_by?: string | null
@@ -108,6 +112,8 @@ export interface Database {
           genres?: string[] | null
           status?: BookStatus
           embedding?: number[] | null
+          review_summary?: string | null
+          review_summary_generated_at?: string | null
           created_at?: string
           updated_at?: string
           created_by?: string | null

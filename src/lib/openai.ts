@@ -82,6 +82,40 @@ Return only a comma-separated list of genres, nothing else. Example: Science Fic
 }
 
 /**
+ * Generate a summary of reader reviews for a book
+ * Synthesizes multiple reviews into 2-3 sentences highlighting common themes
+ */
+export async function generateReviewSummary(
+  bookTitle: string,
+  reviews: { review: string; rating: number | null }[]
+): Promise<string> {
+  const openai = getOpenAIClient()
+
+  // Format reviews for the prompt
+  const reviewTexts = reviews
+    .map((r, i) => {
+      const ratingText = r.rating ? ` (${r.rating}/5 stars)` : ''
+      return `Review ${i + 1}${ratingText}: "${r.review}"`
+    })
+    .join('\n\n')
+
+  const prompt = `Based on these reader reviews for "${bookTitle}", write a 2-3 sentence summary of what readers think about this book. Highlight the common themes, what readers praise, and any notable critiques. Write in third person (e.g., "Readers praise..." or "Many find...").
+
+${reviewTexts}
+
+Write only the summary, no introduction or labels.`
+
+  const response = await openai.chat.completions.create({
+    model: 'gpt-4o-mini',
+    messages: [{ role: 'user', content: prompt }],
+    max_tokens: 200,
+    temperature: 0.7,
+  })
+
+  return response.choices[0].message.content?.trim() || ''
+}
+
+/**
  * Create embedding text from book data
  */
 export function createEmbeddingText(book: {
