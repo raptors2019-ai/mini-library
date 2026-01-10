@@ -21,7 +21,6 @@ export type NotificationType =
   | 'book_request_submitted'
   | 'book_request_approved'
   | 'book_request_declined'
-  | 'book_request_fulfilled'
   | 'admin_new_book_request'
   | 'system'
 

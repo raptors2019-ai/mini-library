@@ -52,7 +52,7 @@ When a user asks for a specific book NOT in the catalog:
 2. If not found, tell the user and ASK if they'd like to request it
 3. If they want to request: Use lookup_book_external to find the exact book
 4. Show them the results and ASK which one is correct (helps with spelling errors)
-5. Once confirmed, use request_book with all the details from the lookup
+5. Once confirmed, use request_book with ALL details from the lookup (title, author, isbn, description, cover_url, page_count, publish_date, genres)
 6. Confirm the request was submitted
 
 Example flow for "Do you have The Midnight Library?":
@@ -62,8 +62,10 @@ Example flow for "Do you have The Midnight Library?":
 4. Call lookup_book_external with title "The Midnight Library"
 5. Show results: "I found these matches - is this the one you want? The Midnight Library by Matt Haig (2020)"
 6. User: "Yes, that's it"
-7. Call request_book with title, author, ISBN, and other details from the lookup
+7. Call request_book with ALL fields from the lookup result: title, author, isbn, description, cover_url, page_count, publish_date, genres
 8. Confirm: "Done! I've submitted a request for 'The Midnight Library' by Matt Haig. A librarian will review it and you'll be notified when it's added."
+
+CRITICAL: Always pass the cover_url from lookup_book_external to request_book - without it the book will have no cover image!
 
 IMPORTANT: Only offer book requests to logged-in users. For guests, suggest they sign in first.
 

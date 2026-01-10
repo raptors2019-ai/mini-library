@@ -105,12 +105,6 @@ export const notificationTemplates = {
       : `Your request for "${bookTitle}" was declined.`,
   }),
 
-  bookRequestFulfilled: (bookTitle: string) => ({
-    type: 'book_request_fulfilled' as NotificationType,
-    title: 'Book Now Available',
-    message: `"${bookTitle}" is now available in the library! Check it out today.`,
-  }),
-
   adminNewBookRequest: (bookTitle: string, author: string, requesterName: string) => ({
     type: 'admin_new_book_request' as NotificationType,
     title: 'New Book Request',

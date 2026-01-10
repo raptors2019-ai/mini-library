@@ -53,6 +53,22 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
   }
 
+  // Check if we're starting a new simulation (no previous simulated date)
+  const previousSimulatedDate = await getSimulatedDate(supabase)
+  const isNewSimulation = newDate && !previousSimulatedDate
+
+  // If starting a new simulation, record the start time
+  if (isNewSimulation) {
+    await supabase
+      .from('system_settings')
+      .upsert({
+        key: 'simulation_started_at',
+        value: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        updated_by: user.id,
+      })
+  }
+
   // Set the simulated date
   const result = await setSimulatedDate(supabase, newDate, user.id)
   if (!result.success) {
@@ -92,6 +108,39 @@ export async function DELETE(): Promise<NextResponse> {
     return NextResponse.json({ error: 'Forbidden - Admin access required' }, { status: 403 })
   }
 
+  // Get the simulation start time to clean up notifications
+  const { data: startTimeSetting } = await supabase
+    .from('system_settings')
+    .select('value')
+    .eq('key', 'simulation_started_at')
+    .single()
+
+  let notificationsDeleted = 0
+
+  // Delete notifications created during simulation (due_soon and overdue types only)
+  if (startTimeSetting?.value) {
+    const startTime = startTimeSetting.value as string
+    const { count } = await supabase
+      .from('notifications')
+      .delete({ count: 'exact' })
+      .in('type', ['due_soon', 'overdue'])
+      .gte('created_at', startTime)
+
+    notificationsDeleted = count || 0
+
+    // Also revert any checkouts marked as overdue during simulation back to active
+    await supabase
+      .from('checkouts')
+      .update({ status: 'active' })
+      .eq('status', 'overdue')
+
+    // Clear the simulation start time
+    await supabase
+      .from('system_settings')
+      .delete()
+      .eq('key', 'simulation_started_at')
+  }
+
   const result = await setSimulatedDate(supabase, null, user.id)
   if (!result.success) {
     return NextResponse.json({ error: result.error }, { status: 500 })
@@ -100,6 +149,7 @@ export async function DELETE(): Promise<NextResponse> {
   return NextResponse.json({
     success: true,
     simulatedDate: null,
+    notificationsDeleted,
     message: 'Reset to real time',
   })
 }
