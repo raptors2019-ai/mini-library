@@ -24,7 +24,7 @@ import { ExternalRating } from '@/components/books/external-rating'
 import { ReviewSummary } from '@/components/books/review-summary'
 import { HardcoverReviews } from '@/components/books/hardcover-reviews'
 import { BookContentTabs } from '@/components/books/book-content-tabs'
-import { BOOK_STATUS_COLORS, BOOK_STATUS_LABELS, isAdminRole } from '@/lib/constants'
+import { BOOK_STATUS_COLORS, BOOK_STATUS_LABELS, isAdminRole, isPriorityRole } from '@/lib/constants'
 import { estimateReadingTime } from '@/lib/utils'
 import type { BookStatus, UserBookStatus } from '@/types/database'
 
@@ -68,14 +68,18 @@ export default async function BookDetailPage({ params }: BookDetailPageProps) {
   let userWaitlistEntry = null
   let userActiveCheckout = null
   let userBookEntry: { status: UserBookStatus; rating: number | null; review: string | null } | null = null
+  let userLoanDays = 14
+  let userCheckoutLimit = 2
 
   if (user) {
     const { data: profile } = await supabase
       .from('profiles')
-      .select('role')
+      .select('role, hold_duration_days, checkout_limit')
       .eq('id', user.id)
       .single()
     userRole = profile?.role
+    userLoanDays = profile?.hold_duration_days ?? 14
+    userCheckoutLimit = profile?.checkout_limit ?? 2
 
     const { data: waitlistEntry } = await supabase
       .from('waitlist')
@@ -152,7 +156,11 @@ export default async function BookDetailPage({ params }: BookDetailPageProps) {
                 {isAvailable ? (
                   <CheckoutButton
                     bookId={book.id}
-                    disabled={!user || userActiveCheckout! >= 2}
+                    bookTitle={book.title}
+                    bookAuthor={book.author}
+                    disabled={!user || userActiveCheckout! >= userCheckoutLimit}
+                    loanDays={userLoanDays}
+                    isPremium={isPriorityRole(userRole)}
                   />
                 ) : (
                   <WaitlistButton

@@ -163,7 +163,7 @@ export default async function DashboardPage() {
       {/* Main Content Grid */}
       <div className="grid lg:grid-cols-2 gap-6">
         {/* Current Checkouts */}
-        <DashboardActions checkouts={data.checkouts} />
+        <DashboardActions checkouts={data.checkouts} checkoutLimit={data.stats.checkoutLimit} />
 
         {/* Notifications */}
         <NotificationsPanel notifications={data.notifications} />

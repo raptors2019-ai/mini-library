@@ -194,4 +194,31 @@ export const chatTools: ChatCompletionTool[] = [
       },
     },
   },
+  {
+    type: 'function',
+    function: {
+      name: 'show_books_on_page',
+      description:
+        'Navigate the user to the books catalog page with specific filters applied. Use this when the user wants to see search results in the full page view rather than just in the chat. This gives them a better browsing experience with larger book cards and more details. Examples: "show me these on the page", "open in full view", "let me browse these".',
+      parameters: {
+        type: 'object',
+        properties: {
+          search: {
+            type: 'string',
+            description: 'Optional search query to filter books by title, author, or topic',
+          },
+          genres: {
+            type: 'array',
+            items: { type: 'string' },
+            description: 'Optional array of genres to filter by (e.g., ["Mystery", "Thriller"])',
+          },
+          statuses: {
+            type: 'array',
+            items: { type: 'string', enum: ['available', 'checked_out', 'on_hold'] },
+            description: 'Optional array of availability statuses to filter by',
+          },
+        },
+      },
+    },
+  },
 ]

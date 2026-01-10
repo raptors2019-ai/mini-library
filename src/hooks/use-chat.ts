@@ -3,6 +3,11 @@
 import { useState, useCallback, type Dispatch, type SetStateAction } from 'react'
 import type { Book } from '@/types/database'
 import type { ChatMessage, StreamChunk } from '@/lib/chat/types'
+import type { AppAction } from '@/lib/actions/types'
+
+interface UseChatOptions {
+  onAction?: (action: AppAction) => void
+}
 
 interface UseChatReturn {
   messages: ChatMessage[]
@@ -24,7 +29,8 @@ function updateAssistantMessage(
   )
 }
 
-export function useChat(): UseChatReturn {
+export function useChat(options: UseChatOptions = {}): UseChatReturn {
+  const { onAction } = options
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [isSearching, setIsSearching] = useState(false)
@@ -122,6 +128,13 @@ export function useChat(): UseChatReturn {
                 }
                 break
 
+              case 'action':
+                // Dispatch the action to the UI
+                if (chunk.action && onAction) {
+                  onAction(chunk.action)
+                }
+                break
+
               case 'error':
                 setError(chunk.error || 'An error occurred')
                 setIsSearching(false)
@@ -150,7 +163,7 @@ export function useChat(): UseChatReturn {
       setIsSearching(false)
       setSearchQuery(null)
     }
-  }, [messages])
+  }, [messages, onAction])
 
   const clearMessages = useCallback(() => {
     setMessages([])

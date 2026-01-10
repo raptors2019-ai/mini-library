@@ -6,20 +6,21 @@ import type { CheckoutWithBook } from '@/types/database'
 
 interface DashboardActionsProps {
   checkouts: CheckoutWithBook[]
+  checkoutLimit?: number
 }
 
-export function DashboardActions({ checkouts }: DashboardActionsProps) {
+export function DashboardActions({ checkouts, checkoutLimit }: DashboardActionsProps) {
   const router = useRouter()
 
-  const handleReturn = async (checkoutId: string) => {
-    const response = await fetch(`/api/checkouts/${checkoutId}/return`, {
-      method: 'PUT',
-    })
-
-    if (response.ok) {
-      router.refresh()
-    }
+  const handleReturnComplete = () => {
+    router.refresh()
   }
 
-  return <CurrentCheckouts checkouts={checkouts} onReturn={handleReturn} />
+  return (
+    <CurrentCheckouts
+      checkouts={checkouts}
+      checkoutLimit={checkoutLimit}
+      onReturnComplete={handleReturnComplete}
+    />
+  )
 }

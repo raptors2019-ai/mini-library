@@ -1,8 +1,12 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 import type { UserRole } from '@/types/database'
+import { CHECKOUT_LIMITS } from '@/lib/constants'
 
 const VALID_ROLES: UserRole[] = ['guest', 'member', 'premium', 'librarian', 'admin']
+
+// Roles that get premium checkout limits
+const PREMIUM_ROLES: UserRole[] = ['premium', 'librarian', 'admin']
 
 /**
  * DEV ONLY: Switch user role for testing
@@ -31,11 +35,19 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }, { status: 400 })
   }
 
+  // Set checkout limits based on role
+  const isPremium = PREMIUM_ROLES.includes(role)
+  const limits = isPremium ? CHECKOUT_LIMITS.premium : CHECKOUT_LIMITS.standard
+
   const { data, error } = await supabase
     .from('profiles')
-    .update({ role })
+    .update({
+      role,
+      checkout_limit: limits.maxBooks,
+      hold_duration_days: limits.loanDays,
+    })
     .eq('id', user.id)
-    .select('id, email, role, checkout_limit')
+    .select('id, email, role, checkout_limit, hold_duration_days')
     .single()
 
   if (error) {
@@ -44,6 +56,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   return NextResponse.json({
     message: `Role switched to ${role}`,
+    isPremium,
     profile: data
   })
 }
@@ -63,12 +76,15 @@ export async function GET(): Promise<NextResponse> {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('id, email, role, checkout_limit')
+    .select('id, email, role, checkout_limit, hold_duration_days')
     .eq('id', user.id)
     .single()
 
+  const isPremium = profile?.role ? PREMIUM_ROLES.includes(profile.role as UserRole) : false
+
   return NextResponse.json({
     currentRole: profile?.role,
+    isPremium,
     availableRoles: VALID_ROLES,
     profile
   })

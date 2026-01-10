@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
+import { ActionProvider } from "@/providers/action-provider";
 import { Header } from "@/components/header";
 import { Toaster } from "@/components/ui/sonner";
 import { ChatWidget } from "@/components/chat";
@@ -37,13 +39,17 @@ export default function RootLayout({
           defaultTheme="light"
           disableTransitionOnChange
         >
-          <SimulationBanner />
-          <Header />
-          <main className="container py-6">
-            {children}
-          </main>
-          <Toaster />
-          <ChatWidget />
+          <Suspense fallback={null}>
+            <ActionProvider>
+              <SimulationBanner />
+              <Header />
+              <main className="container py-6">
+                {children}
+              </main>
+              <Toaster />
+              <ChatWidget />
+            </ActionProvider>
+          </Suspense>
         </ThemeProvider>
       </body>
     </html>

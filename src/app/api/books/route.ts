@@ -35,7 +35,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   }
 
   if (search) {
-    query = query.or(`title.ilike.%${search}%,author.ilike.%${search}%`)
+    query = query.or(`title.ilike.%${search}%,author.ilike.%${search}%,isbn.ilike.%${search}%`)
   }
 
   query = query.range(offset, offset + limit - 1)

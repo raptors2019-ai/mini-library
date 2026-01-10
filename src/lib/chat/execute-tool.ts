@@ -10,7 +10,9 @@ import type {
   FindSimilarBooksArgs,
   LookupBookExternalArgs,
   RequestBookArgs,
+  ShowBooksOnPageArgs,
 } from './types'
+import type { AppAction } from '@/lib/actions/types'
 import { createNotification, notificationTemplates } from '@/lib/notifications'
 
 interface ToolExecutionResult {
@@ -18,6 +20,7 @@ interface ToolExecutionResult {
   data?: unknown
   books?: Book[]
   error?: string
+  action?: AppAction
 }
 
 export async function executeTool(
@@ -43,6 +46,8 @@ export async function executeTool(
         return await lookupBookExternal(args as unknown as LookupBookExternalArgs)
       case 'request_book':
         return await requestBook(args as unknown as RequestBookArgs, userId)
+      case 'show_books_on_page':
+        return showBooksOnPage(args as unknown as ShowBooksOnPageArgs)
       default:
         return { success: false, error: `Unknown tool: ${toolName}` }
     }
@@ -556,6 +561,41 @@ async function requestBook(args: RequestBookArgs, userId?: string): Promise<Tool
       title: args.title,
       author: args.author,
       message: `Your request for "${args.title}" by ${args.author} has been submitted! A librarian will review it soon. You'll be notified when it's approved.`,
+    },
+  }
+}
+
+function showBooksOnPage(args: ShowBooksOnPageArgs): ToolExecutionResult {
+  // Build the action to send to the client
+  const action: AppAction = {
+    type: 'apply_filters',
+    payload: {
+      search: args.search,
+      genres: args.genres,
+      statuses: args.statuses,
+    },
+  }
+
+  // Build description for the response
+  const filters: string[] = []
+  if (args.search) filters.push(`search: "${args.search}"`)
+  if (args.genres?.length) filters.push(`genres: ${args.genres.join(', ')}`)
+  if (args.statuses?.length) filters.push(`status: ${args.statuses.join(', ')}`)
+
+  const description = filters.length > 0
+    ? `Opening books page with ${filters.join(', ')}`
+    : 'Opening all books'
+
+  return {
+    success: true,
+    action,
+    data: {
+      message: description,
+      filters: {
+        search: args.search,
+        genres: args.genres,
+        statuses: args.statuses,
+      },
     },
   }
 }

@@ -1,55 +1,48 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
-import { Loader2, BookCheck } from 'lucide-react'
-import { toast } from 'sonner'
+import { BookCheck } from 'lucide-react'
+import { CheckoutDialog } from './checkout-dialog'
 
 interface CheckoutButtonProps {
   bookId: string
+  bookTitle: string
+  bookAuthor: string
   disabled?: boolean
+  loanDays?: number
+  isPremium?: boolean
 }
 
-export function CheckoutButton({ bookId, disabled }: CheckoutButtonProps) {
-  const [loading, setLoading] = useState(false)
-  const router = useRouter()
-
-  const handleCheckout = async () => {
-    setLoading(true)
-    try {
-      const response = await fetch('/api/checkouts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ book_id: bookId })
-      })
-
-      if (!response.ok) {
-        const data = await response.json()
-        throw new Error(data.error || 'Failed to checkout')
-      }
-
-      toast.success('Book checked out successfully!')
-      router.refresh()
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to checkout')
-    } finally {
-      setLoading(false)
-    }
-  }
+export function CheckoutButton({
+  bookId,
+  bookTitle,
+  bookAuthor,
+  disabled,
+  loanDays,
+  isPremium,
+}: CheckoutButtonProps) {
+  const [dialogOpen, setDialogOpen] = useState(false)
 
   return (
-    <Button
-      className="w-full"
-      onClick={handleCheckout}
-      disabled={disabled || loading}
-    >
-      {loading ? (
-        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-      ) : (
+    <>
+      <Button
+        className="w-full"
+        onClick={() => setDialogOpen(true)}
+        disabled={disabled}
+      >
         <BookCheck className="h-4 w-4 mr-2" />
-      )}
-      {disabled ? 'Checkout limit reached' : 'Checkout Book'}
-    </Button>
+        {disabled ? 'Checkout limit reached' : 'Checkout Book'}
+      </Button>
+      <CheckoutDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        bookId={bookId}
+        bookTitle={bookTitle}
+        bookAuthor={bookAuthor}
+        loanDays={loanDays}
+        isPremium={isPremium}
+      />
+    </>
   )
 }

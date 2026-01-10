@@ -185,6 +185,14 @@ export async function POST(request: NextRequest): Promise<Response> {
                 toolResult: { books: result.books, data: result.data },
               })
 
+              // If the tool returned an action, send it to the client
+              if (result.action) {
+                sendChunk({
+                  type: 'action',
+                  action: result.action,
+                })
+              }
+
               toolResults.push({
                 role: 'tool',
                 tool_call_id: tc.id,

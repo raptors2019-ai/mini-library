@@ -23,6 +23,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { SearchTrigger, CommandPalette } from "@/components/command-palette"
 import { createClient } from "@/lib/supabase/client"
 import { useEffect, useState } from "react"
 import type { Profile } from "@/types/database"
@@ -81,6 +82,7 @@ export function Header(): React.ReactNode {
   const [user, setUser] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false)
   const supabase = createClient()
 
   useEffect(() => {
@@ -123,9 +125,9 @@ export function Header(): React.ReactNode {
   // Home link goes to dashboard when logged in, otherwise to landing page
   const homeHref = user ? "/dashboard" : "/"
 
+  // Books is the only nav link - Search is now a command palette trigger
   const navItems = [
     { href: "/books", label: "Books", icon: BookOpen },
-    { href: "/search", label: "Search", icon: Search },
   ]
 
   // Build full nav items including conditional ones (Dashboard in mobile menu only)
@@ -164,6 +166,13 @@ export function Header(): React.ReactNode {
                     onNavigate={() => setMobileMenuOpen(false)}
                   />
                 ))}
+                <SearchTrigger
+                  onClick={() => {
+                    setMobileMenuOpen(false)
+                    setCommandPaletteOpen(true)
+                  }}
+                  variant="mobile"
+                />
               </nav>
               {/* Mobile menu footer with user info or sign in */}
               <div className="absolute bottom-6 left-4 right-4">
@@ -205,6 +214,10 @@ export function Header(): React.ReactNode {
           {navItems.map((item) => (
             <NavLink key={item.href} item={item} pathname={pathname} variant="desktop" />
           ))}
+          <SearchTrigger
+            onClick={() => setCommandPaletteOpen(true)}
+            variant="desktop"
+          />
           {isAdmin && (
             <NavLink
               item={{ href: "/admin", label: "Admin", icon: Settings }}
@@ -270,6 +283,12 @@ export function Header(): React.ReactNode {
           )}
         </div>
       </div>
+
+      {/* Command Palette for AI-powered search */}
+      <CommandPalette
+        open={commandPaletteOpen}
+        onOpenChange={setCommandPaletteOpen}
+      />
     </header>
   )
 }

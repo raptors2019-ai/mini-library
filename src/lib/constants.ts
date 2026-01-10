@@ -43,3 +43,21 @@ export function isAdminRole(role: string | null | undefined): boolean {
 export function isPriorityRole(role: string | null | undefined): boolean {
   return role !== null && role !== undefined && (PRIORITY_ROLES as readonly string[]).includes(role)
 }
+
+// Checkout limits by tier
+export const CHECKOUT_LIMITS = {
+  standard: {
+    maxBooks: 2,
+    loanDays: 14,
+    lateFeePerDay: 0.25,
+  },
+  premium: {
+    maxBooks: 5,
+    loanDays: 17,
+    lateFeePerDay: 0.25,
+  },
+} as const
+
+export function isPremiumRole(role: string | null | undefined): boolean {
+  return role !== null && role !== undefined && PRIORITY_ROLES.includes(role as UserRole)
+}

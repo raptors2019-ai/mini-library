@@ -1,4 +1,5 @@
 import type { Book } from '@/types/database'
+import type { AppAction } from '@/lib/actions/types'
 
 export interface ChatMessage {
   id: string
@@ -67,6 +68,12 @@ export interface RequestBookArgs {
   genres?: string[]
 }
 
+export interface ShowBooksOnPageArgs {
+  search?: string
+  genres?: string[]
+  statuses?: string[]
+}
+
 export type ToolArgs =
   | SearchBooksArgs
   | GetBookDetailsArgs
@@ -75,12 +82,14 @@ export type ToolArgs =
   | FindSimilarBooksArgs
   | LookupBookExternalArgs
   | RequestBookArgs
+  | ShowBooksOnPageArgs
   | Record<string, never> // for get_available_genres
 
 export interface StreamChunk {
-  type: 'content' | 'tool_call' | 'tool_result' | 'done' | 'error'
+  type: 'content' | 'tool_call' | 'tool_result' | 'action' | 'done' | 'error'
   content?: string
   toolCall?: ToolCall
   toolResult?: { books?: Book[]; data?: unknown }
+  action?: AppAction
   error?: string
 }

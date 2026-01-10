@@ -135,7 +135,7 @@ async function BooksContent({ searchParams }: BooksPageProps) {
   }
 
   if (params.search) {
-    query = query.or(`title.ilike.%${params.search}%,author.ilike.%${params.search}%`)
+    query = query.or(`title.ilike.%${params.search}%,author.ilike.%${params.search}%,isbn.ilike.%${params.search}%`)
   }
 
   query = query.range(offset, offset + limit - 1)

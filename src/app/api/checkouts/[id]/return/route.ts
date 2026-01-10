@@ -70,10 +70,14 @@ export async function PUT(
 
   if (nextInLine) {
     // Update book status to on_hold
-    await supabase
+    const { error: bookUpdateError } = await supabase
       .from('books')
       .update({ status: 'on_hold' })
       .eq('id', bookId)
+
+    if (bookUpdateError) {
+      console.error('Failed to update book status to on_hold:', bookUpdateError)
+    }
 
     // Update waitlist entry
     const expiresAt = new Date()
@@ -98,10 +102,19 @@ export async function PUT(
     })
   } else {
     // No waitlist, make book available
-    await supabase
+    const { error: bookUpdateError } = await supabase
       .from('books')
       .update({ status: 'available' })
       .eq('id', bookId)
+
+    if (bookUpdateError) {
+      console.error('Failed to update book status to available:', bookUpdateError)
+      // Return error so client knows something went wrong
+      return NextResponse.json({
+        error: 'Book returned but failed to update availability status',
+        details: bookUpdateError.message
+      }, { status: 500 })
+    }
   }
 
   // Notify the user who returned the book

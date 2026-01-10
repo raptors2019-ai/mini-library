@@ -3,15 +3,18 @@
 import { useState, useEffect, useCallback } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { BookOpen, Calendar, AlertCircle, CheckCircle } from 'lucide-react'
+import { BookOpen, Calendar, AlertCircle, CheckCircle, AlertTriangle } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { ReturnDialog } from './return-dialog'
 import type { CheckoutWithBook } from '@/types/database'
 
 interface CurrentCheckoutsProps {
   checkouts: CheckoutWithBook[]
-  onReturn?: (checkoutId: string) => Promise<void>
+  checkoutLimit?: number
+  onReturnComplete?: () => void
 }
 
 function getDueStatus(dueDate: string, currentDate: Date): { label: string; color: string; urgent: boolean } {
@@ -31,9 +34,13 @@ function getDueStatus(dueDate: string, currentDate: Date): { label: string; colo
   }
 }
 
-export function CurrentCheckouts({ checkouts, onReturn }: CurrentCheckoutsProps) {
-  const [returningId, setReturningId] = useState<string | null>(null)
+export function CurrentCheckouts({ checkouts, checkoutLimit, onReturnComplete }: CurrentCheckoutsProps) {
+  const [selectedCheckout, setSelectedCheckout] = useState<CheckoutWithBook | null>(null)
+  const [dialogOpen, setDialogOpen] = useState(false)
   const [currentDate, setCurrentDate] = useState<Date>(new Date())
+
+  const isOverLimit = checkoutLimit !== undefined && checkouts.length > checkoutLimit
+  const booksOverLimit = isOverLimit ? checkouts.length - checkoutLimit : 0
 
   // Fetch simulated date (if any), otherwise use real date
   const fetchCurrentDate = useCallback(async () => {
@@ -57,14 +64,9 @@ export function CurrentCheckouts({ checkouts, onReturn }: CurrentCheckoutsProps)
     fetchCurrentDate()
   }, [fetchCurrentDate])
 
-  const handleReturn = async (checkoutId: string) => {
-    if (!onReturn) return
-    setReturningId(checkoutId)
-    try {
-      await onReturn(checkoutId)
-    } finally {
-      setReturningId(null)
-    }
+  const openReturnDialog = (checkout: CheckoutWithBook) => {
+    setSelectedCheckout(checkout)
+    setDialogOpen(true)
   }
 
   return (
@@ -76,6 +78,17 @@ export function CurrentCheckouts({ checkouts, onReturn }: CurrentCheckoutsProps)
         </CardTitle>
       </CardHeader>
       <CardContent>
+        {/* Over limit warning */}
+        {isOverLimit && (
+          <Alert variant="destructive" className="mb-4">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>
+              You have {checkouts.length} books checked out but your current limit is {checkoutLimit}.
+              Please return {booksOverLimit} {booksOverLimit === 1 ? 'book' : 'books'} to checkout new titles.
+            </AlertDescription>
+          </Alert>
+        )}
+
         {checkouts.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
             <BookOpen className="h-12 w-12 mx-auto mb-3 opacity-50" />
@@ -127,31 +140,28 @@ export function CurrentCheckouts({ checkouts, onReturn }: CurrentCheckoutsProps)
                       Due: {new Date(checkout.due_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                     </p>
                   </div>
-                  {onReturn && (
-                    <div className="flex items-center">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleReturn(checkout.id)}
-                        disabled={returningId === checkout.id}
-                      >
-                        {returningId === checkout.id ? (
-                          'Returning...'
-                        ) : (
-                          <>
-                            <CheckCircle className="h-4 w-4 mr-1" />
-                            Return
-                          </>
-                        )}
-                      </Button>
-                    </div>
-                  )}
+                  <div className="flex items-center">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => openReturnDialog(checkout)}
+                    >
+                      <CheckCircle className="h-4 w-4 mr-1" />
+                      Return
+                    </Button>
+                  </div>
                 </div>
               )
             })}
           </div>
         )}
       </CardContent>
+      <ReturnDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        checkout={selectedCheckout}
+        onReturnComplete={onReturnComplete}
+      />
     </Card>
   )
 }
