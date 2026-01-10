@@ -18,11 +18,10 @@ import { WaitlistButton } from '@/components/books/waitlist-button'
 import { BookCoverImage } from '@/components/books/book-cover-image'
 import { SimilarBooks } from '@/components/books/similar-books'
 import { AddToMyBooksButton } from '@/components/books/add-to-my-books-button'
-import { BookReviews } from '@/components/books/book-reviews'
 import { UserBookForm } from '@/components/books/user-book-form'
 import { WhyYouMightLike } from '@/components/books/why-you-might-like'
 import { ExternalRating } from '@/components/books/external-rating'
-import { ReviewCTA } from '@/components/books/review-cta'
+import { HardcoverReviews } from '@/components/books/hardcover-reviews'
 import { BookContentTabs } from '@/components/books/book-content-tabs'
 import { BOOK_STATUS_COLORS, BOOK_STATUS_LABELS, isAdminRole } from '@/lib/constants'
 import { estimateReadingTime } from '@/lib/utils'
@@ -267,12 +266,11 @@ export default async function BookDetailPage({ params }: BookDetailPageProps) {
             )}
           </header>
 
-          {/* External Rating & Reviews from Hardcover - always visible */}
-          <ExternalRating bookId={book.id} />
+          {/* External Rating from Hardcover - always visible (reviews in tab) */}
+          <ExternalRating bookId={book.id} showReviews={false} />
 
           {/* Tabbed Content */}
           <BookContentTabs
-            reviewCount={reviewCount ?? 0}
             bookInfo={
               <div className="space-y-6">
                 {/* Why You Might Like This */}
@@ -341,17 +339,7 @@ export default async function BookDetailPage({ params }: BookDetailPageProps) {
               </div>
             }
             reviews={
-              <div className="space-y-6">
-                {/* Review CTA */}
-                <ReviewCTA
-                  reviewCount={reviewCount ?? 0}
-                  hasUserReview={!!userBookEntry?.review}
-                  isLoggedIn={!!user}
-                />
-
-                {/* Community Reviews */}
-                <BookReviews bookId={book.id} />
-              </div>
+              <HardcoverReviews bookId={book.id} />
             }
           />
         </div>

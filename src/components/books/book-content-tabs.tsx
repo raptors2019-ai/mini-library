@@ -1,19 +1,17 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { BookOpen, MessageSquare } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface BookContentTabsProps {
   bookInfo: React.ReactNode
   reviews: React.ReactNode
-  reviewCount?: number
 }
 
 export function BookContentTabs({
   bookInfo,
   reviews,
-  reviewCount = 0,
 }: BookContentTabsProps): React.ReactElement {
   const [activeTab, setActiveTab] = useState<'info' | 'reviews'>('info')
 
@@ -54,11 +52,6 @@ export function BookContentTabs({
             <span className="flex items-center gap-2">
               <MessageSquare className="h-4 w-4" />
               Reviews
-              {reviewCount > 0 && (
-                <span className="inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full bg-muted text-xs font-semibold">
-                  {reviewCount}
-                </span>
-              )}
             </span>
             {activeTab === 'reviews' && (
               <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />

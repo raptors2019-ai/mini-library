@@ -29,6 +29,7 @@ interface ExternalMetadata {
 
 interface ExternalRatingProps {
   bookId: string
+  showReviews?: boolean
 }
 
 function stripHtml(html: string): string {
@@ -94,7 +95,7 @@ function RatingStars({ rating, size = 'sm' }: { rating: number; size?: 'sm' | 'l
   )
 }
 
-export function ExternalRating({ bookId }: ExternalRatingProps): React.ReactElement | null {
+export function ExternalRating({ bookId, showReviews = true }: ExternalRatingProps): React.ReactElement | null {
   const [metadata, setMetadata] = useState<ExternalMetadata | null>(null)
   const [loading, setLoading] = useState(true)
   const [notAvailable, setNotAvailable] = useState(false)
@@ -214,7 +215,7 @@ export function ExternalRating({ bookId }: ExternalRatingProps): React.ReactElem
         </div>
 
         {/* Reviews Section */}
-        {hasReviews && (
+        {showReviews && hasReviews && (
           <div className="space-y-4">
             <div className="flex items-center gap-3">
               <div className="h-px flex-1 bg-gradient-to-r from-border to-transparent" />
