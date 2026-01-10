@@ -1,8 +1,9 @@
 "use client"
 
 import Link from "next/link"
+import Image from "next/image"
 import { usePathname } from "next/navigation"
-import { Search, Library, Settings, LogIn, LogOut, User, Menu, LayoutDashboard, BookOpen, type LucideIcon } from "lucide-react"
+import { Search, Settings, LogIn, LogOut, User, Menu, LayoutDashboard, BookOpen, type LucideIcon } from "lucide-react"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { NotificationBell } from "@/components/notification-bell"
 import { RoleSwitcher } from "@/components/dev/role-switcher"
@@ -152,8 +153,8 @@ export function Header(): React.ReactNode {
             <SheetContent side="left" className="w-[280px] sm:w-[320px]">
               <SheetHeader>
                 <SheetTitle className="flex items-center gap-2">
-                  <Library className="h-5 w-5" />
-                  Library
+                  <Image src="/logo.png" alt="AILibrary" width={24} height={24} className="rounded" />
+                  AILibrary
                 </SheetTitle>
               </SheetHeader>
               <nav className="flex flex-col gap-1 mt-6">
@@ -205,8 +206,8 @@ export function Header(): React.ReactNode {
         </div>
 
         <Link href={homeHref} className="mr-2 md:mr-6 flex items-center space-x-2">
-          <Library className="h-6 w-6" />
-          <span className="font-bold hidden sm:inline">Library</span>
+          <Image src="/logo.png" alt="AILibrary" width={28} height={28} className="rounded" />
+          <span className="font-bold hidden sm:inline">AILibrary</span>
         </Link>
 
         {/* Desktop nav - hidden on mobile */}

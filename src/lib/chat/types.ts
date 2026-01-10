@@ -48,7 +48,8 @@ export interface GetRecommendationsArgs {
 }
 
 export interface FindSimilarBooksArgs {
-  book_id: string
+  book_id?: string
+  title?: string
   limit?: number
 }
 

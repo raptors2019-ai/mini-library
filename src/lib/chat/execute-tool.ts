@@ -337,10 +337,38 @@ async function findSimilarBooks(args: FindSimilarBooksArgs): Promise<ToolExecuti
   const supabase = await createClient()
   const limit = args.limit || 5
 
+  let bookId = args.book_id
+
+  // If no book_id but title provided, search for the book first
+  if (!bookId && args.title) {
+    const { data: books } = await supabase
+      .from('books')
+      .select('id, title')
+      .neq('status', 'inactive')
+      .ilike('title', `%${args.title}%`)
+      .limit(1)
+
+    if (books && books.length > 0) {
+      bookId = books[0].id
+    } else {
+      return {
+        success: false,
+        error: `Could not find "${args.title}" in our catalog. Try searching for it first with search_books, or the book may not be in our collection.`,
+      }
+    }
+  }
+
+  if (!bookId) {
+    return {
+      success: false,
+      error: 'Please provide either a book_id or title to find similar books.',
+    }
+  }
+
   // Try RPC function first
   try {
     const { data: similar, error } = await supabase.rpc('find_similar_books', {
-      book_id: args.book_id,
+      book_id: bookId,
       match_count: limit,
     })
 
@@ -358,18 +386,21 @@ async function findSimilarBooks(args: FindSimilarBooksArgs): Promise<ToolExecuti
   // Fallback: genre-based similarity
   const { data: sourceBook } = await supabase
     .from('books')
-    .select('genres')
-    .eq('id', args.book_id)
+    .select('genres, title')
+    .eq('id', bookId)
     .single()
 
   if (!sourceBook?.genres?.length) {
-    return { success: false, error: 'Source book not found or has no genres' }
+    return {
+      success: false,
+      error: `Found "${sourceBook?.title || 'the book'}" but it has no genres set, so I can't find similar books.`
+    }
   }
 
   const { data: similarBooks } = await supabase
     .from('books')
     .select('*')
-    .neq('id', args.book_id)
+    .neq('id', bookId)
     .neq('status', 'inactive')
     .overlaps('genres', sourceBook.genres)
     .limit(limit)
@@ -377,7 +408,7 @@ async function findSimilarBooks(args: FindSimilarBooksArgs): Promise<ToolExecuti
   return {
     success: true,
     books: similarBooks || [],
-    data: { type: 'genre-based', count: similarBooks?.length || 0 },
+    data: { type: 'genre-based', count: similarBooks?.length || 0, sourceTitle: sourceBook.title },
   }
 }
 

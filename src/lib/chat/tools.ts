@@ -96,20 +96,23 @@ export const chatTools: ChatCompletionTool[] = [
     function: {
       name: 'find_similar_books',
       description:
-        'Find books similar to a specific book based on content, themes, writing style, and genre. Useful for "if you liked X, you might like Y" recommendations.',
+        'Find books similar to a specific book based on content, themes, writing style, and genre. Useful for "if you liked X, you might like Y" recommendations. You can provide either a book_id (if you know it) OR a title to search for.',
       parameters: {
         type: 'object',
         properties: {
           book_id: {
             type: 'string',
-            description: 'The UUID of the source book to find similar books for',
+            description: 'The UUID of the source book to find similar books for (if known)',
+          },
+          title: {
+            type: 'string',
+            description: 'The title of the book to find similar books for (will search the catalog first)',
           },
           limit: {
             type: 'number',
             description: 'Number of similar books to return (default 5)',
           },
         },
-        required: ['book_id'],
       },
     },
   },

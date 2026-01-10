@@ -143,7 +143,13 @@ async function BooksContent({ searchParams }: BooksPageProps) {
     if (isUuid) {
       query = query.eq('id', params.search)
     } else {
-      query = query.or(`title.ilike.%${params.search}%,author.ilike.%${params.search}%,isbn.ilike.%${params.search}%`)
+      // Search across title, author, ISBN, and description
+      // Also check if search term matches any genre (case-insensitive)
+      const searchLower = params.search.toLowerCase()
+      const searchCapitalized = searchLower.charAt(0).toUpperCase() + searchLower.slice(1)
+      query = query.or(
+        `title.ilike.%${params.search}%,author.ilike.%${params.search}%,isbn.ilike.%${params.search}%,description.ilike.%${params.search}%,genres.cs.{"${searchCapitalized}"}`
+      )
     }
   }
 

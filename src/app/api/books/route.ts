@@ -40,7 +40,13 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     if (isUuid) {
       query = query.eq('id', search)
     } else {
-      query = query.or(`title.ilike.%${search}%,author.ilike.%${search}%,isbn.ilike.%${search}%`)
+      // Search across title, author, ISBN, and description
+      // Also check if search term matches any genre (case-insensitive)
+      const searchLower = search.toLowerCase()
+      const searchCapitalized = searchLower.charAt(0).toUpperCase() + searchLower.slice(1)
+      query = query.or(
+        `title.ilike.%${search}%,author.ilike.%${search}%,isbn.ilike.%${search}%,description.ilike.%${search}%,genres.cs.{"${searchCapitalized}"}`
+      )
     }
   }
 

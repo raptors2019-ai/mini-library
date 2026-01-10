@@ -20,7 +20,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Library | AI-Powered Book Management",
+  title: "AILibrary | AI-Powered Book Management",
   description: "A modern library management system with AI-powered search and recommendations",
 };
 
