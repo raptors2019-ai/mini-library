@@ -44,9 +44,17 @@ const bookSchema = z.object({
 
 type BookFormValues = z.infer<typeof bookSchema>
 
+type FormMode = 'create' | 'edit' | 'request'
+
 interface BookFormProps {
   book?: Book
-  mode: 'create' | 'edit' | 'request'
+  mode: FormMode
+}
+
+const SUBMIT_BUTTON_LABELS: Record<FormMode, string> = {
+  request: 'Submit Request',
+  create: 'Create Book',
+  edit: 'Update Book',
 }
 
 export function BookForm({ book, mode }: BookFormProps) {
@@ -393,7 +401,7 @@ export function BookForm({ book, mode }: BookFormProps) {
         <div className="flex gap-4">
           <Button type="submit" disabled={loading}>
             {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-            {mode === 'request' ? 'Submit Request' : mode === 'create' ? 'Create Book' : 'Update Book'}
+            {SUBMIT_BUTTON_LABELS[mode]}
           </Button>
           <Button
             type="button"

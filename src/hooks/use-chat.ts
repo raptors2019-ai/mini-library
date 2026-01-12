@@ -123,9 +123,11 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
                   if (toolName === 'get_recommendations') {
                     // Show recommendation-specific message
                     const recType = chunk.toolCall.arguments?.type as string | undefined
-                    const typeLabel = recType === 'new' ? 'new arrivals' :
-                                      recType === 'popular' ? 'popular books' :
-                                      'personalized recommendations'
+                    const typeLabels: Record<string, string> = {
+                      new: 'new arrivals',
+                      popular: 'popular books',
+                    }
+                    const typeLabel = recType && typeLabels[recType] ? typeLabels[recType] : 'personalized recommendations'
                     setSearchQuery(typeLabel)
                     // Don't set lastSearchQuery - we don't want to auto-navigate for recommendations
                   } else {

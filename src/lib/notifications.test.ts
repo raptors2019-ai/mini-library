@@ -205,8 +205,8 @@ describe('notifications', () => {
 
         expect(result).toEqual({
           type: 'waitlist_expired',
-          title: 'Waitlist Expired',
-          message: 'Your hold on "Neuromancer" has expired. The book has been offered to the next person in line.',
+          title: 'Hold Expired',
+          message: 'You missed your time window to claim "Neuromancer". The book has been offered to the next person. Check availability or join the waitlist again.',
         })
       })
     })

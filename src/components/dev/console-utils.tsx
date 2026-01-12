@@ -29,6 +29,10 @@ declare global {
 }
 
 export function ConsoleUtils() {
+  // Temporarily hidden - remove this return to re-enable
+  return null
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     const utils: DemoUtils = {
       async setDate(date: string) {

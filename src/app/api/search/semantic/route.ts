@@ -221,9 +221,15 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     // Determine search type for display
     const hasTextMatches = textResults.length > 0
     const hasSemanticMatches = semanticResults.length > 0
-    const searchType = hasTextMatches && hasSemanticMatches ? 'hybrid'
-      : hasSemanticMatches ? 'semantic'
-      : 'text_fallback'
+
+    let searchType: string
+    if (hasTextMatches && hasSemanticMatches) {
+      searchType = 'hybrid'
+    } else if (hasSemanticMatches) {
+      searchType = 'semantic'
+    } else {
+      searchType = 'text_fallback'
+    }
 
     // Remove internal scoring fields before returning
     const cleanBooks = sortedBooks.map(({ _score, _matchType, ...book }) => book)

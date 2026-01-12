@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import type { Book, UserBookStatus } from '@/types/database'
+import type { Book, BookStatus, UserBookStatus } from '@/types/database'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { BookOpen } from 'lucide-react'
@@ -15,6 +15,14 @@ interface BookCardProps {
   showAddButton?: boolean
   userBookStatus?: UserBookStatus | null
   userBookRating?: number | null
+}
+
+const STATUS_BADGE_COLORS: Record<BookStatus, string> = {
+  available: 'bg-emerald-500 text-white hover:bg-emerald-600 shadow-sm',
+  checked_out: 'bg-orange-500 text-white hover:bg-orange-600 shadow-sm',
+  on_hold_premium: 'bg-amber-500 text-white hover:bg-amber-600 shadow-sm',
+  on_hold_waitlist: 'bg-purple-500 text-white hover:bg-purple-600 shadow-sm',
+  inactive: 'bg-gray-500 text-white hover:bg-gray-600 shadow-sm',
 }
 
 export function BookCard({ book, showAddButton = false, userBookStatus, userBookRating }: BookCardProps) {
@@ -52,19 +60,7 @@ export function BookCard({ book, showAddButton = false, userBookStatus, userBook
           )}
           {/* Status Badge - top right */}
           <div className="absolute top-2 right-2">
-            <Badge
-              className={
-                book.status === 'available'
-                  ? 'bg-emerald-500 text-white hover:bg-emerald-600 shadow-sm'
-                  : book.status === 'checked_out'
-                  ? 'bg-orange-500 text-white hover:bg-orange-600 shadow-sm'
-                  : book.status === 'on_hold_premium'
-                  ? 'bg-amber-500 text-white hover:bg-amber-600 shadow-sm'
-                  : book.status === 'on_hold_waitlist'
-                  ? 'bg-purple-500 text-white hover:bg-purple-600 shadow-sm'
-                  : 'bg-gray-500 text-white hover:bg-gray-600 shadow-sm'
-              }
-            >
+            <Badge className={STATUS_BADGE_COLORS[book.status]}>
               {BOOK_STATUS_LABELS[book.status]}
             </Badge>
           </div>

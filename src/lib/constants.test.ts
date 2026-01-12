@@ -1,7 +1,6 @@
 import {
   isAdminRole,
   isPriorityRole,
-  isPremiumRole,
   getHoldDurationHours,
   BOOK_STATUS_COLORS,
   BOOK_STATUS_LABELS,
@@ -78,7 +77,8 @@ describe('BOOK_STATUS_COLORS', () => {
   it('should have colors for all statuses', () => {
     expect(BOOK_STATUS_COLORS.available).toBeDefined()
     expect(BOOK_STATUS_COLORS.checked_out).toBeDefined()
-    expect(BOOK_STATUS_COLORS.on_hold).toBeDefined()
+    expect(BOOK_STATUS_COLORS.on_hold_premium).toBeDefined()
+    expect(BOOK_STATUS_COLORS.on_hold_waitlist).toBeDefined()
     expect(BOOK_STATUS_COLORS.inactive).toBeDefined()
   })
 })
@@ -87,7 +87,8 @@ describe('BOOK_STATUS_LABELS', () => {
   it('should have labels for all statuses', () => {
     expect(BOOK_STATUS_LABELS.available).toBe('Available')
     expect(BOOK_STATUS_LABELS.checked_out).toBe('Checked Out')
-    expect(BOOK_STATUS_LABELS.on_hold).toBe('On Hold')
+    expect(BOOK_STATUS_LABELS.on_hold_premium).toBe('On Hold (Premium)')
+    expect(BOOK_STATUS_LABELS.on_hold_waitlist).toBe('On Hold (Waitlist)')
     expect(BOOK_STATUS_LABELS.inactive).toBe('Inactive')
   })
 })
@@ -204,32 +205,3 @@ describe('getHoldDurationHours', () => {
   })
 })
 
-describe('isPremiumRole', () => {
-  it('should return true for admin role', () => {
-    expect(isPremiumRole('admin')).toBe(true)
-  })
-
-  it('should return true for librarian role', () => {
-    expect(isPremiumRole('librarian')).toBe(true)
-  })
-
-  it('should return true for premium role', () => {
-    expect(isPremiumRole('premium')).toBe(true)
-  })
-
-  it('should return false for member role', () => {
-    expect(isPremiumRole('member')).toBe(false)
-  })
-
-  it('should return false for guest role', () => {
-    expect(isPremiumRole('guest')).toBe(false)
-  })
-
-  it('should return false for null', () => {
-    expect(isPremiumRole(null)).toBe(false)
-  })
-
-  it('should return false for undefined', () => {
-    expect(isPremiumRole(undefined)).toBe(false)
-  })
-})
