@@ -420,6 +420,7 @@ export type WaitlistWithBook = Waitlist & {
 export type WaitlistWithBookAndEstimate = WaitlistWithBook & {
   estimated_days: number | null
   estimated_date: string | null
+  is_claimable?: boolean
 }
 
 export type BookRequest = Database['public']['Tables']['book_requests']['Row']

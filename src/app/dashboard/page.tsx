@@ -223,25 +223,34 @@ async function getDashboardData() {
 
       let estimatedDays: number | null = null
       let estimatedDate: Date | null = null
+      let isClaimable = false // Track if user can actually claim the book now
 
       // Check if book is in hold status - calculate based on hold phase
       if (book?.status === 'on_hold_premium' && book.hold_until) {
-        const holdStarted = new Date(book.hold_until)
-        // Premium users can access now, regular users wait 24 hours
+        // Premium users can access now, regular users wait for premium phase to end
         if (entry.is_priority) {
           estimatedDate = now // Available now for premium
           estimatedDays = 0
+          isClaimable = true
         } else {
-          // Wait for premium phase to end (24 hours from hold start)
-          estimatedDate = new Date(holdStarted)
-          estimatedDate.setHours(estimatedDate.getHours() + 24)
-          estimatedDays = Math.ceil((estimatedDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
-          if (estimatedDays < 0) estimatedDays = 0
+          // Wait for premium phase to end (hold_until is when premium phase ends)
+          const holdUntil = new Date(book.hold_until)
+          if (now >= holdUntil) {
+            // Premium phase ended, should transition to waitlist phase
+            estimatedDate = now
+            estimatedDays = 0
+            isClaimable = true
+          } else {
+            estimatedDate = holdUntil
+            estimatedDays = Math.ceil((holdUntil.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+            if (estimatedDays < 1) estimatedDays = 1 // At least 1 day if not claimable
+          }
         }
       } else if (book?.status === 'on_hold_waitlist') {
         // All waitlist users can access now
         estimatedDate = now
         estimatedDays = 0
+        isClaimable = true
       } else if (currentCheckout?.due_date) {
         const dueDate = new Date(currentCheckout.due_date)
         // Add 14 days per person ahead in queue
@@ -253,19 +262,21 @@ async function getDashboardData() {
         dueDate.setDate(dueDate.getDate() + holdDays)
         estimatedDate = dueDate
         estimatedDays = Math.ceil((dueDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
-        if (estimatedDays < 0) estimatedDays = 0
+        // Don't set to 0 for checked out books - minimum 1 day since it's not claimable yet
+        if (estimatedDays < 1) estimatedDays = 1
       } else if (book?.status === 'checked_out') {
         // Fallback: Assume 14 days per position in queue
         estimatedDate = new Date(now)
         const totalDays = 14 * entry.position + (entry.is_priority ? 0 : 1)
         estimatedDate.setDate(estimatedDate.getDate() + totalDays)
-        estimatedDays = totalDays
+        estimatedDays = Math.max(totalDays, 1) // At least 1 day
       }
 
       return {
         ...entry,
         estimated_days: estimatedDays,
         estimated_date: estimatedDate?.toISOString() || null,
+        is_claimable: isClaimable,
       }
     })
   )

@@ -3,7 +3,7 @@
 import { Bot, User } from 'lucide-react'
 import Link from 'next/link'
 import ReactMarkdown from 'react-markdown'
-import { ChatBookCard } from './chat-book-card'
+import { ChatBookCarousel } from './chat-book-carousel'
 import type { ChatMessage as ChatMessageType } from '@/lib/chat/types'
 import { cn } from '@/lib/utils'
 
@@ -74,17 +74,10 @@ export function ChatMessage({ message }: ChatMessageProps) {
           )}
         </div>
 
-        {/* Book cards */}
+        {/* Book cards carousel */}
         {hasBooks && (
-          <div className="w-full space-y-2">
-            {message.books!.slice(0, 5).map((book) => (
-              <ChatBookCard key={book.id} book={book} />
-            ))}
-            {message.books!.length > 5 && (
-              <p className="text-xs text-muted-foreground">
-                +{message.books!.length - 5} more books
-              </p>
-            )}
+          <div className="w-full">
+            <ChatBookCarousel books={message.books!} />
           </div>
         )}
       </div>

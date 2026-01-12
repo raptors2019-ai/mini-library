@@ -20,17 +20,17 @@ export function WaitlistStatus({ waitlistEntries, isPriorityUser = false }: Wait
   const [localEntries, setLocalEntries] = useState(waitlistEntries)
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null)
 
-  const formatEstimatedDate = (date: string | null, days: number | null) => {
+  const formatEstimatedDate = (date: string | null, days: number | null, isClaimable?: boolean) => {
+    // Only show "Available now" if the book is actually claimable
+    if (isClaimable) {
+      return 'Available now'
+    }
     if (date) {
       const d = new Date(date)
-      // If it's today or in the past, show "Available now"
-      if (days === 0 || days === null && d <= new Date()) {
-        return 'Available now'
-      }
       return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
     }
     if (days === null) return 'Unknown'
-    if (days === 0) return 'Available now'
+    if (days === 0) return 'Soon'
     // Fallback to calculating date from days
     const estimatedDate = new Date()
     estimatedDate.setDate(estimatedDate.getDate() + days)
@@ -145,7 +145,7 @@ export function WaitlistStatus({ waitlistEntries, isPriorityUser = false }: Wait
                             </Badge>
                             <Badge variant="secondary" className="text-xs bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300">
                               <Clock className="h-3 w-3 mr-1" />
-                              {formatEstimatedDate(entry.estimated_date, entry.estimated_days)}
+                              {formatEstimatedDate(entry.estimated_date, entry.estimated_days, entry.is_claimable)}
                             </Badge>
                           </>
                         )}

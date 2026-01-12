@@ -114,19 +114,32 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
                 break
 
               case 'tool_call':
-                if (chunk.toolCall?.name === 'search_books' || chunk.toolCall?.name === 'find_similar_books') {
+                if (chunk.toolCall?.name === 'search_books' ||
+                    chunk.toolCall?.name === 'find_similar_books' ||
+                    chunk.toolCall?.name === 'get_recommendations') {
                   setIsSearching(true)
                   const toolName = chunk.toolCall.name
-                  const displayQuery = (chunk.toolCall.arguments?.query || chunk.toolCall.arguments?.title) as string | undefined
-                  if (displayQuery) {
-                    setSearchQuery(displayQuery)
-                    // For search_books, use the query directly
-                    // For find_similar_books, create a "similar to X" semantic search query
-                    if (toolName === 'search_books') {
-                      lastSearchQuery = displayQuery
-                    } else if (toolName === 'find_similar_books') {
-                      // Create a semantic search query that will find similar books
-                      lastSearchQuery = `books similar to ${displayQuery}`
+
+                  if (toolName === 'get_recommendations') {
+                    // Show recommendation-specific message
+                    const recType = chunk.toolCall.arguments?.type as string | undefined
+                    const typeLabel = recType === 'new' ? 'new arrivals' :
+                                      recType === 'popular' ? 'popular books' :
+                                      'personalized recommendations'
+                    setSearchQuery(typeLabel)
+                    // Don't set lastSearchQuery - we don't want to auto-navigate for recommendations
+                  } else {
+                    const displayQuery = (chunk.toolCall.arguments?.query || chunk.toolCall.arguments?.title) as string | undefined
+                    if (displayQuery) {
+                      setSearchQuery(displayQuery)
+                      // For search_books, use the query directly
+                      // For find_similar_books, create a "similar to X" semantic search query
+                      if (toolName === 'search_books') {
+                        lastSearchQuery = displayQuery
+                      } else if (toolName === 'find_similar_books') {
+                        // Create a semantic search query that will find similar books
+                        lastSearchQuery = `books similar to ${displayQuery}`
+                      }
                     }
                   }
                 }
@@ -164,13 +177,8 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
                   books: accumulatedBooks.length > 0 ? accumulatedBooks : undefined,
                   searchQuery: accumulatedBooks.length > 0 ? lastSearchQuery || undefined : undefined,
                 })
-                // Auto-navigate to search page when books are found
-                if (accumulatedBooks.length > 0 && lastSearchQuery && onAction) {
-                  onAction({
-                    type: 'open_search',
-                    payload: { query: lastSearchQuery }
-                  })
-                }
+                // Note: We no longer auto-navigate. Books are shown in the chat carousel.
+                // Users can click individual book cards to see details.
                 break
             }
           } catch {
