@@ -79,16 +79,14 @@ export async function PUT(
     const premiumHoldEnds = new Date(now)
     premiumHoldEnds.setHours(premiumHoldEnds.getHours() + WAITLIST_HOLD_DURATION.premium)
 
-    // Set book to on_hold_premium status with hold_until timestamp
-    const { error: bookUpdateError } = await supabase
-      .from('books')
-      .update({
-        status: 'on_hold_premium',
-        hold_until: premiumHoldEnds.toISOString()
+    // Set book to on_hold_premium status using SECURITY DEFINER function
+    const { data: holdResult, error: bookUpdateError } = await supabase
+      .rpc('set_book_on_hold_premium', {
+        p_book_id: bookId,
+        p_hold_until: premiumHoldEnds.toISOString()
       })
-      .eq('id', bookId)
 
-    if (bookUpdateError) {
+    if (bookUpdateError || !holdResult) {
       console.error('Failed to update book status to on_hold_premium:', bookUpdateError)
     }
 
@@ -130,18 +128,16 @@ export async function PUT(
       }
     }
   } else {
-    // No waitlist, make book available
-    const { error: bookUpdateError } = await supabase
-      .from('books')
-      .update({ status: 'available', hold_until: null })
-      .eq('id', bookId)
+    // No waitlist, make book available using SECURITY DEFINER function
+    const { data: availableResult, error: bookUpdateError } = await supabase
+      .rpc('return_book', { p_book_id: bookId })
 
-    if (bookUpdateError) {
+    if (bookUpdateError || !availableResult) {
       console.error('Failed to update book status to available:', bookUpdateError)
       // Return error so client knows something went wrong
       return NextResponse.json({
         error: 'Book returned but failed to update availability status',
-        details: bookUpdateError.message
+        details: bookUpdateError?.message || 'Book status update failed'
       }, { status: 500 })
     }
   }

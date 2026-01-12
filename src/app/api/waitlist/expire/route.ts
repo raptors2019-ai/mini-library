@@ -91,11 +91,8 @@ export async function POST(): Promise<NextResponse> {
         ...availableNotification,
       })
     } else {
-      // No one else in line, make book available
-      await supabase
-        .from('books')
-        .update({ status: 'available' })
-        .eq('id', bookId)
+      // No one else in line, make book available using SECURITY DEFINER function
+      await supabase.rpc('set_book_available', { p_book_id: bookId })
     }
 
     processedCount++

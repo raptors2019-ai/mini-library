@@ -40,12 +40,8 @@ export async function DELETE(
     .single()
 
   if (!nextInLine) {
-    // No one else waiting, make book available (if it was on hold for waitlist)
-    await supabase
-      .from('books')
-      .update({ status: 'available', hold_until: null })
-      .eq('id', bookId)
-      .in('status', ['on_hold_premium', 'on_hold_waitlist'])
+    // No one else waiting, make book available using SECURITY DEFINER function
+    await supabase.rpc('set_book_available', { p_book_id: bookId })
   }
 
   return jsonSuccess({ success: true })

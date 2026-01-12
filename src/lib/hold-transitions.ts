@@ -41,17 +41,14 @@ export async function processHoldTransitions(supabase: SupabaseClient): Promise<
         .eq('status', 'waiting')
 
       if (waitlistEntries && waitlistEntries.length > 0) {
-        // Transition to on_hold_waitlist with new hold_until
+        // Transition to on_hold_waitlist with new hold_until using SECURITY DEFINER function
         const newHoldUntil = new Date(now)
         newHoldUntil.setHours(newHoldUntil.getHours() + WAITLIST_HOLD_DURATION.waitlist)
 
-        await supabase
-          .from('books')
-          .update({
-            status: 'on_hold_waitlist',
-            hold_until: newHoldUntil.toISOString()
-          })
-          .eq('id', book.id)
+        await supabase.rpc('set_book_on_hold_waitlist', {
+          p_book_id: book.id,
+          p_hold_until: newHoldUntil.toISOString()
+        })
 
         premiumToWaitlist++
 
@@ -93,20 +90,14 @@ export async function processHoldTransitions(supabase: SupabaseClient): Promise<
           }
         }
       } else {
-        // No waitlist, make available
-        await supabase
-          .from('books')
-          .update({ status: 'available', hold_until: null })
-          .eq('id', book.id)
+        // No waitlist, make available using SECURITY DEFINER function
+        await supabase.rpc('set_book_available', { p_book_id: book.id })
 
         waitlistToAvailable++
       }
     } else if (book.status === 'on_hold_waitlist') {
-      // Waitlist hold expired - make available
-      await supabase
-        .from('books')
-        .update({ status: 'available', hold_until: null })
-        .eq('id', book.id)
+      // Waitlist hold expired - make available using SECURITY DEFINER function
+      await supabase.rpc('set_book_available', { p_book_id: book.id })
 
       waitlistToAvailable++
     }
@@ -154,17 +145,14 @@ export async function processBookHoldTransition(
       .eq('status', 'waiting')
 
     if (waitlistEntries && waitlistEntries.length > 0) {
-      // Transition to on_hold_waitlist
+      // Transition to on_hold_waitlist using SECURITY DEFINER function
       const newHoldUntil = new Date(now)
       newHoldUntil.setHours(newHoldUntil.getHours() + WAITLIST_HOLD_DURATION.waitlist)
 
-      await supabase
-        .from('books')
-        .update({
-          status: 'on_hold_waitlist',
-          hold_until: newHoldUntil.toISOString()
-        })
-        .eq('id', bookId)
+      await supabase.rpc('set_book_on_hold_waitlist', {
+        p_book_id: bookId,
+        p_hold_until: newHoldUntil.toISOString()
+      })
 
       // Mark ALL waitlist members as 'notified' and set expiration
       for (const entry of waitlistEntries) {
@@ -204,17 +192,12 @@ export async function processBookHoldTransition(
         }
       }
     } else {
-      await supabase
-        .from('books')
-        .update({ status: 'available', hold_until: null })
-        .eq('id', bookId)
+      // No waitlist, make available using SECURITY DEFINER function
+      await supabase.rpc('set_book_available', { p_book_id: bookId })
     }
   } else if (book.status === 'on_hold_waitlist') {
-    // Waitlist hold expired - make available
-    await supabase
-      .from('books')
-      .update({ status: 'available', hold_until: null })
-      .eq('id', bookId)
+    // Waitlist hold expired - make available using SECURITY DEFINER function
+    await supabase.rpc('set_book_available', { p_book_id: bookId })
   }
 }
 

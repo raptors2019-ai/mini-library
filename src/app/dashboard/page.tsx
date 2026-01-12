@@ -92,11 +92,8 @@ async function processExpiredHolds(supabase: ReturnType<typeof createClient> ext
         ...availableNotification,
       })
     } else {
-      // No one else waiting, make book available
-      await supabase
-        .from('books')
-        .update({ status: 'available' })
-        .eq('id', bookId)
+      // No one else waiting, make book available using SECURITY DEFINER function
+      await supabase.rpc('set_book_available', { p_book_id: bookId })
     }
   }
 }

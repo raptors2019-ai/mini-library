@@ -3,7 +3,6 @@ import { Book, Search, Sparkles, Clock, Users, LayoutDashboard } from "lucide-re
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { BookCarousel } from "@/components/books/book-carousel"
-import { PersonalizedRecommendations } from "@/components/home/personalized-recommendations"
 import { SearchButton } from "@/components/home/search-button"
 import { createClient } from "@/lib/supabase/server"
 import { getBooksWithCovers } from "@/lib/google-books"
@@ -45,16 +44,8 @@ async function getUserInfo() {
     .eq('id', user.id)
     .single()
 
-  const { data: preferences } = await supabase
-    .from('user_preferences')
-    .select('favorite_genres, onboarding_completed')
-    .eq('user_id', user.id)
-    .single()
-
   return {
     firstName: profile?.full_name?.split(' ')[0] || 'there',
-    favoriteGenres: preferences?.favorite_genres || [],
-    onboardingCompleted: preferences?.onboarding_completed || false,
   }
 }
 
@@ -133,11 +124,6 @@ export default async function Home() {
           )}
         </div>
       </section>
-
-      {/* Personalized Recommendations for Logged-in Users */}
-      {isLoggedIn && userInfo.onboardingCompleted && (
-        <PersonalizedRecommendations favoriteGenres={userInfo.favoriteGenres} />
-      )}
 
       {/* Trending Books Carousel */}
       {trendingBooks.length > 0 && (
