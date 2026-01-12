@@ -53,10 +53,10 @@ describe('BookCard', () => {
     expect(screen.getByText('Available')).toBeInTheDocument()
   })
 
-  it('should render genres', () => {
+  it('should render first genre as badge', () => {
     render(<BookCard book={mockBook} />)
+    // Component shows only the first genre as a badge on the cover
     expect(screen.getByText('Fiction')).toBeInTheDocument()
-    expect(screen.getByText('Classic')).toBeInTheDocument()
   })
 
   it('should link to book detail page', () => {
@@ -85,13 +85,15 @@ describe('BookCard', () => {
     expect(img).toHaveAttribute('alt', 'The Great Gatsby')
   })
 
-  it('should show +N badge when more than 2 genres', () => {
+  it('should only show first genre even with many genres', () => {
     const bookManyGenres = {
       ...mockBook,
-      genres: ['Fiction', 'Classic', 'Drama', 'Romance'],
+      genres: ['Drama', 'Classic', 'Fiction', 'Romance'],
     }
     render(<BookCard book={bookManyGenres} />)
-    expect(screen.getByText('+2')).toBeInTheDocument()
+    // Component shows only the first genre as a badge
+    expect(screen.getByText('Drama')).toBeInTheDocument()
+    expect(screen.queryByText('Classic')).not.toBeInTheDocument()
   })
 
   it('should not render genres section when no genres', () => {
