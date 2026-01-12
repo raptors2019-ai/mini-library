@@ -154,7 +154,8 @@ export default function AdminBooksPage() {
                 <SelectItem value="all">All Status</SelectItem>
                 <SelectItem value="available">Available</SelectItem>
                 <SelectItem value="checked_out">Checked Out</SelectItem>
-                <SelectItem value="on_hold">On Hold</SelectItem>
+                <SelectItem value="on_hold_premium">On Hold (Premium)</SelectItem>
+                <SelectItem value="on_hold_waitlist">On Hold (Waitlist)</SelectItem>
                 <SelectItem value="inactive">Inactive</SelectItem>
               </SelectContent>
             </Select>

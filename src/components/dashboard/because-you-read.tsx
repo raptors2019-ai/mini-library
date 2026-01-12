@@ -122,7 +122,7 @@ export function BecauseYouRead(): React.ReactElement | null {
                   coverUrl={book.cover_url}
                   status={book.status}
                   genres={book.genres}
-                  showAiBadge={!!book.ai_summary}
+                  showAiBadge={false}
                 />
               ))}
             </div>

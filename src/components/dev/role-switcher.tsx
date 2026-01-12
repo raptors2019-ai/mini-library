@@ -1,8 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import { Shield, ChevronDown, Check } from 'lucide-react'
+import { Shield, ChevronDown, Check, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -43,15 +42,16 @@ const ROLE_INFO: Record<UserRole, { label: string; color: string; description: s
 }
 
 export function RoleSwitcher() {
-  const router = useRouter()
   const [currentRole, setCurrentRole] = useState<UserRole | null>(null)
   const [loading, setLoading] = useState(false)
+  const [initialLoading, setInitialLoading] = useState(true)
 
   useEffect(() => {
     fetch('/api/dev/switch-role')
       .then(res => res.json())
       .then(data => setCurrentRole(data.currentRole))
       .catch(() => {})
+      .finally(() => setInitialLoading(false))
   }, [])
 
   const switchRole = async (role: UserRole) => {
@@ -64,11 +64,22 @@ export function RoleSwitcher() {
       })
       if (res.ok) {
         setCurrentRole(role)
-        router.refresh()
+        // Hard refresh to ensure all components re-fetch data with new role
+        window.location.reload()
       }
     } finally {
       setLoading(false)
     }
+  }
+
+  // Show loading skeleton while fetching initial role
+  if (initialLoading) {
+    return (
+      <Button variant="outline" size="sm" className="gap-2" disabled>
+        <Loader2 className="h-4 w-4 animate-spin" />
+        <span className="hidden sm:inline">Loading...</span>
+      </Button>
+    )
   }
 
   if (!currentRole) return null

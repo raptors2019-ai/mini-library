@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth, isErrorResponse, jsonError, jsonSuccess } from '@/lib/api-utils'
+import { recalculateTasteProfile } from '@/lib/taste-profile'
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
   const auth = await requireAuth()
@@ -70,6 +71,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       return jsonError(error.message, 500)
     }
 
+    // Recalculate taste profile when rating or status changes (fire-and-forget)
+    if (rating !== undefined || status !== undefined) {
+      recalculateTasteProfile(supabase, user.id).catch(err =>
+        console.error('Taste profile recalc failed:', err)
+      )
+    }
+
     return jsonSuccess({ userBook: data })
   }
 
@@ -90,6 +98,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   if (error) {
     return jsonError(error.message, 500)
+  }
+
+  // Recalculate taste profile for new entries with ratings (fire-and-forget)
+  if (rating !== undefined || status === 'read' || status === 'dnf') {
+    recalculateTasteProfile(supabase, user.id).catch(err =>
+      console.error('Taste profile recalc failed:', err)
+    )
   }
 
   return jsonSuccess({ userBook: data }, 201)
@@ -116,6 +131,11 @@ export async function DELETE(request: NextRequest): Promise<NextResponse> {
   if (error) {
     return jsonError(error.message, 500)
   }
+
+  // Recalculate taste profile when books are removed (fire-and-forget)
+  recalculateTasteProfile(supabase, user.id).catch(err =>
+    console.error('Taste profile recalc failed:', err)
+  )
 
   return jsonSuccess({ success: true })
 }

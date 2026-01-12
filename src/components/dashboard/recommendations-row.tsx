@@ -98,7 +98,7 @@ export function RecommendationsRow({ onboardingCompleted }: RecommendationsRowPr
               coverUrl={book.cover_url}
               status={book.status}
               genres={book.genres}
-              showAiBadge={!!book.ai_summary}
+              showAiBadge={false}
             />
           ))}
         </div>

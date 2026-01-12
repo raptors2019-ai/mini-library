@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { BookOpen, ArrowLeft, Plus, CheckCircle, BookMarked, Clock, XCircle } from 'lucide-react'
+import { BookOpen, ArrowLeft, CheckCircle, BookMarked, Clock, XCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { MyBooksList } from './my-books-list'
@@ -101,25 +101,17 @@ export default async function MyBooksPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Link href="/dashboard">
-            <Button variant="ghost" size="sm">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back
-            </Button>
-          </Link>
-          <div className="flex items-center gap-2">
-            <BookOpen className="h-6 w-6" />
-            <h1 className="text-3xl font-bold">My Books</h1>
-          </div>
-        </div>
-        <Link href="/books">
-          <Button>
-            <Plus className="h-4 w-4 mr-2" />
-            Add Book
+      <div className="flex items-center gap-4">
+        <Link href="/dashboard">
+          <Button variant="ghost" size="sm">
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back
           </Button>
         </Link>
+        <div className="flex items-center gap-2">
+          <BookOpen className="h-6 w-6" />
+          <h1 className="text-3xl font-bold">My Books</h1>
+        </div>
       </div>
 
       {/* Reading Stats */}

@@ -52,10 +52,18 @@ export const notificationTemplates = {
     message: `"${bookTitle}" is due in ${daysLeft} day${daysLeft === 1 ? '' : 's'}. Please return it on time.`,
   }),
 
-  overdue: (bookTitle: string) => ({
+  overdue: (bookTitle: string, daysOverdue?: number, amountOwed?: number) => ({
     type: 'overdue' as NotificationType,
     title: 'Book Overdue',
-    message: `"${bookTitle}" is overdue. Please return it as soon as possible.`,
+    message: daysOverdue && amountOwed !== undefined
+      ? `"${bookTitle}" is ${daysOverdue} day${daysOverdue === 1 ? '' : 's'} overdue. Current late fee: $${amountOwed.toFixed(2)}. Please return it as soon as possible.`
+      : `"${bookTitle}" is overdue. Please return it as soon as possible.`,
+  }),
+
+  overdueReminder: (bookTitle: string, daysOverdue: number, amountOwed: number) => ({
+    type: 'overdue' as NotificationType,
+    title: 'Overdue Reminder',
+    message: `"${bookTitle}" is now ${daysOverdue} days overdue. Your current late fee is $${amountOwed.toFixed(2)}. Please return it as soon as possible to avoid additional fees.`,
   }),
 
   waitlistJoined: (bookTitle: string, position: number, estimatedDate?: string) => ({

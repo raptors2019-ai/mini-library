@@ -187,7 +187,8 @@ export function extractStatus(query: string): string | null {
   if (normalizedQuery.includes('on hold') ||
       normalizedQuery.includes('on-hold') ||
       normalizedQuery.includes('reserved')) {
-    return 'on_hold'
+    // Return on_hold_premium - API will expand to include both hold statuses
+    return 'on_hold_premium'
   }
 
   // Check for "available" last since it's a substring of "unavailable"

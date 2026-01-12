@@ -95,7 +95,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   // Check book status using hold-aware eligibility check
   const { data: book } = await supabase
     .from('books')
-    .select('status, hold_started_at')
+    .select('status, hold_until')
     .eq('id', book_id)
     .single()
 
@@ -118,7 +118,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const validStatuses = ['available', 'on_hold_premium', 'on_hold_waitlist']
   const { data: updatedBooks, error: updateError } = await supabase
     .from('books')
-    .update({ status: 'checked_out', hold_started_at: null })
+    .update({ status: 'checked_out', hold_until: null })
     .eq('id', book_id)
     .in('status', validStatuses)
     .select('id')
@@ -154,7 +154,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       .from('books')
       .update({
         status: rollbackStatus,
-        hold_started_at: book.hold_started_at
+        hold_until: book.hold_until
       })
       .eq('id', book_id)
     return NextResponse.json({ error: checkoutError.message }, { status: 500 })

@@ -1,8 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import { Calendar, ChevronDown, RotateCcw, Clock } from 'lucide-react'
+import { Calendar, ChevronDown, RotateCcw, Clock, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Popover,
@@ -18,9 +17,9 @@ interface SimulatedDateState {
 }
 
 export function DateSimulator() {
-  const router = useRouter()
   const [state, setState] = useState<SimulatedDateState | null>(null)
   const [loading, setLoading] = useState(false)
+  const [initialLoading, setInitialLoading] = useState(true)
   const [inputDate, setInputDate] = useState('')
   const [open, setOpen] = useState(false)
 
@@ -40,6 +39,8 @@ export function DateSimulator() {
       }
     } catch {
       // Ignore errors
+    } finally {
+      setInitialLoading(false)
     }
   }
 
@@ -54,10 +55,9 @@ export function DateSimulator() {
 
       if (res.ok) {
         const data = await res.json()
-        await fetchState()
         setOpen(false)
-        router.refresh()
 
+        // Show toast then hard refresh
         if (data.notificationsGenerated > 0) {
           toast.success(`Date set! Generated ${data.notificationsGenerated} notification(s)`)
         } else if (date) {
@@ -65,13 +65,16 @@ export function DateSimulator() {
         } else {
           toast.success('Reset to real time')
         }
+
+        // Hard refresh to ensure all components re-fetch data with new date
+        setTimeout(() => window.location.reload(), 500)
       } else {
         const error = await res.json()
         toast.error(error.error || 'Failed to update date')
+        setLoading(false)
       }
     } catch {
       toast.error('Failed to update date')
-    } finally {
       setLoading(false)
     }
   }
@@ -95,6 +98,16 @@ export function DateSimulator() {
     const newDate = baseDate.toISOString().split('T')[0]
     setInputDate(newDate)
     setSimulatedDate(newDate)
+  }
+
+  // Show loading skeleton while fetching initial state
+  if (initialLoading) {
+    return (
+      <Button variant="outline" size="sm" className="gap-2 border-dashed border-gray-400/50" disabled>
+        <Loader2 className="h-4 w-4 animate-spin" />
+        <span className="hidden sm:inline">Loading...</span>
+      </Button>
+    )
   }
 
   if (!state) return null

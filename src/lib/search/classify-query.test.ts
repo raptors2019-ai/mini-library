@@ -114,8 +114,8 @@ describe('extractStatus', () => {
   })
 
   it('extracts on_hold status', () => {
-    expect(extractStatus('books on hold')).toBe('on_hold')
-    expect(extractStatus('reserved books')).toBe('on_hold')
+    expect(extractStatus('books on hold')).toBe('on_hold_premium')
+    expect(extractStatus('reserved books')).toBe('on_hold_premium')
   })
 
   it('returns null for no status', () => {

@@ -71,25 +71,25 @@ export async function PUT(
   const hasPriorityWaitlist = waitlistEntries?.some(entry => entry.is_priority)
 
   if (hasWaitlist) {
-    // Set book to on_hold_premium status with hold_started_at timestamp
-    const { error: bookUpdateError } = await supabase
-      .from('books')
-      .update({
-        status: 'on_hold_premium',
-        hold_started_at: new Date().toISOString()
-      })
-      .eq('id', bookId)
-
-    if (bookUpdateError) {
-      console.error('Failed to update book status to on_hold_premium:', bookUpdateError)
-    }
-
     // Calculate when each hold phase ends
     const premiumHoldEnds = new Date()
     premiumHoldEnds.setHours(premiumHoldEnds.getHours() + WAITLIST_HOLD_DURATION.premium)
 
     const waitlistHoldEnds = new Date(premiumHoldEnds)
     waitlistHoldEnds.setHours(waitlistHoldEnds.getHours() + WAITLIST_HOLD_DURATION.waitlist)
+
+    // Set book to on_hold_premium status with hold_until timestamp
+    const { error: bookUpdateError } = await supabase
+      .from('books')
+      .update({
+        status: 'on_hold_premium',
+        hold_until: premiumHoldEnds.toISOString()
+      })
+      .eq('id', bookId)
+
+    if (bookUpdateError) {
+      console.error('Failed to update book status to on_hold_premium:', bookUpdateError)
+    }
 
     // Notify premium waitlist members that book is available for them
     if (hasPriorityWaitlist) {
@@ -111,7 +111,7 @@ export async function PUT(
     // No waitlist, make book available
     const { error: bookUpdateError } = await supabase
       .from('books')
-      .update({ status: 'available', hold_started_at: null })
+      .update({ status: 'available', hold_until: null })
       .eq('id', bookId)
 
     if (bookUpdateError) {

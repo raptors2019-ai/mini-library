@@ -97,10 +97,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     if (Array.isArray(parsed.statuses) && parsed.statuses.length > 0) {
       // Only include valid statuses
-      const allowedStatuses = ['available', 'checked_out', 'on_hold']
-      const filteredStatuses = parsed.statuses.filter((s: string) =>
+      const allowedStatuses = ['available', 'checked_out', 'on_hold_premium', 'on_hold_waitlist']
+      let filteredStatuses = parsed.statuses.filter((s: string) =>
         allowedStatuses.includes(s)
       )
+      // If searching for on_hold_premium, also include on_hold_waitlist
+      if (filteredStatuses.includes('on_hold_premium') && !filteredStatuses.includes('on_hold_waitlist')) {
+        filteredStatuses.push('on_hold_waitlist')
+      }
       if (filteredStatuses.length > 0) {
         params.statuses = filteredStatuses
       }

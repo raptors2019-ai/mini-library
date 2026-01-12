@@ -10,6 +10,7 @@ import { OnboardingPrompt } from '@/components/dashboard/onboarding-prompt'
 import { RecommendationsRow } from '@/components/dashboard/recommendations-row'
 import { BecauseYouRead } from '@/components/dashboard/because-you-read'
 import { MyBooksCallout } from '@/components/dashboard/my-books-callout'
+import { PreferencesCallout } from '@/components/dashboard/preferences-callout'
 import { DashboardActions } from './dashboard-actions'
 import { isPriorityRole, getHoldDurationHours } from '@/lib/constants'
 import { createNotification, notificationTemplates } from '@/lib/notifications'
@@ -152,7 +153,7 @@ async function getDashboardData() {
       .eq('read', false),
     supabase
       .from('user_preferences')
-      .select('onboarding_completed')
+      .select('onboarding_completed, taste_embedding')
       .eq('user_id', user.id)
       .single(),
     supabase
@@ -209,7 +210,7 @@ async function getDashboardData() {
       const [{ data: book }, { data: currentCheckout }] = await Promise.all([
         supabase
           .from('books')
-          .select('status, hold_started_at')
+          .select('status, hold_until')
           .eq('id', entry.book_id)
           .single(),
         supabase
@@ -224,8 +225,8 @@ async function getDashboardData() {
       let estimatedDate: Date | null = null
 
       // Check if book is in hold status - calculate based on hold phase
-      if (book?.status === 'on_hold_premium' && book.hold_started_at) {
-        const holdStarted = new Date(book.hold_started_at)
+      if (book?.status === 'on_hold_premium' && book.hold_until) {
+        const holdStarted = new Date(book.hold_until)
         // Premium users can access now, regular users wait 24 hours
         if (entry.is_priority) {
           estimatedDate = now // Available now for premium
@@ -253,7 +254,7 @@ async function getDashboardData() {
         estimatedDate = dueDate
         estimatedDays = Math.ceil((dueDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
         if (estimatedDays < 0) estimatedDays = 0
-      } else if (book?.status === 'checked_out' || book?.status === 'on_hold') {
+      } else if (book?.status === 'checked_out') {
         // Fallback: Assume 14 days per position in queue
         estimatedDate = new Date(now)
         const totalDays = 14 * entry.position + (entry.is_priority ? 0 : 1)
@@ -285,6 +286,7 @@ async function getDashboardData() {
     notifications: notifications || [],
     waitlistEntries: enrichedWaitlistEntries,
     onboardingCompleted: preferences?.onboarding_completed || false,
+    hasTasteProfile: preferences?.taste_embedding != null && preferences.taste_embedding.length > 0,
     readingListStats,
   }
 }
@@ -303,8 +305,12 @@ export default async function DashboardPage() {
         </p>
       </div>
 
-      {/* Onboarding Prompt */}
-      {!data.onboardingCompleted && <OnboardingPrompt />}
+      {/* Onboarding Prompt or Preferences Callout */}
+      {!data.onboardingCompleted ? (
+        <OnboardingPrompt />
+      ) : (
+        <PreferencesCallout hasTasteProfile={data.hasTasteProfile} />
+      )}
 
       {/* Stats Cards */}
       <StatsCards

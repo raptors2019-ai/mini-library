@@ -38,7 +38,8 @@ const bookSchema = z.object({
   page_count: z.union([z.coerce.number().positive(), z.literal('')]).optional(),
   publish_date: z.string().optional(),
   genres: z.array(z.string()).default([]),
-  status: z.enum(['available', 'checked_out', 'on_hold', 'on_hold_premium', 'on_hold_waitlist', 'inactive']).default('available')
+  status: z.enum(['available', 'checked_out', 'on_hold_premium', 'on_hold_waitlist', 'inactive']).default('available'),
+  hold_until: z.string().optional(),
 })
 
 type BookFormValues = z.infer<typeof bookSchema>
@@ -64,11 +65,14 @@ export function BookForm({ book, mode }: BookFormProps) {
       page_count: book?.page_count || '',
       publish_date: book?.publish_date || '',
       genres: book?.genres || [],
-      status: book?.status || 'available'
+      status: book?.status || 'available',
+      hold_until: book?.hold_until ? new Date(book.hold_until).toISOString().split('T')[0] : '',
     }
   })
 
   const selectedGenres = form.watch('genres') || []
+  const watchedStatus = form.watch('status')
+  const showHoldUntil = ['on_hold_premium', 'on_hold_waitlist'].includes(watchedStatus)
 
   const lookupIsbn = async () => {
     const isbn = form.getValues('isbn')
@@ -118,6 +122,11 @@ export function BookForm({ book, mode }: BookFormProps) {
         method = 'PATCH'
       }
 
+      // Convert hold_until date to ISO timestamp if provided
+      const holdUntilTimestamp = values.hold_until
+        ? new Date(values.hold_until + 'T23:59:59').toISOString()
+        : null
+
       const response = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
@@ -125,7 +134,8 @@ export function BookForm({ book, mode }: BookFormProps) {
           ...values,
           page_count: values.page_count || null,
           cover_url: values.cover_url || null,
-          publish_date: values.publish_date || null
+          publish_date: values.publish_date || null,
+          hold_until: holdUntilTimestamp,
         })
       })
 
@@ -324,29 +334,60 @@ export function BookForm({ book, mode }: BookFormProps) {
         </div>
 
         {mode === 'edit' && (
-          <FormField
-            control={form.control}
-            name="status"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Status</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select status" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="available">Available</SelectItem>
-                    <SelectItem value="checked_out">Checked Out</SelectItem>
-                    <SelectItem value="on_hold">On Hold</SelectItem>
-                    <SelectItem value="inactive">Inactive</SelectItem>
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
+          <>
+            <FormField
+              control={form.control}
+              name="status"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Status</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select status" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="available">Available</SelectItem>
+                      <SelectItem value="checked_out">Checked Out</SelectItem>
+                      <SelectItem value="on_hold_premium">On Hold - Premium</SelectItem>
+                      <SelectItem value="on_hold_waitlist">On Hold - Waitlist</SelectItem>
+                      <SelectItem value="inactive">Inactive</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {showHoldUntil && (
+              <FormField
+                control={form.control}
+                name="hold_until"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>
+                      Hold Until
+                      {watchedStatus === 'on_hold_premium' && (
+                        <span className="ml-2 text-xs text-muted-foreground font-normal">
+                          (Premium members can claim until this date)
+                        </span>
+                      )}
+                      {watchedStatus === 'on_hold_waitlist' && (
+                        <span className="ml-2 text-xs text-muted-foreground font-normal">
+                          (All waitlist members can claim until this date)
+                        </span>
+                      )}
+                    </FormLabel>
+                    <FormControl>
+                      <Input type="date" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             )}
-          />
+          </>
         )}
 
         <div className="flex gap-4">

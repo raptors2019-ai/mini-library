@@ -30,7 +30,7 @@ import { HardcoverReviews } from '@/components/books/hardcover-reviews'
 import { BookContentTabs } from '@/components/books/book-content-tabs'
 import { BOOK_STATUS_COLORS, BOOK_STATUS_LABELS, isAdminRole, isPriorityRole } from '@/lib/constants'
 import { estimateReadingTime } from '@/lib/utils'
-import { processBookHoldTransition, getHoldEndDates, canUserCheckout } from '@/lib/hold-transitions'
+import { processBookHoldTransition, getHoldEndDate, canUserCheckout } from '@/lib/hold-transitions'
 import type { BookStatus, UserBookStatus } from '@/types/database'
 
 interface BookDetailPageProps {
@@ -54,8 +54,8 @@ export default async function BookDetailPage({ params }: BookDetailPageProps) {
     notFound()
   }
 
-  // Calculate hold end dates if applicable
-  const holdDates = getHoldEndDates(book.hold_started_at, book.status)
+  // Get hold end date if applicable
+  const holdEndDate = getHoldEndDate(book.hold_until, book.status)
 
   // Get current checkout (include overdue - book is still checked out)
   const { data: checkout } = await supabase
@@ -257,16 +257,16 @@ export default async function BookDetailPage({ params }: BookDetailPageProps) {
               >
                 {BOOK_STATUS_LABELS[book.status as BookStatus]}
               </Badge>
-              {book.status === 'on_hold_premium' && holdDates && (
+              {book.status === 'on_hold_premium' && holdEndDate && (
                 <Badge variant="secondary" className="gap-1.5 bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
                   <Crown className="h-3 w-3" />
-                  Premium access until {holdDates.premiumEnds.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                  Premium access until {holdEndDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                 </Badge>
               )}
-              {book.status === 'on_hold_waitlist' && holdDates && (
+              {book.status === 'on_hold_waitlist' && holdEndDate && (
                 <Badge variant="secondary" className="gap-1.5 bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300">
                   <Clock className="h-3 w-3" />
-                  Waitlist access until {holdDates.waitlistEnds.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                  Waitlist access until {holdEndDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                 </Badge>
               )}
               {(waitlistCount ?? 0) > 0 && (

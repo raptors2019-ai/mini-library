@@ -353,7 +353,7 @@ async function checkAvailability(args: CheckAvailabilityArgs): Promise<ToolExecu
 
   const { data: book, error } = await supabase
     .from('books')
-    .select('id, title, author, status, hold_started_at')
+    .select('id, title, author, status, hold_until')
     .eq('id', args.book_id)
     .single()
 
@@ -389,8 +389,8 @@ async function checkAvailability(args: CheckAvailabilityArgs): Promise<ToolExecu
     waitlistCount = count || 0
 
     // Calculate hold end dates if applicable
-    if ((isOnHoldPremium || isOnHoldWaitlist) && book.hold_started_at) {
-      const holdStarted = new Date(book.hold_started_at)
+    if ((isOnHoldPremium || isOnHoldWaitlist) && book.hold_until) {
+      const holdStarted = new Date(book.hold_until)
       const premiumEnds = new Date(holdStarted)
       premiumEnds.setHours(premiumEnds.getHours() + 24)
       const waitlistEnds = new Date(holdStarted)

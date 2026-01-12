@@ -123,8 +123,12 @@ export function Header(): React.ReactNode {
 
   const isAdmin = user?.role === 'admin' || user?.role === 'librarian'
 
+  // Check if we're on a protected route (dashboard, admin)
+  const isOnProtectedRoute = pathname.startsWith('/dashboard') || pathname.startsWith('/admin')
+
   // Home link goes to dashboard when logged in, otherwise to landing page
-  const homeHref = user ? "/dashboard" : "/"
+  // During loading, if we're on a protected route, assume user is logged in
+  const homeHref = user || (loading && isOnProtectedRoute) ? "/dashboard" : "/"
 
   // Books is the only nav link - Search is now a command palette trigger
   const navItems = [

@@ -217,7 +217,7 @@ export const chatTools: ChatCompletionTool[] = [
           },
           statuses: {
             type: 'array',
-            items: { type: 'string', enum: ['available', 'checked_out', 'on_hold'] },
+            items: { type: 'string', enum: ['available', 'checked_out', 'on_hold_premium', 'on_hold_waitlist'] },
             description: 'Optional array of availability statuses to filter by',
           },
         },

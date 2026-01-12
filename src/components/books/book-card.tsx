@@ -58,8 +58,10 @@ export function BookCard({ book, showAddButton = false, userBookStatus, userBook
                   ? 'bg-emerald-500 text-white hover:bg-emerald-600 shadow-sm'
                   : book.status === 'checked_out'
                   ? 'bg-orange-500 text-white hover:bg-orange-600 shadow-sm'
-                  : book.status === 'on_hold'
-                  ? 'bg-blue-500 text-white hover:bg-blue-600 shadow-sm'
+                  : book.status === 'on_hold_premium'
+                  ? 'bg-amber-500 text-white hover:bg-amber-600 shadow-sm'
+                  : book.status === 'on_hold_waitlist'
+                  ? 'bg-purple-500 text-white hover:bg-purple-600 shadow-sm'
                   : 'bg-gray-500 text-white hover:bg-gray-600 shadow-sm'
               }
             >

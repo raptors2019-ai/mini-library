@@ -31,7 +31,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: 'You already have this book checked out' }, { status: 400 })
   }
 
-  // Check if already on waitlist (active or cancelled)
+  // Check if already on waitlist (any status due to unique constraint)
   const { data: existing } = await supabase
     .from('waitlist')
     .select('id, status')
@@ -39,7 +39,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     .eq('user_id', user.id)
     .single()
 
-  if (existing?.status === 'waiting') {
+  // Only block if actively waiting or notified (can claim)
+  if (existing?.status === 'waiting' || existing?.status === 'notified') {
     return NextResponse.json({ error: 'Already on waitlist' }, { status: 400 })
   }
 
@@ -80,14 +81,16 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   let entry
   let error
 
-  // If user was previously on waitlist (cancelled), reactivate their entry
-  if (existing?.status === 'cancelled') {
+  // If user was previously on waitlist (cancelled, expired, or claimed), reactivate their entry
+  if (existing && ['cancelled', 'expired', 'claimed'].includes(existing.status)) {
     const result = await supabase
       .from('waitlist')
       .update({
         status: 'waiting',
         position,
         is_priority: isPriority,
+        notified_at: null,
+        expires_at: null,
         created_at: new Date().toISOString()
       })
       .eq('id', existing.id)
@@ -95,7 +98,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       .single()
     entry = result.data
     error = result.error
-  } else {
+  } else if (!existing) {
     // New waitlist entry
     const result = await supabase
       .from('waitlist')
@@ -109,6 +112,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       .single()
     entry = result.data
     error = result.error
+  } else {
+    // Should not reach here, but handle edge case
+    return NextResponse.json({ error: 'Unable to join waitlist' }, { status: 400 })
   }
 
   if (error) {

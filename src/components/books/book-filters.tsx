@@ -20,7 +20,8 @@ import type { BookStatus } from '@/types/database'
 const STATUSES: { value: BookStatus; label: string }[] = [
   { value: 'available', label: 'Available' },
   { value: 'checked_out', label: 'Checked Out' },
-  { value: 'on_hold', label: 'On Hold' },
+  { value: 'on_hold_premium', label: 'On Hold (Premium)' },
+  { value: 'on_hold_waitlist', label: 'On Hold (Waitlist)' },
 ]
 
 export function BookFilters() {

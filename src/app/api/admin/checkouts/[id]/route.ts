@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { createNotification, notificationTemplates } from '@/lib/notifications'
 import { NextRequest, NextResponse } from 'next/server'
-import { isAdminRole } from '@/lib/constants'
+import { isAdminRole, WAITLIST_HOLD_DURATION } from '@/lib/constants'
 
 export async function PATCH(
   request: NextRequest,
@@ -94,35 +94,32 @@ export async function PATCH(
       .single()
 
     if (waitlistEntry) {
-      // Update waitlist entry
-      const expiresAt = new Date()
-      expiresAt.setDate(expiresAt.getDate() + 3) // 3 days to claim
+      // Calculate when premium hold phase ends
+      const premiumHoldEnds = new Date()
+      premiumHoldEnds.setHours(premiumHoldEnds.getHours() + WAITLIST_HOLD_DURATION.premium)
 
-      await supabase
-        .from('waitlist')
-        .update({
-          status: 'notified',
-          notified_at: new Date().toISOString(),
-          expires_at: expiresAt.toISOString()
-        })
-        .eq('id', waitlistEntry.id)
-
-      // Create notification for waitlist user
-      const template = notificationTemplates.waitlistAvailable(
-        checkout.book?.title || 'Unknown Book'
-      )
-      await createNotification({
-        supabase,
-        userId: waitlistEntry.user_id,
-        bookId: checkout.book_id,
-        ...template,
-      })
-
-      // Update book status to on_hold
+      // Update book status to on_hold_premium with hold_until
       await supabase
         .from('books')
-        .update({ status: 'on_hold' })
+        .update({
+          status: 'on_hold_premium',
+          hold_until: premiumHoldEnds.toISOString()
+        })
         .eq('id', checkout.book_id)
+
+      // Notify premium waitlist members
+      if (waitlistEntry.is_priority) {
+        const template = notificationTemplates.waitlistAvailable(
+          checkout.book?.title || 'Unknown Book',
+          `Claim by ${premiumHoldEnds.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} (premium early access)`
+        )
+        await createNotification({
+          supabase,
+          userId: waitlistEntry.user_id,
+          bookId: checkout.book_id,
+          ...template,
+        })
+      }
     }
 
     // Create return notification for the user

@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 import { getSimulatedDate, setSimulatedDate, daysBetween, isOverdue, isDueSoon, getAutoReturnConfigs, AutoReturnConfig } from '@/lib/simulated-date'
 import { createNotification, notificationTemplates } from '@/lib/notifications'
-import { getHoldDurationHours } from '@/lib/constants'
+import { getHoldDurationHours, CHECKOUT_LIMITS, WAITLIST_HOLD_DURATION } from '@/lib/constants'
 
 // GET - Get current simulated date
 export async function GET(): Promise<NextResponse> {
@@ -208,7 +208,8 @@ export async function DELETE(): Promise<NextResponse> {
 /**
  * Generate notifications based on the simulated date.
  * - Due Soon: 2 days before due date
- * - Overdue: 1+ days after due date
+ * - Overdue: 1+ days after due date (first notification)
+ * - Overdue Reminder: Every 7 days after the first overdue notification
  */
 async function generateDateBasedNotifications(
   supabase: ReturnType<typeof createClient> extends Promise<infer T> ? T : never,
@@ -216,7 +217,7 @@ async function generateDateBasedNotifications(
 ): Promise<number> {
   let count = 0
 
-  // Get all active checkouts with book info
+  // Get all active AND overdue checkouts with book info
   const { data: checkouts } = await supabase
     .from('checkouts')
     .select(`
@@ -230,7 +231,7 @@ async function generateDateBasedNotifications(
         title
       )
     `)
-    .eq('status', 'active')
+    .in('status', ['active', 'overdue'])
 
   if (!checkouts) return 0
 
@@ -242,17 +243,45 @@ async function generateDateBasedNotifications(
 
     // Check for overdue (1+ days past due)
     if (isOverdue(dueDate, currentDate)) {
-      // Check if we already sent an overdue notification for this checkout
+      const daysOverdue = daysBetween(dueDate, currentDate)
+      const lateFeePerDay = CHECKOUT_LIMITS.standard.lateFeePerDay
+      const amountOwed = daysOverdue * lateFeePerDay
+
+      // Check existing overdue notifications for this checkout
       const { data: existingOverdue } = await supabase
         .from('notifications')
-        .select('id')
+        .select('id, created_at')
         .eq('user_id', checkout.user_id)
         .eq('book_id', checkout.book_id)
         .eq('type', 'overdue')
+        .order('created_at', { ascending: false })
         .limit(1)
 
+      // Calculate if we need to send a new notification
+      // First notification: when there are no existing overdue notifications
+      // Recurring: every 7 days after the last notification
+      let shouldSendNotification = false
+      let isFirstOverdue = false
+
       if (!existingOverdue || existingOverdue.length === 0) {
-        const template = notificationTemplates.overdue(bookTitle)
+        shouldSendNotification = true
+        isFirstOverdue = true
+      } else {
+        // Check if 7 days have passed since the last overdue notification
+        const lastNotification = existingOverdue[0]
+        const lastNotificationDate = new Date(lastNotification.created_at)
+        const daysSinceLastNotification = daysBetween(lastNotificationDate, currentDate)
+
+        if (daysSinceLastNotification >= 7) {
+          shouldSendNotification = true
+        }
+      }
+
+      if (shouldSendNotification) {
+        const template = isFirstOverdue
+          ? notificationTemplates.overdue(bookTitle, daysOverdue, amountOwed)
+          : notificationTemplates.overdueReminder(bookTitle, daysOverdue, amountOwed)
+
         await createNotification({
           supabase,
           userId: checkout.user_id,
@@ -260,8 +289,10 @@ async function generateDateBasedNotifications(
           ...template,
         })
         count++
+      }
 
-        // Also update checkout status to overdue
+      // Update checkout status to overdue if not already
+      if (checkout.status !== 'overdue') {
         await supabase
           .from('checkouts')
           .update({ status: 'overdue' })
@@ -349,47 +380,37 @@ async function processAutoReturns(
         .single()
 
       if (nextInLine) {
-        // Update book status to on_hold
+        // Calculate when premium hold phase ends
+        const premiumHoldEnds = new Date(returnDate)
+        premiumHoldEnds.setHours(premiumHoldEnds.getHours() + WAITLIST_HOLD_DURATION.premium)
+
+        // Update book status to on_hold_premium with hold_until
         await supabase
           .from('books')
-          .update({ status: 'on_hold' })
+          .update({
+            status: 'on_hold_premium',
+            hold_until: premiumHoldEnds.toISOString()
+          })
           .eq('id', config.book_id)
 
-        // Get next person's profile to determine hold duration
-        const { data: nextUserProfile } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', nextInLine.user_id)
-          .single()
-
-        // Calculate hold expiration based on user's role
-        const holdHours = getHoldDurationHours(nextUserProfile?.role)
-        const expiresAt = new Date(returnDate)
-        expiresAt.setHours(expiresAt.getHours() + holdHours)
-
-        await supabase
-          .from('waitlist')
-          .update({
-            status: 'notified',
-            notified_at: returnDate.toISOString(),
-            expires_at: expiresAt.toISOString(),
+        // Notify premium waitlist members
+        if (nextInLine.is_priority) {
+          const template = notificationTemplates.waitlistAvailable(
+            bookTitle,
+            `Claim by ${premiumHoldEnds.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} (premium early access)`
+          )
+          await createNotification({
+            supabase,
+            userId: nextInLine.user_id,
+            bookId: config.book_id,
+            ...template,
           })
-          .eq('id', nextInLine.id)
-
-        // Notify the next person
-        const expirationLabel = holdHours === 24 ? '1 day' : `${holdHours / 24} days`
-        const template = notificationTemplates.waitlistAvailable(bookTitle, expirationLabel)
-        await createNotification({
-          supabase,
-          userId: nextInLine.user_id,
-          bookId: config.book_id,
-          ...template,
-        })
+        }
       } else {
         // No waitlist, make book available
         await supabase
           .from('books')
-          .update({ status: 'available' })
+          .update({ status: 'available', hold_until: null })
           .eq('id', config.book_id)
       }
 
