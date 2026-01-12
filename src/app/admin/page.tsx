@@ -110,6 +110,7 @@ export default function AdminPage() {
       description: `${stats?.books.available || 0} available`,
       icon: Book,
       color: 'text-blue-600',
+      href: '/admin/books',
     },
     {
       title: 'Total Users',
@@ -117,13 +118,15 @@ export default function AdminPage() {
       description: 'Registered members',
       icon: Users,
       color: 'text-green-600',
+      href: '/admin/users',
     },
     {
       title: 'Active Checkouts',
       value: stats?.checkouts.active || 0,
-      description: 'Currently borrowed',
+      description: 'Click to manage',
       icon: Clock,
       color: 'text-orange-600',
+      href: '/admin/checkouts',
     },
     {
       title: 'Overdue',
@@ -131,6 +134,7 @@ export default function AdminPage() {
       description: 'Need attention',
       icon: AlertTriangle,
       color: 'text-red-600',
+      href: '/admin/checkouts?status=overdue',
     },
     {
       title: 'Book Requests',
@@ -158,24 +162,34 @@ export default function AdminPage() {
 
       {/* Stats Grid */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-        {statCards.map((card) => (
-          <Card key={card.title}>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">{card.title}</CardTitle>
-              <card.icon className={`h-4 w-4 ${card.color}`} />
-            </CardHeader>
-            <CardContent>
-              {loading ? (
-                <Skeleton className="h-8 w-16" />
-              ) : (
-                <>
-                  <div className="text-2xl font-bold">{card.value}</div>
-                  <p className="text-xs text-muted-foreground">{card.description}</p>
-                </>
-              )}
-            </CardContent>
-          </Card>
-        ))}
+        {statCards.map((card) => {
+          const cardContent = (
+            <Card className={card.href ? 'hover:bg-muted/50 transition-colors cursor-pointer' : ''}>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium">{card.title}</CardTitle>
+                <card.icon className={`h-4 w-4 ${card.color}`} />
+              </CardHeader>
+              <CardContent>
+                {loading ? (
+                  <Skeleton className="h-8 w-16" />
+                ) : (
+                  <>
+                    <div className="text-2xl font-bold">{card.value}</div>
+                    <p className="text-xs text-muted-foreground">{card.description}</p>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          )
+
+          return card.href ? (
+            <Link key={card.title} href={card.href}>
+              {cardContent}
+            </Link>
+          ) : (
+            <div key={card.title}>{cardContent}</div>
+          )
+        })}
       </div>
 
       {/* Recent Activity */}

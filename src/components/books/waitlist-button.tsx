@@ -3,16 +3,26 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
-import { Loader2, ListPlus, ListX } from 'lucide-react'
+import { Loader2, ListPlus, ListX, Crown, Clock } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface WaitlistButtonProps {
   bookId: string
   isOnWaitlist: boolean
   waitlistPosition?: number
+  isPriorityUser?: boolean
+  totalWaiting?: number
+  priorityWaiting?: number
 }
 
-export function WaitlistButton({ bookId, isOnWaitlist, waitlistPosition }: WaitlistButtonProps) {
+export function WaitlistButton({
+  bookId,
+  isOnWaitlist,
+  waitlistPosition,
+  isPriorityUser = false,
+  totalWaiting = 0,
+  priorityWaiting = 0,
+}: WaitlistButtonProps) {
   const [loading, setLoading] = useState(false)
   const router = useRouter()
 
@@ -53,23 +63,54 @@ export function WaitlistButton({ bookId, isOnWaitlist, waitlistPosition }: Waitl
     }
   }
 
+  // Priority messaging for non-priority users
+  const getPriorityMessage = () => {
+    if (isPriorityUser) {
+      return (
+        <span className="flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400 mt-1">
+          <Crown className="h-3 w-3" />
+          Premium priority access (48hr hold)
+        </span>
+      )
+    }
+
+    if (priorityWaiting > 0) {
+      return (
+        <span className="flex items-center gap-1.5 text-xs text-muted-foreground mt-1">
+          <Clock className="h-3 w-3" />
+          {priorityWaiting} premium {priorityWaiting === 1 ? 'member' : 'members'} ahead
+        </span>
+      )
+    }
+
+    return (
+      <span className="flex items-center gap-1.5 text-xs text-muted-foreground mt-1">
+        <Clock className="h-3 w-3" />
+        24hr hold when available
+      </span>
+    )
+  }
+
   return (
-    <Button
-      variant={isOnWaitlist ? 'outline' : 'default'}
-      className="w-full"
-      onClick={handleWaitlist}
-      disabled={loading}
-    >
-      {loading ? (
-        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-      ) : isOnWaitlist ? (
-        <ListX className="h-4 w-4 mr-2" />
-      ) : (
-        <ListPlus className="h-4 w-4 mr-2" />
-      )}
-      {isOnWaitlist
-        ? `Leave Waitlist (Position #${waitlistPosition})`
-        : 'Join Waitlist'}
-    </Button>
+    <div className="space-y-1">
+      <Button
+        variant={isOnWaitlist ? 'outline' : 'default'}
+        className="w-full"
+        onClick={handleWaitlist}
+        disabled={loading}
+      >
+        {loading ? (
+          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+        ) : isOnWaitlist ? (
+          <ListX className="h-4 w-4 mr-2" />
+        ) : (
+          <ListPlus className="h-4 w-4 mr-2" />
+        )}
+        {isOnWaitlist
+          ? `Leave Waitlist (Position #${waitlistPosition})`
+          : `Join Waitlist${totalWaiting > 0 ? ` (${totalWaiting} waiting)` : ''}`}
+      </Button>
+      {!isOnWaitlist && getPriorityMessage()}
+    </div>
   )
 }

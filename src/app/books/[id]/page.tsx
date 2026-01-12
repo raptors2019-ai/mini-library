@@ -57,12 +57,20 @@ export default async function BookDetailPage({ params }: BookDetailPageProps) {
     .in('status', ['active', 'overdue'])
     .single()
 
-  // Get waitlist count
-  const { count: waitlistCount } = await supabase
-    .from('waitlist')
-    .select('*', { count: 'exact', head: true })
-    .eq('book_id', id)
-    .eq('status', 'waiting')
+  // Get waitlist count and priority count
+  const [{ count: waitlistCount }, { count: priorityWaitlistCount }] = await Promise.all([
+    supabase
+      .from('waitlist')
+      .select('*', { count: 'exact', head: true })
+      .eq('book_id', id)
+      .eq('status', 'waiting'),
+    supabase
+      .from('waitlist')
+      .select('*', { count: 'exact', head: true })
+      .eq('book_id', id)
+      .eq('status', 'waiting')
+      .eq('is_priority', true),
+  ])
 
 
   // Get current user and their role
@@ -182,6 +190,9 @@ export default async function BookDetailPage({ params }: BookDetailPageProps) {
                     bookId={book.id}
                     isOnWaitlist={!!userWaitlistEntry}
                     waitlistPosition={userWaitlistEntry?.position}
+                    isPriorityUser={isPriorityRole(userRole)}
+                    totalWaiting={waitlistCount || 0}
+                    priorityWaiting={priorityWaitlistCount || 0}
                   />
                 )}
                 {userRole !== 'guest' && (

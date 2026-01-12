@@ -11,6 +11,7 @@ import { RecommendationsRow } from '@/components/dashboard/recommendations-row'
 import { BecauseYouRead } from '@/components/dashboard/because-you-read'
 import { MyBooksCallout } from '@/components/dashboard/my-books-callout'
 import { DashboardActions } from './dashboard-actions'
+import { isPriorityRole } from '@/lib/constants'
 
 async function getDashboardData() {
   const supabase = await createClient()
@@ -171,6 +172,8 @@ export default async function DashboardPage() {
         checkoutLimit={data.stats.checkoutLimit}
         waitlistCount={data.stats.waitlistCount}
         booksRated={data.stats.booksRated}
+        booksReadList={data.booksReadList}
+        booksRatedList={data.booksRatedList}
       />
 
       {/* View My Reading List Link */}
@@ -187,7 +190,10 @@ export default async function DashboardPage() {
 
       {/* Waitlist */}
       {data.waitlistEntries.length > 0 && (
-        <WaitlistStatus waitlistEntries={data.waitlistEntries} />
+        <WaitlistStatus
+          waitlistEntries={data.waitlistEntries}
+          isPriorityUser={isPriorityRole(data.profile?.role)}
+        />
       )}
 
       {/* Recommendations */}

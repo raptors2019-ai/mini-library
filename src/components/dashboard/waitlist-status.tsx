@@ -4,7 +4,7 @@ import { useState, useCallback } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Clock, BookOpen, PartyPopper, X, GripVertical } from 'lucide-react'
+import { Clock, BookOpen, PartyPopper, X, GripVertical, Crown, AlertCircle } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -12,9 +12,10 @@ import type { WaitlistWithBookAndEstimate } from '@/types/database'
 
 interface WaitlistStatusProps {
   waitlistEntries: WaitlistWithBookAndEstimate[]
+  isPriorityUser?: boolean
 }
 
-export function WaitlistStatus({ waitlistEntries }: WaitlistStatusProps) {
+export function WaitlistStatus({ waitlistEntries, isPriorityUser = false }: WaitlistStatusProps) {
   const router = useRouter()
   const [localEntries, setLocalEntries] = useState(waitlistEntries)
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null)
@@ -140,9 +141,19 @@ export function WaitlistStatus({ waitlistEntries }: WaitlistStatusProps) {
                         )}
                       </div>
                       {isAvailable && entry.expires_at && (
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Claim by {new Date(entry.expires_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                        </p>
+                        <>
+                          {isPriorityUser ? (
+                            <div className="flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400 mt-1">
+                              <Crown className="h-3 w-3" />
+                              <span>Early access! Claim before general release on {new Date(entry.expires_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-1.5 text-xs text-red-600 dark:text-red-400 mt-1">
+                              <AlertCircle className="h-3 w-3" />
+                              <span>Claim by {new Date(entry.expires_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} or lose your spot</span>
+                            </div>
+                          )}
+                        </>
                       )}
                     </div>
                   </Link>
