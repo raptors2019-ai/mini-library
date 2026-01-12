@@ -29,11 +29,11 @@ declare global {
 }
 
 export function ConsoleUtils() {
-  // Temporarily hidden - remove this return to re-enable
-  return null
+  // Set to true to enable demo console utilities
+  const isEnabled = true
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
+    if (!isEnabled) return
     const utils: DemoUtils = {
       async setDate(date: string) {
         console.log(`⏰ Setting date to ${date}...`)
