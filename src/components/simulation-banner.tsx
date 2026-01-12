@@ -10,9 +10,6 @@ interface SimulatedDateState {
 }
 
 export function SimulationBanner() {
-  // Temporarily hidden - remove this return to re-enable
-  return null
-
   const [state, setState] = useState<SimulatedDateState | null>(null)
   const [dismissed, setDismissed] = useState(false)
 
@@ -40,7 +37,9 @@ export function SimulationBanner() {
     return () => clearInterval(interval)
   }, [fetchState])
 
-  if (!state?.isSimulating || dismissed) {
+  // Temporarily hidden - change false to true to re-enable
+  const isEnabled = false
+  if (!isEnabled || !state || !state.isSimulating || dismissed) {
     return null
   }
 
