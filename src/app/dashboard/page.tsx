@@ -14,6 +14,7 @@ import { DashboardActions } from './dashboard-actions'
 import { isPriorityRole, getHoldDurationHours } from '@/lib/constants'
 import { createNotification, notificationTemplates } from '@/lib/notifications'
 import { getCurrentDate } from '@/lib/simulated-date'
+import { processHoldTransitions } from '@/lib/hold-transitions'
 
 // Process any expired waitlist holds for this user
 async function processExpiredHolds(supabase: ReturnType<typeof createClient> extends Promise<infer T> ? T : never, userId: string) {
@@ -108,6 +109,9 @@ async function getDashboardData() {
   // Process any expired holds for this user (lazy expiration on dashboard load)
   await processExpiredHolds(supabase, user.id)
 
+  // Process hold status transitions (on_hold_premium → on_hold_waitlist → available)
+  await processHoldTransitions(supabase)
+
   // Get profile
   const { data: profile } = await supabase
     .from('profiles')
@@ -188,52 +192,79 @@ async function getDashboardData() {
     .in('status', ['waiting', 'notified'])
     .order('position', { ascending: true })
 
-  // Enrich waitlist entries with estimated availability
+  // Enrich waitlist entries with estimated availability date
   const now = await getCurrentDate(supabase)
   const enrichedWaitlistEntries = await Promise.all(
     (waitlistEntries || []).map(async (entry) => {
-      // If already notified, entry is available - no estimated days needed
+      // If already notified, entry is available - no estimated date needed
       if (entry.status === 'notified') {
         return {
           ...entry,
           estimated_days: 0, // Available now
+          estimated_date: null, // Available now
         }
       }
 
-      // Get current checkout for this book to calculate estimated availability
-      const { data: currentCheckout } = await supabase
-        .from('checkouts')
-        .select('due_date')
-        .eq('book_id', entry.book_id)
-        .in('status', ['active', 'overdue'])
-        .single()
+      // Get book status and current checkout info
+      const [{ data: book }, { data: currentCheckout }] = await Promise.all([
+        supabase
+          .from('books')
+          .select('status, hold_started_at')
+          .eq('id', entry.book_id)
+          .single(),
+        supabase
+          .from('checkouts')
+          .select('due_date')
+          .eq('book_id', entry.book_id)
+          .in('status', ['active', 'overdue'])
+          .single()
+      ])
 
       let estimatedDays: number | null = null
-      if (currentCheckout?.due_date) {
+      let estimatedDate: Date | null = null
+
+      // Check if book is in hold status - calculate based on hold phase
+      if (book?.status === 'on_hold_premium' && book.hold_started_at) {
+        const holdStarted = new Date(book.hold_started_at)
+        // Premium users can access now, regular users wait 24 hours
+        if (entry.is_priority) {
+          estimatedDate = now // Available now for premium
+          estimatedDays = 0
+        } else {
+          // Wait for premium phase to end (24 hours from hold start)
+          estimatedDate = new Date(holdStarted)
+          estimatedDate.setHours(estimatedDate.getHours() + 24)
+          estimatedDays = Math.ceil((estimatedDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+          if (estimatedDays < 0) estimatedDays = 0
+        }
+      } else if (book?.status === 'on_hold_waitlist') {
+        // All waitlist users can access now
+        estimatedDate = now
+        estimatedDays = 0
+      } else if (currentCheckout?.due_date) {
         const dueDate = new Date(currentCheckout.due_date)
         // Add 14 days per person ahead in queue
         const additionalDays = (entry.position - 1) * 14
         dueDate.setDate(dueDate.getDate() + additionalDays)
+        // Add 2 days for hold periods (premium + waitlist phase)
+        // But if user is premium, only add 0-1 days
+        const holdDays = entry.is_priority ? 0 : 1
+        dueDate.setDate(dueDate.getDate() + holdDays)
+        estimatedDate = dueDate
         estimatedDays = Math.ceil((dueDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
         if (estimatedDays < 0) estimatedDays = 0
-      } else {
-        // No current checkout but book is checked out/on hold - estimate 14 days
-        // This handles edge cases where the checkout record might not match
-        const { data: book } = await supabase
-          .from('books')
-          .select('status')
-          .eq('id', entry.book_id)
-          .single()
-
-        if (book?.status === 'checked_out' || book?.status === 'on_hold') {
-          // Assume 14 days per position in queue
-          estimatedDays = 14 * entry.position
-        }
+      } else if (book?.status === 'checked_out' || book?.status === 'on_hold') {
+        // Fallback: Assume 14 days per position in queue
+        estimatedDate = new Date(now)
+        const totalDays = 14 * entry.position + (entry.is_priority ? 0 : 1)
+        estimatedDate.setDate(estimatedDate.getDate() + totalDays)
+        estimatedDays = totalDays
       }
 
       return {
         ...entry,
         estimated_days: estimatedDays,
+        estimated_date: estimatedDate?.toISOString() || null,
       }
     })
   )

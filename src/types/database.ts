@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type UserRole = 'guest' | 'member' | 'premium' | 'librarian' | 'admin'
-export type BookStatus = 'available' | 'checked_out' | 'on_hold' | 'inactive'
+export type BookStatus = 'available' | 'checked_out' | 'on_hold' | 'on_hold_premium' | 'on_hold_waitlist' | 'inactive'
 export type CheckoutStatus = 'active' | 'returned' | 'overdue'
 export type WaitlistStatus = 'waiting' | 'notified' | 'claimed' | 'expired' | 'cancelled'
 export type NotificationType =
@@ -83,6 +83,7 @@ export interface Database {
           embedding: number[] | null
           review_summary: string | null
           review_summary_generated_at: string | null
+          hold_started_at: string | null
           created_at: string
           updated_at: string
           created_by: string | null
@@ -102,6 +103,7 @@ export interface Database {
           embedding?: number[] | null
           review_summary?: string | null
           review_summary_generated_at?: string | null
+          hold_started_at?: string | null
           created_at?: string
           updated_at?: string
           created_by?: string | null
@@ -121,6 +123,7 @@ export interface Database {
           embedding?: number[] | null
           review_summary?: string | null
           review_summary_generated_at?: string | null
+          hold_started_at?: string | null
           created_at?: string
           updated_at?: string
           created_by?: string | null
@@ -416,6 +419,7 @@ export type WaitlistWithBook = Waitlist & {
 
 export type WaitlistWithBookAndEstimate = WaitlistWithBook & {
   estimated_days: number | null
+  estimated_date: string | null
 }
 
 export type BookRequest = Database['public']['Tables']['book_requests']['Row']

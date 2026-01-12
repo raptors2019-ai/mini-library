@@ -114,7 +114,7 @@ describe('GENRES', () => {
 
   it('should include common genres', () => {
     expect(GENRES).toContain('Fiction')
-    expect(GENRES).toContain('Non-Fiction')
+    expect(GENRES).toContain('Biography')
     expect(GENRES).toContain('Science Fiction')
     expect(GENRES).toContain('Mystery')
   })

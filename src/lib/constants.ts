@@ -4,6 +4,8 @@ export const BOOK_STATUS_COLORS: Record<BookStatus, string> = {
   available: 'bg-green-500/10 text-green-600 border-green-500/20',
   checked_out: 'bg-orange-500/10 text-orange-600 border-orange-500/20',
   on_hold: 'bg-blue-500/10 text-blue-600 border-blue-500/20',
+  on_hold_premium: 'bg-amber-500/10 text-amber-600 border-amber-500/20',
+  on_hold_waitlist: 'bg-purple-500/10 text-purple-600 border-purple-500/20',
   inactive: 'bg-gray-500/10 text-gray-600 border-gray-500/20',
 }
 
@@ -11,8 +13,16 @@ export const BOOK_STATUS_LABELS: Record<BookStatus, string> = {
   available: 'Available',
   checked_out: 'Checked Out',
   on_hold: 'On Hold',
+  on_hold_premium: 'On Hold (Premium)',
+  on_hold_waitlist: 'On Hold (Waitlist)',
   inactive: 'Inactive',
 }
+
+// Hold period durations in hours
+export const WAITLIST_HOLD_DURATION = {
+  premium: 24,   // 1 day for premium members to claim
+  waitlist: 24,  // 1 day for all waitlist members to claim
+} as const
 
 export const CHECKOUT_STATUS_COLORS: Record<CheckoutStatus, string> = {
   active: 'bg-green-500/10 text-green-600 border-green-500/20',
@@ -28,7 +38,6 @@ export const CHECKOUT_STATUS_LABELS: Record<CheckoutStatus, string> = {
 
 export const GENRES = [
   'Fiction',
-  'Non-Fiction',
   'Mystery',
   'Science Fiction',
   'Fantasy',
@@ -40,6 +49,8 @@ export const GENRES = [
   'Science',
   'Technology',
   'Business',
+  'Health',
+  'Wellness',
   'Children',
   'Young Adult',
 ] as const

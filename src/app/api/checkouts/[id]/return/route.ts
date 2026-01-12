@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createNotification, notificationTemplates } from '@/lib/notifications'
 import { NextRequest, NextResponse } from 'next/server'
 import { revalidatePath } from 'next/cache'
-import { isAdminRole, getHoldDurationHours } from '@/lib/constants'
+import { isAdminRole, WAITLIST_HOLD_DURATION } from '@/lib/constants'
 
 interface RouteParams {
   params: Promise<{ id: string }>
@@ -58,63 +58,60 @@ export async function PUT(
   const bookId = checkout.book_id
   const bookTitle = checkout.book?.title || 'Unknown Book'
 
-  // Check waitlist for this book
-  const { data: nextInLine } = await supabase
+  // Check waitlist for this book (any waiting entries)
+  const { data: waitlistEntries } = await supabase
     .from('waitlist')
     .select('id, user_id, is_priority')
     .eq('book_id', bookId)
     .eq('status', 'waiting')
     .order('is_priority', { ascending: false })
     .order('position', { ascending: true })
-    .limit(1)
-    .single()
 
-  if (nextInLine) {
-    // Update book status to on_hold
+  const hasWaitlist = waitlistEntries && waitlistEntries.length > 0
+  const hasPriorityWaitlist = waitlistEntries?.some(entry => entry.is_priority)
+
+  if (hasWaitlist) {
+    // Set book to on_hold_premium status with hold_started_at timestamp
     const { error: bookUpdateError } = await supabase
       .from('books')
-      .update({ status: 'on_hold' })
+      .update({
+        status: 'on_hold_premium',
+        hold_started_at: new Date().toISOString()
+      })
       .eq('id', bookId)
 
     if (bookUpdateError) {
-      console.error('Failed to update book status to on_hold:', bookUpdateError)
+      console.error('Failed to update book status to on_hold_premium:', bookUpdateError)
     }
 
-    // Get next person's profile to determine hold duration
-    const { data: nextUserProfile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', nextInLine.user_id)
-      .single()
+    // Calculate when each hold phase ends
+    const premiumHoldEnds = new Date()
+    premiumHoldEnds.setHours(premiumHoldEnds.getHours() + WAITLIST_HOLD_DURATION.premium)
 
-    // Calculate hold expiration based on user's role (premium gets longer hold)
-    const holdHours = getHoldDurationHours(nextUserProfile?.role)
-    const expiresAt = new Date()
-    expiresAt.setHours(expiresAt.getHours() + holdHours)
+    const waitlistHoldEnds = new Date(premiumHoldEnds)
+    waitlistHoldEnds.setHours(waitlistHoldEnds.getHours() + WAITLIST_HOLD_DURATION.waitlist)
 
-    await supabase
-      .from('waitlist')
-      .update({
-        status: 'notified',
-        notified_at: new Date().toISOString(),
-        expires_at: expiresAt.toISOString(),
-      })
-      .eq('id', nextInLine.id)
-
-    // Notify the next person with expiration info
-    const expirationLabel = holdHours === 24 ? '1 day' : `${holdHours / 24} days`
-    const template = notificationTemplates.waitlistAvailable(bookTitle, expirationLabel)
-    await createNotification({
-      supabase,
-      userId: nextInLine.user_id,
-      bookId,
-      ...template,
-    })
+    // Notify premium waitlist members that book is available for them
+    if (hasPriorityWaitlist) {
+      const premiumEntries = waitlistEntries.filter(entry => entry.is_priority)
+      for (const entry of premiumEntries) {
+        const template = notificationTemplates.waitlistAvailable(
+          bookTitle,
+          `Claim by ${premiumHoldEnds.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} (premium early access)`
+        )
+        await createNotification({
+          supabase,
+          userId: entry.user_id,
+          bookId,
+          ...template,
+        })
+      }
+    }
   } else {
     // No waitlist, make book available
     const { error: bookUpdateError } = await supabase
       .from('books')
-      .update({ status: 'available' })
+      .update({ status: 'available', hold_started_at: null })
       .eq('id', bookId)
 
     if (bookUpdateError) {
@@ -141,5 +138,5 @@ export async function PUT(
   revalidatePath('/books')
   revalidatePath('/dashboard')
 
-  return NextResponse.json({ success: true, waitlist_notified: !!nextInLine })
+  return NextResponse.json({ success: true, waitlist_notified: hasWaitlist })
 }

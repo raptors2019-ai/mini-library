@@ -3,6 +3,96 @@ import { generateEmbedding } from '@/lib/openai'
 import { GENRES } from '@/lib/constants'
 import { detectSimilarityQuery } from '@/lib/search/similarity-detection'
 import type { Book } from '@/types/database'
+
+/**
+ * Check if a query looks like a specific book title search
+ * (as opposed to a general topic/genre search)
+ */
+function isSpecificBookTitleQuery(query: string): boolean {
+  // Indicators that suggest a specific book title:
+  // - Contains subtitle separator (: or -)
+  // - Contains edition info (signed, first, limited, etc.)
+  // - Contains parentheses
+  // - Is quoted
+  // - Has 4+ words (more likely a full title)
+  const lowerQuery = query.toLowerCase()
+
+  const hasSubtitle = query.includes(':') || (query.includes(' - ') && query.length > 20)
+  const hasEdition = /\b(signed|edition|first|limited|hardcover|paperback)\b/i.test(query)
+  const hasParentheses = query.includes('(') && query.includes(')')
+  const isQuoted = query.startsWith('"') && query.endsWith('"')
+  const wordCount = query.trim().split(/\s+/).length
+
+  // Also check for "a memoir" / "a novel" type suffixes
+  const hasGenreSuffix = /\b(a\s+)?(memoir|novel|story|biography|autobiography|guide|history)\b/i.test(lowerQuery)
+
+  return hasSubtitle || hasEdition || hasParentheses || isQuoted || (wordCount >= 5 && hasGenreSuffix)
+}
+
+/**
+ * Calculate how well a book title matches the search query
+ * Returns a score from 0-1
+ *
+ * For specific book title searches, we need to be strict:
+ * - The book title should be a substantial match for the query
+ * - Single-word matches against multi-word queries score very low
+ */
+function calculateTitleRelevance(bookTitle: string, query: string): number {
+  const normalizedTitle = bookTitle.toLowerCase().trim()
+  const normalizedQuery = query.toLowerCase().trim()
+    .replace(/^["']|["']$/g, '') // Remove quotes
+    .replace(/\s*\([^)]*edition[^)]*\)\s*/gi, ' ') // Remove "(Signed Edition)" etc
+    .replace(/\s+/g, ' ').trim()
+
+  // Exact match
+  if (normalizedTitle === normalizedQuery) return 1.0
+
+  // Extract main title parts (before : or - or parentheses)
+  const mainQueryPart = normalizedQuery.split(/[:\-–—(]/)[0].trim()
+  const mainTitlePart = normalizedTitle.split(/[:\-–—(]/)[0].trim()
+
+  // Main title parts match exactly
+  if (mainTitlePart === mainQueryPart) return 0.95
+
+  // Title contains the main query part as a substantial portion
+  if (normalizedTitle.includes(mainQueryPart) && mainQueryPart.length > 5) return 0.85
+
+  // Main query part contains the full title (but title should be substantial)
+  // e.g., query "Book of Lives" should not match title "Lives" since "Lives" is too short
+  const titleWordCount = mainTitlePart.split(/\s+/).length
+  const queryWordCount = mainQueryPart.split(/\s+/).length
+
+  if (mainQueryPart.includes(mainTitlePart)) {
+    // Penalize heavily if the title is much shorter than the query
+    // "Lives" (1 word) vs "Book of Lives" (3 words) = very low match
+    const lengthRatio = titleWordCount / queryWordCount
+    if (lengthRatio < 0.5) return 0.2 // Title is less than half the query words - poor match
+    return 0.7
+  }
+
+  // Check word overlap - require significant overlap
+  const queryWords = mainQueryPart.split(/\s+/).filter(w => w.length > 2)
+  const titleWords = mainTitlePart.split(/\s+/).filter(w => w.length > 2)
+
+  if (queryWords.length === 0 || titleWords.length === 0) return 0
+
+  // Count words from title that appear in query
+  const titleWordsInQuery = titleWords.filter(tw =>
+    queryWords.some(qw => qw === tw || qw.includes(tw) || tw.includes(qw))
+  )
+
+  // Count words from query that appear in title
+  const queryWordsInTitle = queryWords.filter(qw =>
+    titleWords.some(tw => tw === qw || tw.includes(qw) || qw.includes(tw))
+  )
+
+  // For a good match, most title words should be in query AND most query words in title
+  const titleCoverage = titleWordsInQuery.length / titleWords.length
+  const queryCoverage = queryWordsInTitle.length / queryWords.length
+
+  // Both coverages need to be high for a good match
+  return Math.min(titleCoverage, queryCoverage) * 0.6
+}
 import type {
   SearchBooksArgs,
   GetBookDetailsArgs,
@@ -73,6 +163,10 @@ async function searchBooks(args: SearchBooksArgs): Promise<ToolExecutionResult> 
     return findSimilarBooks({ title: similarityCheck.sourceBookTitle, limit })
   }
 
+  // Check if this looks like a specific book title search
+  const isSpecificSearch = isSpecificBookTitleQuery(args.query)
+  const relevanceThreshold = isSpecificSearch ? 0.5 : 0 // Only filter for specific searches
+
   // Try semantic search first
   try {
     const embedding = await generateEmbedding(args.query)
@@ -95,6 +189,28 @@ async function searchBooks(args: SearchBooksArgs): Promise<ToolExecutionResult> 
         books = books.filter((b) =>
           b.genres?.some((g) => g.toLowerCase().includes(genreLower))
         )
+      }
+
+      // For specific book title searches, filter out irrelevant partial matches
+      if (isSpecificSearch) {
+        const relevantBooks = books.filter(
+          (b) => calculateTitleRelevance(b.title, args.query) >= relevanceThreshold
+        )
+        // If no relevant books found, return empty to avoid showing misleading cards
+        if (relevantBooks.length === 0) {
+          return {
+            success: true,
+            books: [],
+            data: {
+              searchType: 'semantic',
+              query: args.query,
+              resultCount: 0,
+              specificSearchNoMatch: true,
+              message: `No exact match found for "${args.query}"`,
+            },
+          }
+        }
+        books = relevantBooks
       }
 
       return {
@@ -154,13 +270,37 @@ async function searchBooks(args: SearchBooksArgs): Promise<ToolExecutionResult> 
     return { success: false, error: error.message }
   }
 
+  let books = textResults || []
+
+  // For specific book title searches, filter out irrelevant partial matches
+  if (isSpecificSearch && books.length > 0) {
+    const relevantBooks = books.filter(
+      (b) => calculateTitleRelevance(b.title, args.query) >= relevanceThreshold
+    )
+    // If no relevant books found, return empty to avoid showing misleading cards
+    if (relevantBooks.length === 0) {
+      return {
+        success: true,
+        books: [],
+        data: {
+          searchType: 'text',
+          query: args.query,
+          resultCount: 0,
+          specificSearchNoMatch: true,
+          message: `No exact match found for "${args.query}"`,
+        },
+      }
+    }
+    books = relevantBooks
+  }
+
   return {
     success: true,
-    books: textResults || [],
+    books,
     data: {
       searchType: 'text',
       query: args.query,
-      resultCount: textResults?.length || 0,
+      resultCount: books.length,
     },
   }
 }

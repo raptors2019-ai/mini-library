@@ -135,10 +135,12 @@ export function BookFilters() {
           {/* Status multi-select */}
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="outline" className="flex-1 sm:flex-none sm:w-[140px] justify-between">
-                {selectedStatuses.length > 0
-                  ? `${selectedStatuses.length} selected`
-                  : 'Status'}
+              <Button variant="outline" className="flex-1 sm:flex-none sm:w-[160px] justify-between">
+                {selectedStatuses.length === 0
+                  ? 'Status'
+                  : selectedStatuses.length === 1
+                  ? BOOK_STATUS_LABELS[selectedStatuses[0] as BookStatus] || selectedStatuses[0]
+                  : `${selectedStatuses.length} statuses`}
                 <ChevronDown className="ml-2 h-4 w-4 opacity-50" />
               </Button>
             </PopoverTrigger>
@@ -163,10 +165,12 @@ export function BookFilters() {
           {/* Genre multi-select */}
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="outline" className="flex-1 sm:flex-none sm:w-[140px] justify-between">
-                {selectedGenres.length > 0
-                  ? `${selectedGenres.length} selected`
-                  : 'Genres'}
+              <Button variant="outline" className="flex-1 sm:flex-none sm:w-[160px] justify-between">
+                {selectedGenres.length === 0
+                  ? 'Genres'
+                  : selectedGenres.length === 1
+                  ? selectedGenres[0]
+                  : `${selectedGenres.length} genres`}
                 <ChevronDown className="ml-2 h-4 w-4 opacity-50" />
               </Button>
             </PopoverTrigger>

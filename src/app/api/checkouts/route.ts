@@ -1,6 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
 import { createNotification, notificationTemplates } from '@/lib/notifications'
 import { getCurrentDate, isOverdue } from '@/lib/simulated-date'
+import { canUserCheckout, processBookHoldTransition } from '@/lib/hold-transitions'
+import { isPriorityRole } from '@/lib/constants'
 import { NextRequest, NextResponse } from 'next/server'
 import { revalidatePath } from 'next/cache'
 
@@ -14,13 +16,15 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('checkout_limit, hold_duration_days')
+    .select('checkout_limit, hold_duration_days, role')
     .eq('id', user.id)
     .single()
 
   if (!profile) {
     return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
   }
+
+  const isPriorityUser = isPriorityRole(profile.role)
 
   // Get current date (may be simulated)
   const currentDate = await getCurrentDate(supabase)
@@ -85,15 +89,24 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: 'This book is already checked out' }, { status: 400 })
   }
 
-  // Check book status (belt and suspenders)
+  // Process any pending hold transitions for this book first
+  await processBookHoldTransition(supabase, book_id)
+
+  // Check book status using hold-aware eligibility check
   const { data: book } = await supabase
     .from('books')
-    .select('status')
+    .select('status, hold_started_at')
     .eq('id', book_id)
     .single()
 
-  if (!book || book.status !== 'available') {
-    return NextResponse.json({ error: 'Book not available' }, { status: 400 })
+  if (!book) {
+    return NextResponse.json({ error: 'Book not found' }, { status: 404 })
+  }
+
+  // Check if user can checkout based on book status and waitlist membership
+  const eligibility = await canUserCheckout(supabase, book_id, user.id, isPriorityUser)
+  if (!eligibility.allowed) {
+    return NextResponse.json({ error: eligibility.reason || 'Book not available' }, { status: 400 })
   }
 
   // Calculate due date based on current (possibly simulated) date
@@ -101,12 +114,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   dueDate.setDate(dueDate.getDate() + profile.hold_duration_days)
 
   // Update book status FIRST to prevent race conditions
-  // Only update if still available - this is atomic and prevents race conditions
+  // Accept multiple valid statuses for hold situations
+  const validStatuses = ['available', 'on_hold_premium', 'on_hold_waitlist']
   const { data: updatedBooks, error: updateError } = await supabase
     .from('books')
-    .update({ status: 'checked_out' })
+    .update({ status: 'checked_out', hold_started_at: null })
     .eq('id', book_id)
-    .eq('status', 'available')
+    .in('status', validStatuses)
     .select('id')
 
   if (updateError) {
