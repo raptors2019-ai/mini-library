@@ -6,6 +6,7 @@ import {
   truncateText,
   formatRelativeTime,
   getInitials,
+  isConversationalQuery,
 } from './utils'
 
 describe('cn utility', () => {
@@ -155,5 +156,45 @@ describe('getInitials', () => {
 
   it('should return "A" prefix when both are null', () => {
     expect(getInitials(null, null)).toBe('A')
+  })
+})
+
+describe('isConversationalQuery', () => {
+  it('should return false for short queries', () => {
+    expect(isConversationalQuery('Harry Potter')).toBe(false)
+    expect(isConversationalQuery('Stephen King')).toBe(false)
+    expect(isConversationalQuery('Fiction')).toBe(false)
+  })
+
+  it('should return true for queries with question words', () => {
+    expect(isConversationalQuery('what are some good mystery books')).toBe(true)
+    expect(isConversationalQuery('which books do you recommend')).toBe(true)
+    expect(isConversationalQuery('how can I find science fiction')).toBe(true)
+  })
+
+  it('should return true for recommendation phrases', () => {
+    expect(isConversationalQuery('recommend books for wealth building')).toBe(true)
+    expect(isConversationalQuery('suggest something similar to Harry Potter')).toBe(true)
+    expect(isConversationalQuery('books about money and finance')).toBe(true)
+    expect(isConversationalQuery('looking for a good mystery novel')).toBe(true)
+  })
+
+  it('should return true for queries with first/second person pronouns', () => {
+    expect(isConversationalQuery('books you would recommend for me')).toBe(true)
+    expect(isConversationalQuery('I want to read something inspiring')).toBe(true)
+    expect(isConversationalQuery('help me find a good book')).toBe(true)
+  })
+
+  it('should return true for questions ending with ?', () => {
+    expect(isConversationalQuery('any good sci-fi books?')).toBe(true)
+  })
+
+  it('should return true for longer descriptive queries', () => {
+    expect(isConversationalQuery('books about money and wealth building for beginners')).toBe(true)
+  })
+
+  it('should return false for simple genre or topic searches', () => {
+    expect(isConversationalQuery('mystery novels')).toBe(false)
+    expect(isConversationalQuery('science fiction')).toBe(false)
   })
 })

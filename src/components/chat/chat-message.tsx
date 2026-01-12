@@ -76,7 +76,10 @@ export function ChatMessage({ message }: ChatMessageProps) {
 
         {/* Book cards carousel */}
         {hasBooks && (
-          <div className="w-full">
+          <div className="w-full space-y-1">
+            <p className="text-xs text-muted-foreground px-1">
+              📚 {message.books!.length} book{message.books!.length === 1 ? '' : 's'} found · Click to view details
+            </p>
             <ChatBookCarousel books={message.books!} />
           </div>
         )}

@@ -15,6 +15,7 @@ import {
 import { Search, X, ChevronDown, Sparkles } from 'lucide-react'
 import { useCallback, useState, useTransition, useEffect } from 'react'
 import { GENRES, BOOK_STATUS_LABELS } from '@/lib/constants'
+import { isConversationalQuery } from '@/lib/utils'
 import type { BookStatus } from '@/types/database'
 
 const STATUSES: { value: BookStatus; label: string }[] = [
@@ -61,7 +62,14 @@ export function BookFilters() {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
     startTransition(() => {
-      if (useSemanticSearch) {
+      // Auto-detect if query is conversational and should use AI search
+      const shouldUseSemantic = useSemanticSearch || isConversationalQuery(searchInput)
+
+      if (shouldUseSemantic) {
+        // Auto-enable the toggle if we detected conversational query
+        if (!useSemanticSearch && isConversationalQuery(searchInput)) {
+          setUseSemanticSearch(true)
+        }
         // Add semantic param to enable AI search on books page
         router.push(`/books?${createQueryString({ search: searchInput, semantic: 'true' })}`)
       } else {
