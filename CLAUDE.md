@@ -9,13 +9,11 @@ This section tracks active development tasks. Update as tasks are completed and 
 | Status | Task |
 |--------|------|
 | Pending | Enable leaked password protection in Supabase Dashboard (manual) |
-| Pending | Add checkout management to admin panel (/admin/checkouts) |
-| Pending | Add book import feature (CSV/bulk upload) |
-| Pending | Add reading statistics and analytics dashboard |
 | Pending | Improve test coverage (target 80%) |
 | Pending | Add E2E tests with Playwright |
 
 **Recently Completed:**
+- Add checkout management to admin panel (/admin/checkouts)
 - Add AI chat widget with OpenAI function calling (floating chatbot for book discovery)
 - Add Jest tests for chat functionality (24 tests)
 - Redesign Library page with category carousels (Trending, Top Rated, AI Picks)

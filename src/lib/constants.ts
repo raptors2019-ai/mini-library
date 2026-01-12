@@ -1,4 +1,4 @@
-import type { BookStatus, UserRole } from '@/types/database'
+import type { BookStatus, UserRole, CheckoutStatus } from '@/types/database'
 
 export const BOOK_STATUS_COLORS: Record<BookStatus, string> = {
   available: 'bg-green-500/10 text-green-600 border-green-500/20',
@@ -12,6 +12,18 @@ export const BOOK_STATUS_LABELS: Record<BookStatus, string> = {
   checked_out: 'Checked Out',
   on_hold: 'On Hold',
   inactive: 'Inactive',
+}
+
+export const CHECKOUT_STATUS_COLORS: Record<CheckoutStatus, string> = {
+  active: 'bg-green-500/10 text-green-600 border-green-500/20',
+  overdue: 'bg-red-500/10 text-red-600 border-red-500/20',
+  returned: 'bg-gray-500/10 text-gray-600 border-gray-500/20',
+}
+
+export const CHECKOUT_STATUS_LABELS: Record<CheckoutStatus, string> = {
+  active: 'Active',
+  overdue: 'Overdue',
+  returned: 'Returned',
 }
 
 export const GENRES = [
