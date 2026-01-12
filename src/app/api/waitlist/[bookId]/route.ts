@@ -15,15 +15,37 @@ export async function DELETE(
 
   const { user, supabase } = auth
 
+  // Allow leaving waitlist from either 'waiting' or 'notified' status
   const { error } = await supabase
     .from('waitlist')
     .update({ status: 'cancelled' })
     .eq('book_id', bookId)
     .eq('user_id', user.id)
-    .eq('status', 'waiting')
+    .in('status', ['waiting', 'notified'])
 
   if (error) {
     return jsonError(error.message, 500)
+  }
+
+  // If the user was in 'notified' status (had an active hold), update book status
+  // to make it available for the next person in line
+  const { data: nextInLine } = await supabase
+    .from('waitlist')
+    .select('id, user_id')
+    .eq('book_id', bookId)
+    .eq('status', 'waiting')
+    .order('is_priority', { ascending: false })
+    .order('position', { ascending: true })
+    .limit(1)
+    .single()
+
+  if (!nextInLine) {
+    // No one else waiting, make book available
+    await supabase
+      .from('books')
+      .update({ status: 'available' })
+      .eq('id', bookId)
+      .eq('status', 'on_hold')
   }
 
   return jsonSuccess({ success: true })

@@ -11,13 +11,102 @@ import { RecommendationsRow } from '@/components/dashboard/recommendations-row'
 import { BecauseYouRead } from '@/components/dashboard/because-you-read'
 import { MyBooksCallout } from '@/components/dashboard/my-books-callout'
 import { DashboardActions } from './dashboard-actions'
-import { isPriorityRole } from '@/lib/constants'
+import { isPriorityRole, getHoldDurationHours } from '@/lib/constants'
+import { createNotification, notificationTemplates } from '@/lib/notifications'
+import { getCurrentDate } from '@/lib/simulated-date'
+
+// Process any expired waitlist holds for this user
+async function processExpiredHolds(supabase: ReturnType<typeof createClient> extends Promise<infer T> ? T : never, userId: string) {
+  const now = await getCurrentDate(supabase)
+
+  // Find user's expired holds
+  const { data: expiredEntries } = await supabase
+    .from('waitlist')
+    .select('*, book:books(id, title)')
+    .eq('user_id', userId)
+    .eq('status', 'notified')
+    .lt('expires_at', now.toISOString())
+
+  if (!expiredEntries || expiredEntries.length === 0) return
+
+  for (const entry of expiredEntries) {
+    const bookId = entry.book_id
+    const bookTitle = entry.book?.title || 'Unknown Book'
+
+    // Mark as expired
+    await supabase
+      .from('waitlist')
+      .update({ status: 'expired' })
+      .eq('id', entry.id)
+
+    // Notify user
+    const notification = notificationTemplates.waitlistExpired(bookTitle)
+    await createNotification({
+      supabase,
+      userId,
+      bookId,
+      ...notification,
+    })
+
+    // Find next in line
+    const { data: nextInLine } = await supabase
+      .from('waitlist')
+      .select('id, user_id')
+      .eq('book_id', bookId)
+      .eq('status', 'waiting')
+      .order('is_priority', { ascending: false })
+      .order('position', { ascending: true })
+      .limit(1)
+      .single()
+
+    if (nextInLine) {
+      // Get next person's role for hold duration
+      const { data: nextUserProfile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', nextInLine.user_id)
+        .single()
+
+      const holdHours = getHoldDurationHours(nextUserProfile?.role)
+      const expiresAt = new Date(now)
+      expiresAt.setHours(expiresAt.getHours() + holdHours)
+
+      await supabase
+        .from('waitlist')
+        .update({
+          status: 'notified',
+          notified_at: now.toISOString(),
+          expires_at: expiresAt.toISOString(),
+        })
+        .eq('id', nextInLine.id)
+
+      // Notify next person
+      const expirationLabel = holdHours === 24 ? '24 hours' : `${holdHours / 24} days`
+      const availableNotification = notificationTemplates.waitlistAvailable(bookTitle, expirationLabel)
+      await createNotification({
+        supabase,
+        userId: nextInLine.user_id,
+        bookId,
+        ...availableNotification,
+      })
+    } else {
+      // No one else waiting, make book available
+      await supabase
+        .from('books')
+        .update({ status: 'available' })
+        .eq('id', bookId)
+    }
+  }
+}
 
 async function getDashboardData() {
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
+
+  // Process any expired holds for this user (lazy expiration on dashboard load)
+  await processExpiredHolds(supabase, user.id)
 
   // Get profile
   const { data: profile } = await supabase
@@ -100,8 +189,17 @@ async function getDashboardData() {
     .order('position', { ascending: true })
 
   // Enrich waitlist entries with estimated availability
+  const now = await getCurrentDate(supabase)
   const enrichedWaitlistEntries = await Promise.all(
     (waitlistEntries || []).map(async (entry) => {
+      // If already notified, entry is available - no estimated days needed
+      if (entry.status === 'notified') {
+        return {
+          ...entry,
+          estimated_days: 0, // Available now
+        }
+      }
+
       // Get current checkout for this book to calculate estimated availability
       const { data: currentCheckout } = await supabase
         .from('checkouts')
@@ -116,9 +214,21 @@ async function getDashboardData() {
         // Add 14 days per person ahead in queue
         const additionalDays = (entry.position - 1) * 14
         dueDate.setDate(dueDate.getDate() + additionalDays)
-        const now = new Date()
         estimatedDays = Math.ceil((dueDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
         if (estimatedDays < 0) estimatedDays = 0
+      } else {
+        // No current checkout but book is checked out/on hold - estimate 14 days
+        // This handles edge cases where the checkout record might not match
+        const { data: book } = await supabase
+          .from('books')
+          .select('status')
+          .eq('id', entry.book_id)
+          .single()
+
+        if (book?.status === 'checked_out' || book?.status === 'on_hold') {
+          // Assume 14 days per position in queue
+          estimatedDays = 14 * entry.position
+        }
       }
 
       return {

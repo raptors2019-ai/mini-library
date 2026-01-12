@@ -74,8 +74,8 @@ export const notificationTemplates = {
 
   waitlistExpired: (bookTitle: string) => ({
     type: 'waitlist_expired' as NotificationType,
-    title: 'Waitlist Expired',
-    message: `Your hold on "${bookTitle}" has expired. The book has been offered to the next person in line.`,
+    title: 'Hold Expired',
+    message: `You missed your time window to claim "${bookTitle}". The book has been offered to the next person. Check availability or join the waitlist again.`,
   }),
 
   bookReturned: (bookTitle: string) => ({
