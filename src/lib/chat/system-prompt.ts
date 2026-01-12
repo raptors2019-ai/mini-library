@@ -9,6 +9,7 @@ interface SystemPromptContext {
     genres?: string[]
     description?: string
   } | null
+  currentPath?: string
 }
 
 export function getSystemPrompt(context: SystemPromptContext): string {
@@ -31,6 +32,33 @@ export function getSystemPrompt(context: SystemPromptContext): string {
 The user is currently looking at the book "${context.currentBook.title}" by ${context.currentBook.author}${context.currentBook.genres?.length ? ` (${context.currentBook.genres.join(', ')})` : ''}.
 When the user asks about "this book" or "the book I'm looking at", they mean "${context.currentBook.title}".
 ${context.currentBook.description ? `Brief description: ${context.currentBook.description.substring(0, 200)}...` : ''}`
+    : ''
+
+  // Detect if user is on add/edit book page
+  const isAddingBook = context.currentPath === '/books/new'
+  const isEditingBook = context.currentPath?.match(/^\/books\/[^/]+\/edit$/)
+
+  const addBookModeSection = (isAddingBook || isEditingBook)
+    ? `\n\n## CRITICAL: Book Form Mode Active
+The user is currently ${isAddingBook ? 'adding a new book' : 'editing a book'} to the library catalog.
+
+**STRICT RULES FOR THIS MODE:**
+1. **NEVER use search_books** - the book isn't in our catalog yet, so searching it is pointless
+2. **NEVER use show_books_on_page** - don't navigate to the books page
+3. **ONLY use lookup_book_external** to find book information from external sources
+4. Share the external lookup results directly: ISBN, page count, publish date, cover URL, description, genres
+5. Do NOT mention "our catalog" or "checking availability" - you're helping them ADD a book, not find one
+
+**Example response format for this mode:**
+"I found '10x Rule' by Grant Cardone:
+- ISBN: 978-0470627600
+- Pages: 256
+- Published: April 26, 2011
+- Description: Achieve extreme success by setting targets 10 times higher than average...
+
+You can use these details to fill in the form!"
+
+This helps librarians get complete, accurate book metadata for the catalog.`
     : ''
 
   return `You are a helpful library assistant for a book lending library. Your role is to help users discover books, check availability, and get personalized recommendations.
@@ -135,7 +163,7 @@ If someone asks about anything else (weather, coding help, general knowledge, ma
 Never answer off-topic questions, even if you know the answer. Stay focused on books and library services.
 
 ## Current Session
-${userSection}${preferencesSection}${recentSection}${currentBookSection}
+${userSection}${preferencesSection}${recentSection}${currentBookSection}${addBookModeSection}
 
 Remember: You can only help with books that are actually in this library's catalog. Your job is to connect users with books they'll love from our available collection. Keep responses concise since interactive book cards provide the details!`
 }

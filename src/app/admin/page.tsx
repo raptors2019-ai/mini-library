@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { Settings, Book, Users, Clock, AlertTriangle, Plus, BookOpen, BookPlus, Check, X } from 'lucide-react'
+import { Settings, Book, Users, Clock, AlertTriangle, Plus, BookOpen, BookPlus, Check, X, Pencil } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { toast } from 'sonner'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -46,7 +46,6 @@ interface Stats {
     title: string
     author: string
     isbn: string | null
-    description: string | null
     cover_url: string | null
     created_at: string
     user: { full_name: string | null; email: string; avatar_url: string | null }
@@ -296,9 +295,28 @@ export default function AdminPage() {
           <CardContent>
             <div className="space-y-4">
               {stats?.pending_requests.map((request) => (
-                <div key={request.id} className="flex items-start gap-4 p-4 rounded-lg border bg-muted/30">
+                <div
+                  key={request.id}
+                  className="flex items-start gap-4 p-4 rounded-lg border bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer"
+                  onClick={() => window.location.href = `/admin/book-requests/${request.id}`}
+                >
+                  {/* Cover image thumbnail */}
+                  {request.cover_url ? (
+                    <div className="w-16 h-24 rounded overflow-hidden bg-muted flex-shrink-0">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={request.cover_url}
+                        alt={request.title}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  ) : (
+                    <div className="w-16 h-24 rounded bg-muted flex-shrink-0 flex items-center justify-center">
+                      <BookOpen className="h-6 w-6 text-muted-foreground" />
+                    </div>
+                  )}
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
+                    <div className="flex items-center gap-2 mb-1 flex-wrap">
                       <Avatar className="h-6 w-6">
                         <AvatarImage src={request.user?.avatar_url || undefined} />
                         <AvatarFallback>
@@ -318,7 +336,17 @@ export default function AdminPage() {
                       <p className="text-xs text-muted-foreground mt-1">ISBN: {request.isbn}</p>
                     )}
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex flex-col gap-2" onClick={(e) => e.stopPropagation()}>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      asChild
+                    >
+                      <Link href={`/admin/book-requests/${request.id}`}>
+                        <Pencil className="h-4 w-4 mr-1" />
+                        Edit
+                      </Link>
+                    </Button>
                     <Button
                       size="sm"
                       variant="outline"

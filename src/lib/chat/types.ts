@@ -29,6 +29,7 @@ export interface ChatRequest {
   }>
   context?: {
     currentBookId?: string
+    currentPath?: string
   }
 }
 

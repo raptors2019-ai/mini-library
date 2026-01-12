@@ -88,7 +88,7 @@ export async function POST(request: NextRequest): Promise<Response> {
       }
     }
 
-    const systemPrompt = getSystemPrompt({ ...userContext, currentBook })
+    const systemPrompt = getSystemPrompt({ ...userContext, currentBook, currentPath: appContext?.currentPath })
     const openai = getOpenAIClient()
 
     // Build initial messages for OpenAI

@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { requireAdmin, isErrorResponse, jsonError, jsonSuccess } from '@/lib/api-utils'
 import { createNotification, notificationTemplates } from '@/lib/notifications'
+import { generateEmbedding, createEmbeddingText } from '@/lib/openai'
 
 interface RouteParams {
   params: Promise<{ id: string }>
@@ -35,6 +36,22 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
   // Auto-create book from request data if requested
   if (createBook) {
+    // Generate embedding for semantic search
+    let embedding: number[] | null = null
+    try {
+      const embeddingText = createEmbeddingText({
+        title: bookRequest.title,
+        author: bookRequest.author,
+        description: bookRequest.description,
+        ai_summary: bookRequest.ai_summary,
+        genres: bookRequest.genres,
+      })
+      embedding = await generateEmbedding(embeddingText)
+    } catch (error) {
+      console.error('Failed to generate embedding:', error)
+      // Continue without embedding - can be enriched later
+    }
+
     const { data: newBook, error: bookError } = await supabase
       .from('books')
       .insert({
@@ -42,10 +59,12 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         title: bookRequest.title,
         author: bookRequest.author,
         description: bookRequest.description || null,
+        ai_summary: bookRequest.ai_summary || null,
         page_count: bookRequest.page_count || null,
         publish_date: bookRequest.publish_date || null,
         genres: bookRequest.genres || [],
         cover_url: bookRequest.cover_url || null,
+        embedding: embedding,
         status: 'available',
         created_by: user.id,
       })

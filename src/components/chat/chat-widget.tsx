@@ -18,7 +18,8 @@ export function ChatWidget(): React.ReactNode {
   // Build chat context from app context
   const chatContext = useMemo(() => ({
     currentBookId: appContext.currentBookId,
-  }), [appContext.currentBookId])
+    currentPath: appContext.currentPath,
+  }), [appContext.currentBookId, appContext.currentPath])
 
   const { messages, isLoading, isSearching, searchQuery, error, sendMessage, clearMessages } = useChat({
     onAction: handleAction,
