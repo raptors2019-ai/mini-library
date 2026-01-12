@@ -12,6 +12,7 @@ import {
   CalendarPlus,
   AlertTriangle,
   BookOpen,
+  ArrowLeft,
 } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -175,6 +176,16 @@ export default function AdminCheckoutsPage() {
 
   return (
     <div className="flex flex-col gap-6">
+      {/* Back to Admin */}
+      <div>
+        <Button variant="ghost" size="sm" asChild className="gap-1 text-muted-foreground hover:text-foreground">
+          <Link href="/admin">
+            <ArrowLeft className="h-4 w-4" />
+            Back to Admin Portal
+          </Link>
+        </Button>
+      </div>
+
       <div className="flex items-center gap-2">
         <Clock className="h-6 w-6" />
         <h1 className="text-3xl font-bold">Manage Checkouts</h1>

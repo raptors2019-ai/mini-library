@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
-import { Book, Plus, Search, Edit, Trash2, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react'
+import { Book, Plus, Search, Edit, Trash2, ChevronLeft, ChevronRight, Sparkles, ArrowLeft } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -112,6 +112,16 @@ export default function AdminBooksPage() {
 
   return (
     <div className="flex flex-col gap-6">
+      {/* Back to Admin */}
+      <div>
+        <Button variant="ghost" size="sm" asChild className="gap-1 text-muted-foreground hover:text-foreground">
+          <Link href="/admin">
+            <ArrowLeft className="h-4 w-4" />
+            Back to Admin Portal
+          </Link>
+        </Button>
+      </div>
+
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Book className="h-6 w-6" />

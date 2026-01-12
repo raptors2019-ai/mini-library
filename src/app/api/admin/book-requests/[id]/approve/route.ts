@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server'
 import { requireAdmin, isErrorResponse, jsonError, jsonSuccess } from '@/lib/api-utils'
 import { createNotification, notificationTemplates } from '@/lib/notifications'
-import { generateEmbedding, createEmbeddingText } from '@/lib/openai'
+import { generateEmbedding, createEmbeddingText, generateBookSummary, generateGenres } from '@/lib/openai'
 
 interface RouteParams {
   params: Promise<{ id: string }>
@@ -36,6 +36,39 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
   // Auto-create book from request data if requested
   if (createBook) {
+    // Auto-enrich with AI if not already enriched
+    let aiSummary = bookRequest.ai_summary
+    let genres = bookRequest.genres || []
+
+    // Generate AI summary if not present
+    if (!aiSummary) {
+      try {
+        aiSummary = await generateBookSummary({
+          title: bookRequest.title,
+          author: bookRequest.author,
+          description: bookRequest.description,
+          genres: bookRequest.genres,
+        })
+      } catch (error) {
+        console.error('Failed to generate AI summary:', error)
+        // Continue without summary
+      }
+    }
+
+    // Generate genres if not present
+    if (!genres.length) {
+      try {
+        genres = await generateGenres({
+          title: bookRequest.title,
+          author: bookRequest.author,
+          description: bookRequest.description,
+        })
+      } catch (error) {
+        console.error('Failed to generate genres:', error)
+        // Continue without genres
+      }
+    }
+
     // Generate embedding for semantic search
     let embedding: number[] | null = null
     try {
@@ -43,8 +76,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         title: bookRequest.title,
         author: bookRequest.author,
         description: bookRequest.description,
-        ai_summary: bookRequest.ai_summary,
-        genres: bookRequest.genres,
+        ai_summary: aiSummary,
+        genres: genres,
       })
       embedding = await generateEmbedding(embeddingText)
     } catch (error) {
@@ -59,10 +92,10 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         title: bookRequest.title,
         author: bookRequest.author,
         description: bookRequest.description || null,
-        ai_summary: bookRequest.ai_summary || null,
+        ai_summary: aiSummary || null,
         page_count: bookRequest.page_count || null,
         publish_date: bookRequest.publish_date || null,
-        genres: bookRequest.genres || [],
+        genres: genres,
         cover_url: bookRequest.cover_url || null,
         embedding: embedding,
         status: 'available',

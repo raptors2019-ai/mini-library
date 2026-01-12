@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Sparkles, Check, X, Loader2, Calendar, Hash, FileText, BookOpen } from 'lucide-react'
+import { ArrowLeft, Check, X, Loader2, Calendar, Hash, FileText, BookOpen, Sparkles } from 'lucide-react'
 import { toast } from 'sonner'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -37,7 +37,6 @@ export default function BookRequestDetailPage() {
   const router = useRouter()
   const [request, setRequest] = useState<BookRequest | null>(null)
   const [loading, setLoading] = useState(true)
-  const [enriching, setEnriching] = useState(false)
   const [processing, setProcessing] = useState(false)
 
   const fetchRequest = async () => {
@@ -56,26 +55,6 @@ export default function BookRequestDetailPage() {
     fetchRequest()
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.id])
-
-  const handleEnrich = async () => {
-    if (!request) return
-    setEnriching(true)
-    const response = await fetch(`/api/admin/book-requests/${request.id}/enrich`, {
-      method: 'POST',
-    })
-    if (response.ok) {
-      const data = await response.json()
-      const enrichedItems = []
-      if (data.enriched.cover_url) enrichedItems.push('cover')
-      if (data.enriched.ai_summary) enrichedItems.push('AI summary')
-      if (data.enriched.genres) enrichedItems.push('genres')
-      toast.success(`Enriched with ${enrichedItems.join(', ')}`)
-      fetchRequest()
-    } else {
-      toast.error('Failed to enrich with AI')
-    }
-    setEnriching(false)
-  }
 
   const handleApprove = async () => {
     if (!request) return
@@ -158,30 +137,21 @@ export default function BookRequestDetailPage() {
           <div className="flex items-center gap-2">
             <Button
               variant="outline"
-              onClick={handleEnrich}
-              disabled={enriching || processing}
-              className="text-purple-600 hover:text-purple-700 hover:bg-purple-50"
-            >
-              {enriching ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <Sparkles className="h-4 w-4 mr-2" />
-              )}
-              {enriching ? 'Enriching...' : 'Enrich with AI'}
-            </Button>
-            <Button
-              variant="outline"
               onClick={handleApprove}
-              disabled={processing || enriching}
+              disabled={processing}
               className="text-green-600 hover:text-green-700 hover:bg-green-50"
             >
-              <Check className="h-4 w-4 mr-2" />
-              Approve
+              {processing ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Check className="h-4 w-4 mr-2" />
+              )}
+              {processing ? 'Approving...' : 'Approve'}
             </Button>
             <Button
               variant="outline"
               onClick={handleDecline}
-              disabled={processing || enriching}
+              disabled={processing}
               className="text-red-600 hover:text-red-700 hover:bg-red-50"
             >
               <X className="h-4 w-4 mr-2" />

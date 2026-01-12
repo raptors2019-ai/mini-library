@@ -1,7 +1,8 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { Users, Search, ChevronLeft, ChevronRight, Shield, Mail } from 'lucide-react'
+import Link from 'next/link'
+import { Users, Search, ChevronLeft, ChevronRight, Shield, Mail, ArrowLeft } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -101,6 +102,16 @@ export default function AdminUsersPage() {
 
   return (
     <div className="flex flex-col gap-6">
+      {/* Back to Admin */}
+      <div>
+        <Button variant="ghost" size="sm" asChild className="gap-1 text-muted-foreground hover:text-foreground">
+          <Link href="/admin">
+            <ArrowLeft className="h-4 w-4" />
+            Back to Admin Portal
+          </Link>
+        </Button>
+      </div>
+
       <div className="flex items-center gap-2">
         <Users className="h-6 w-6" />
         <h1 className="text-3xl font-bold">Manage Users</h1>
