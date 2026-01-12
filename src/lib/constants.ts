@@ -11,8 +11,8 @@ export const BOOK_STATUS_COLORS: Record<BookStatus, string> = {
 export const BOOK_STATUS_LABELS: Record<BookStatus, string> = {
   available: 'Available',
   checked_out: 'Checked Out',
-  on_hold_premium: 'On Hold (Premium)',
-  on_hold_waitlist: 'On Hold (Waitlist)',
+  on_hold_premium: 'On Hold',
+  on_hold_waitlist: 'On Hold',
   inactive: 'Inactive',
 }
 

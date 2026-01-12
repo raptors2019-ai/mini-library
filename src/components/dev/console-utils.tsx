@@ -48,6 +48,15 @@ export function ConsoleUtils() {
           if (data.notificationsGenerated > 0) {
             console.log(`📬 Generated ${data.notificationsGenerated} notification(s)`)
           }
+          if (data.holdTransitions) {
+            const { premiumToWaitlist, waitlistToAvailable } = data.holdTransitions
+            if (premiumToWaitlist > 0) {
+              console.log(`🔄 ${premiumToWaitlist} book(s) moved from premium hold to waitlist hold`)
+            }
+            if (waitlistToAvailable > 0) {
+              console.log(`📗 ${waitlistToAvailable} book(s) became available`)
+            }
+          }
           console.log('💡 Press F5 or Cmd+R to refresh and see changes')
         } else {
           const error = await res.json()

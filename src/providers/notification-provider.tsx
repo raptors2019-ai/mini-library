@@ -16,7 +16,8 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
   const [notifications, setNotifications] = useState<NotificationWithBook[]>([])
   const [unreadCount, setUnreadCount] = useState(0)
   const [loading, setLoading] = useState(true)
-  const supabase = createClient()
+  const [userId, setUserId] = useState<string | null>(null)
+  const supabase = useMemo(() => createClient(), [])
 
   const fetchNotifications = useCallback(async () => {
     try {
@@ -33,19 +34,42 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
     }
   }, [])
 
+  // Get current user ID for subscription filter
+  useEffect(() => {
+    const getUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      setUserId(user?.id ?? null)
+    }
+    getUser()
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
+      setUserId(session?.user?.id ?? null)
+    })
+
+    return () => {
+      subscription.unsubscribe()
+    }
+  }, [supabase])
+
   // Initial fetch and real-time subscription
   useEffect(() => {
     fetchNotifications()
 
+    // Only set up subscription if we have a user ID
+    if (!userId) return
+
     // Set up real-time subscription for new and updated notifications
+    // Filter by user_id to only receive events for the current user
     const channel = supabase
-      .channel('notifications-sync')
+      .channel(`notifications-${userId}`)
       .on(
         'postgres_changes',
         {
           event: 'INSERT',
           schema: 'public',
           table: 'notifications',
+          filter: `user_id=eq.${userId}`,
         },
         () => {
           fetchNotifications()
@@ -57,6 +81,7 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
           event: 'UPDATE',
           schema: 'public',
           table: 'notifications',
+          filter: `user_id=eq.${userId}`,
         },
         () => {
           fetchNotifications()
@@ -67,7 +92,7 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [supabase, fetchNotifications])
+  }, [supabase, fetchNotifications, userId])
 
   const markAsRead = useCallback(async (id: string) => {
     // Optimistic update

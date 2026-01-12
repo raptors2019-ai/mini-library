@@ -87,8 +87,9 @@ describe('BOOK_STATUS_LABELS', () => {
   it('should have labels for all statuses', () => {
     expect(BOOK_STATUS_LABELS.available).toBe('Available')
     expect(BOOK_STATUS_LABELS.checked_out).toBe('Checked Out')
-    expect(BOOK_STATUS_LABELS.on_hold_premium).toBe('On Hold (Premium)')
-    expect(BOOK_STATUS_LABELS.on_hold_waitlist).toBe('On Hold (Waitlist)')
+    // Both hold statuses display as "On Hold" - differentiation shown in secondary badge
+    expect(BOOK_STATUS_LABELS.on_hold_premium).toBe('On Hold')
+    expect(BOOK_STATUS_LABELS.on_hold_waitlist).toBe('On Hold')
     expect(BOOK_STATUS_LABELS.inactive).toBe('Inactive')
   })
 })

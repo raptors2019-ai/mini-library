@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getSimulatedDate, setSimulatedDate, daysBetween, isOverdue, isDueSoon, getAutoReturnConfigs, AutoReturnConfig } from '@/lib/simulated-date'
 import { createNotification, notificationTemplates } from '@/lib/notifications'
 import { getHoldDurationHours, CHECKOUT_LIMITS, WAITLIST_HOLD_DURATION } from '@/lib/constants'
+import { processHoldTransitions } from '@/lib/hold-transitions'
 
 // GET - Get current simulated date
 export async function GET(): Promise<NextResponse> {
@@ -76,16 +77,20 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: result.error }, { status: 500 })
   }
 
-  // If setting a date (not resetting), generate notifications and process auto-returns
+  // If setting a date (not resetting), generate notifications, process auto-returns, and hold transitions
   let notificationsGenerated = 0
   let autoReturnsProcessed = 0
   let autoReturnsReverted = 0
+  let holdTransitions = { premiumToWaitlist: 0, waitlistToAvailable: 0 }
 
   if (newDate) {
     notificationsGenerated = await generateDateBasedNotifications(supabase, newDate)
     const autoReturnResult = await processAutoReturns(supabase, newDate)
     autoReturnsProcessed = autoReturnResult.processed
     autoReturnsReverted = autoReturnResult.reverted
+
+    // Process hold transitions (on_hold_premium -> on_hold_waitlist -> available)
+    holdTransitions = await processHoldTransitions(supabase)
   }
 
   return NextResponse.json({
@@ -94,6 +99,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     notificationsGenerated,
     autoReturnsProcessed,
     autoReturnsReverted,
+    holdTransitions,
   })
 }
 
