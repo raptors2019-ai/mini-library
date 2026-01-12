@@ -4,7 +4,7 @@ import { useState, useCallback } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Clock, BookOpen, PartyPopper, X, GripVertical, Crown, AlertCircle } from 'lucide-react'
+import { Clock, BookOpen, PartyPopper, X, GripVertical, Crown, AlertCircle, CheckCircle } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -91,7 +91,8 @@ export function WaitlistStatus({ waitlistEntries, isPriorityUser = false }: Wait
         ) : (
           <div className="space-y-3">
             {localEntries.map((entry, index) => {
-              const isAvailable = entry.status === 'notified'
+              // Book is available if status is 'notified' OR if is_claimable is true
+              const isAvailable = entry.status === 'notified' || entry.is_claimable === true
               return (
                 <div
                   key={entry.id}
@@ -167,15 +168,27 @@ export function WaitlistStatus({ waitlistEntries, isPriorityUser = false }: Wait
                       )}
                     </div>
                   </Link>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 px-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 self-center shrink-0"
-                    onClick={(e) => handleRemove(entry.book_id, e)}
-                  >
-                    <X className="h-4 w-4" />
-                    <span className="ml-1 text-xs">Leave</span>
-                  </Button>
+                  {isAvailable ? (
+                    <Link href={`/books/${entry.book.id}`}>
+                      <Button
+                        size="sm"
+                        className="h-8 px-3 bg-green-600 hover:bg-green-700 text-white self-center shrink-0"
+                      >
+                        <CheckCircle className="h-4 w-4" />
+                        <span className="ml-1 text-xs">Claim</span>
+                      </Button>
+                    </Link>
+                  ) : (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 px-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 self-center shrink-0"
+                      onClick={(e) => handleRemove(entry.book_id, e)}
+                    >
+                      <X className="h-4 w-4" />
+                      <span className="ml-1 text-xs">Leave</span>
+                    </Button>
+                  )}
                 </div>
               )
             })}

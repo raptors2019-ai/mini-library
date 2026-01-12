@@ -197,4 +197,16 @@ describe('isConversationalQuery', () => {
     expect(isConversationalQuery('mystery novels')).toBe(false)
     expect(isConversationalQuery('science fiction')).toBe(false)
   })
+
+  it('should return true for "[genre] books" patterns', () => {
+    expect(isConversationalQuery('business books')).toBe(true)
+    expect(isConversationalQuery('mystery books')).toBe(true)
+    expect(isConversationalQuery('fiction book')).toBe(true)
+    expect(isConversationalQuery('self-help books')).toBe(true)
+  })
+
+  it('should return false for non-genre words followed by books', () => {
+    expect(isConversationalQuery('good books')).toBe(false) // "good" is not a genre
+    expect(isConversationalQuery('new books')).toBe(false)  // "new" is not a genre
+  })
 })

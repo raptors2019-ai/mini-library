@@ -1,5 +1,6 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
+import { GENRES } from "@/lib/constants"
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -97,6 +98,14 @@ export function getInitials(name: string | null, fallback: string | null = null)
 export function isConversationalQuery(query: string): boolean {
   const normalized = query.toLowerCase().trim()
   const words = normalized.split(/\s+/)
+
+  // Check for "[genre] book(s)" patterns like "business books", "mystery book"
+  // These should use semantic search even though they're short queries
+  if (words.length === 2 && (words[1] === 'books' || words[1] === 'book')) {
+    const potentialGenre = words[0]
+    const isGenreQuery = GENRES.some(g => g.toLowerCase() === potentialGenre)
+    if (isGenreQuery) return true
+  }
 
   // Short queries (1-2 words) are typically direct searches
   if (words.length <= 2) return false

@@ -2,7 +2,8 @@ import { createClient } from '@/lib/supabase/server'
 import { createNotification, notificationTemplates } from '@/lib/notifications'
 import { NextRequest, NextResponse } from 'next/server'
 import { revalidatePath } from 'next/cache'
-import { isAdminRole, WAITLIST_HOLD_DURATION } from '@/lib/constants'
+import { isAdminRole, WAITLIST_HOLD_DURATION, getHoldDurationHours } from '@/lib/constants'
+import { getCurrentDate } from '@/lib/simulated-date'
 
 interface RouteParams {
   params: Promise<{ id: string }>
@@ -42,12 +43,15 @@ export async function PUT(
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
+  // Get current date (supports simulation)
+  const now = await getCurrentDate(supabase)
+
   // Mark checkout as returned
   const { error: updateError } = await supabase
     .from('checkouts')
     .update({
       status: 'returned',
-      returned_at: new Date().toISOString(),
+      returned_at: now.toISOString(),
     })
     .eq('id', id)
 
@@ -71,12 +75,9 @@ export async function PUT(
   const hasPriorityWaitlist = waitlistEntries?.some(entry => entry.is_priority)
 
   if (hasWaitlist) {
-    // Calculate when each hold phase ends
-    const premiumHoldEnds = new Date()
+    // Calculate when the premium hold phase ends (using simulated date)
+    const premiumHoldEnds = new Date(now)
     premiumHoldEnds.setHours(premiumHoldEnds.getHours() + WAITLIST_HOLD_DURATION.premium)
-
-    const waitlistHoldEnds = new Date(premiumHoldEnds)
-    waitlistHoldEnds.setHours(waitlistHoldEnds.getHours() + WAITLIST_HOLD_DURATION.waitlist)
 
     // Set book to on_hold_premium status with hold_until timestamp
     const { error: bookUpdateError } = await supabase
@@ -91,10 +92,31 @@ export async function PUT(
       console.error('Failed to update book status to on_hold_premium:', bookUpdateError)
     }
 
-    // Notify premium waitlist members that book is available for them
+    // Notify and mark premium waitlist members as 'notified'
     if (hasPriorityWaitlist) {
       const premiumEntries = waitlistEntries.filter(entry => entry.is_priority)
       for (const entry of premiumEntries) {
+        // Get user's role to determine their hold duration
+        const { data: userProfile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', entry.user_id)
+          .single()
+
+        const holdHours = getHoldDurationHours(userProfile?.role)
+        const expiresAt = new Date(now)
+        expiresAt.setHours(expiresAt.getHours() + holdHours)
+
+        // Update waitlist entry to 'notified' with expiration
+        await supabase
+          .from('waitlist')
+          .update({
+            status: 'notified',
+            notified_at: now.toISOString(),
+            expires_at: expiresAt.toISOString(),
+          })
+          .eq('id', entry.id)
+
         const template = notificationTemplates.waitlistAvailable(
           bookTitle,
           `Claim by ${premiumHoldEnds.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} (premium early access)`

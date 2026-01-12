@@ -66,18 +66,18 @@ export default async function BookDetailPage({ params }: BookDetailPageProps) {
     .in('status', ['active', 'overdue'])
     .single()
 
-  // Get waitlist count and priority count
+  // Get waitlist count and priority count (include both waiting and notified users)
   const [{ count: waitlistCount }, { count: priorityWaitlistCount }] = await Promise.all([
     supabase
       .from('waitlist')
       .select('*', { count: 'exact', head: true })
       .eq('book_id', id)
-      .eq('status', 'waiting'),
+      .in('status', ['waiting', 'notified']),
     supabase
       .from('waitlist')
       .select('*', { count: 'exact', head: true })
       .eq('book_id', id)
-      .eq('status', 'waiting')
+      .in('status', ['waiting', 'notified'])
       .eq('is_priority', true),
   ])
 
@@ -107,7 +107,7 @@ export default async function BookDetailPage({ params }: BookDetailPageProps) {
       .select('*')
       .eq('book_id', id)
       .eq('user_id', user.id)
-      .eq('status', 'waiting')
+      .in('status', ['waiting', 'notified'])
       .single()
     userWaitlistEntry = waitlistEntry
 

@@ -145,7 +145,7 @@ async function getDashboardData() {
       .from('waitlist')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', user.id)
-      .eq('status', 'waiting'),
+      .in('status', ['waiting', 'notified']),
     supabase
       .from('notifications')
       .select('*', { count: 'exact', head: true })

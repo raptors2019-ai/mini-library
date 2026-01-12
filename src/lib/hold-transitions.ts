@@ -1,7 +1,7 @@
 import { SupabaseClient } from '@supabase/supabase-js'
 import { getCurrentDate } from './simulated-date'
 import { createNotification, notificationTemplates } from './notifications'
-import { WAITLIST_HOLD_DURATION } from './constants'
+import { WAITLIST_HOLD_DURATION, getHoldDurationHours } from './constants'
 
 /**
  * Process hold status transitions for books.
@@ -55,19 +55,42 @@ export async function processHoldTransitions(supabase: SupabaseClient): Promise<
 
         premiumToWaitlist++
 
-        // Notify regular (non-premium) waitlist members
-        const regularEntries = waitlistEntries.filter(entry => !entry.is_priority)
-        for (const entry of regularEntries) {
-          const template = notificationTemplates.waitlistAvailable(
-            book.title,
-            `Claim by ${newHoldUntil.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
-          )
-          await createNotification({
-            supabase,
-            userId: entry.user_id,
-            bookId: book.id,
-            ...template,
-          })
+        // Mark ALL waitlist members (both premium and regular) as 'notified' and set expiration
+        for (const entry of waitlistEntries) {
+          // Get user's role to determine their hold duration
+          const { data: userProfile } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', entry.user_id)
+            .single()
+
+          const holdHours = getHoldDurationHours(userProfile?.role)
+          const expiresAt = new Date(now)
+          expiresAt.setHours(expiresAt.getHours() + holdHours)
+
+          // Update waitlist entry to 'notified'
+          await supabase
+            .from('waitlist')
+            .update({
+              status: 'notified',
+              notified_at: now.toISOString(),
+              expires_at: expiresAt.toISOString(),
+            })
+            .eq('id', entry.id)
+
+          // Only notify regular users (premium were already notified in premium phase)
+          if (!entry.is_priority) {
+            const template = notificationTemplates.waitlistAvailable(
+              book.title,
+              `Claim by ${newHoldUntil.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
+            )
+            await createNotification({
+              supabase,
+              userId: entry.user_id,
+              bookId: book.id,
+              ...template,
+            })
+          }
         }
       } else {
         // No waitlist, make available
@@ -143,19 +166,42 @@ export async function processBookHoldTransition(
         })
         .eq('id', bookId)
 
-      // Notify regular waitlist members
-      const regularEntries = waitlistEntries.filter(entry => !entry.is_priority)
-      for (const entry of regularEntries) {
-        const template = notificationTemplates.waitlistAvailable(
-          book.title,
-          `Claim by ${newHoldUntil.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
-        )
-        await createNotification({
-          supabase,
-          userId: entry.user_id,
-          bookId,
-          ...template,
-        })
+      // Mark ALL waitlist members as 'notified' and set expiration
+      for (const entry of waitlistEntries) {
+        // Get user's role to determine their hold duration
+        const { data: userProfile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', entry.user_id)
+          .single()
+
+        const holdHours = getHoldDurationHours(userProfile?.role)
+        const expiresAt = new Date(now)
+        expiresAt.setHours(expiresAt.getHours() + holdHours)
+
+        // Update waitlist entry to 'notified'
+        await supabase
+          .from('waitlist')
+          .update({
+            status: 'notified',
+            notified_at: now.toISOString(),
+            expires_at: expiresAt.toISOString(),
+          })
+          .eq('id', entry.id)
+
+        // Only notify regular users (premium were already notified)
+        if (!entry.is_priority) {
+          const template = notificationTemplates.waitlistAvailable(
+            book.title,
+            `Claim by ${newHoldUntil.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
+          )
+          await createNotification({
+            supabase,
+            userId: entry.user_id,
+            bookId,
+            ...template,
+          })
+        }
       }
     } else {
       await supabase
@@ -205,13 +251,13 @@ export async function canUserCheckout(
     return { allowed: false, reason: 'Book not found' }
   }
 
-  // Check if user is on waitlist
+  // Check if user is on waitlist (either waiting or notified)
   const { data: waitlistEntry } = await supabase
     .from('waitlist')
     .select('id, is_priority')
     .eq('book_id', bookId)
     .eq('user_id', userId)
-    .eq('status', 'waiting')
+    .in('status', ['waiting', 'notified'])
     .single()
 
   const isOnWaitlist = !!waitlistEntry
