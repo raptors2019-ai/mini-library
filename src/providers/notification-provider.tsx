@@ -1,12 +1,15 @@
 'use client'
 
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import {
   NotificationContext,
   type NotificationContextValue,
   type NotificationWithBook,
 } from '@/context/notification-context'
+
+// Polling interval in milliseconds (5 seconds for responsive updates)
+const POLL_INTERVAL = 5000
 
 interface NotificationProviderProps {
   children: React.ReactNode
@@ -18,8 +21,16 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
   const [loading, setLoading] = useState(true)
   const [userId, setUserId] = useState<string | null>(null)
   const supabase = useMemo(() => createClient(), [])
+  const lastFetchRef = useRef<number>(0)
 
-  const fetchNotifications = useCallback(async () => {
+  const fetchNotifications = useCallback(async (force = false) => {
+    // Debounce: skip if fetched within last second (unless forced)
+    const now = Date.now()
+    if (!force && now - lastFetchRef.current < 1000) {
+      return
+    }
+    lastFetchRef.current = now
+
     try {
       const response = await fetch('/api/notifications?limit=10')
       if (response.ok) {
@@ -52,16 +63,21 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
     }
   }, [supabase])
 
-  // Initial fetch and real-time subscription
+  // Initial fetch, polling, and real-time subscription
   useEffect(() => {
-    fetchNotifications()
+    fetchNotifications(true)
 
-    // Only set up subscription if we have a user ID
+    // Only set up subscription and polling if we have a user ID
     if (!userId) return
 
-    // Set up real-time subscription for new and updated notifications
-    // Using wildcard event (*) and client-side filtering for reliability
-    // The RLS policy ensures we only see our own notifications anyway
+    // Set up polling as a reliable fallback
+    // This ensures notifications are always up-to-date even if realtime fails
+    const pollInterval = setInterval(() => {
+      fetchNotifications()
+    }, POLL_INTERVAL)
+
+    // Set up real-time subscription for instant updates
+    // This provides immediate feedback when it works
     const channel = supabase
       .channel(`user-notifications-${userId}`)
       .on(
@@ -78,27 +94,14 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
           const targetUserId = newRecord?.user_id || oldRecord?.user_id
 
           if (targetUserId === userId) {
-            console.log('[Realtime] Notification event for current user:', payload.eventType)
-            fetchNotifications()
+            fetchNotifications(true)
           }
         }
       )
-      .subscribe((status, err) => {
-        if (err) {
-          console.error('[Realtime] Subscription error:', err)
-        }
-        if (status === 'SUBSCRIBED') {
-          console.log('[Realtime] Subscribed to notifications channel')
-        } else if (status === 'CHANNEL_ERROR') {
-          console.error('[Realtime] Channel error - retrying in 5s')
-          // Retry after delay
-          setTimeout(() => {
-            channel.subscribe()
-          }, 5000)
-        }
-      })
+      .subscribe()
 
     return () => {
+      clearInterval(pollInterval)
       supabase.removeChannel(channel)
     }
   }, [supabase, fetchNotifications, userId])
