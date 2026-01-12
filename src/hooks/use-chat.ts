@@ -177,8 +177,14 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
                   books: accumulatedBooks.length > 0 ? accumulatedBooks : undefined,
                   searchQuery: accumulatedBooks.length > 0 ? lastSearchQuery || undefined : undefined,
                 })
-                // Note: We no longer auto-navigate. Books are shown in the chat carousel.
-                // Users can click individual book cards to see details.
+                // Auto-navigate to search page when books are found via search/similar
+                // (but NOT for recommendations - those stay in the chat carousel)
+                if (accumulatedBooks.length > 0 && lastSearchQuery && onAction) {
+                  onAction({
+                    type: 'open_search',
+                    payload: { query: lastSearchQuery }
+                  })
+                }
                 break
             }
           } catch {

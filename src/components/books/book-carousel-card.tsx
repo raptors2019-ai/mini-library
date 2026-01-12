@@ -3,7 +3,7 @@
 import { useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
-import { BookOpen, Star, Sparkles } from "lucide-react"
+import { BookOpen, Star } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -19,7 +19,6 @@ interface BookCarouselCardProps {
   genres?: string[] | null
   averageRating?: number | null
   ratingCount?: number
-  showAiBadge?: boolean
 }
 
 export function BookCarouselCard({
@@ -31,7 +30,6 @@ export function BookCarouselCard({
   genres,
   averageRating,
   ratingCount,
-  showAiBadge = false,
 }: BookCarouselCardProps) {
   const [imageError, setImageError] = useState(false)
   const isAvailable = status === "available"
@@ -92,16 +90,6 @@ export function BookCarouselCard({
               className="absolute left-2 top-2 text-xs bg-background/80 backdrop-blur-sm"
             >
               {primaryGenre}
-            </Badge>
-          )}
-
-          {/* AI Badge */}
-          {showAiBadge && (
-            <Badge
-              className="absolute left-2 bottom-2 text-xs bg-primary/90 text-primary-foreground"
-            >
-              <Sparkles className="h-3 w-3 mr-1" />
-              AI
             </Badge>
           )}
         </div>

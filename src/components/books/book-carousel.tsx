@@ -14,7 +14,6 @@ export interface CarouselBook {
   genres?: string[] | null
   average_rating?: number | null
   rating_count?: number
-  has_ai_summary?: boolean
 }
 
 type IconType = "trending" | "star" | "sparkles"
@@ -31,7 +30,6 @@ interface BookCarouselProps {
   subtitle: string
   icon: IconType
   showRating?: boolean
-  showAiBadge?: boolean
 }
 
 export function BookCarousel({
@@ -40,7 +38,6 @@ export function BookCarousel({
   subtitle,
   icon,
   showRating = false,
-  showAiBadge = false
 }: BookCarouselProps) {
   const Icon = ICONS[icon]
   const [isPaused, setIsPaused] = useState(false)
@@ -110,7 +107,6 @@ export function BookCarousel({
               genres={book.genres}
               averageRating={showRating ? book.average_rating : undefined}
               ratingCount={showRating ? book.rating_count : undefined}
-              showAiBadge={showAiBadge && book.has_ai_summary}
             />
           ))}
         </div>

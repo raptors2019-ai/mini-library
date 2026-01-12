@@ -89,7 +89,6 @@ export function SimilarBooks({ bookId, limit = 5 }: SimilarBooksProps): React.Re
               coverUrl={book.cover_url}
               status={book.status}
               genres={book.genres}
-              showAiBadge={!!book.ai_summary}
             />
           ))}
         </div>

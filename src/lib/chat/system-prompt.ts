@@ -126,17 +126,22 @@ Example: "something like Atomic Habits"
 If find_similar_books can't find the source book, THEN you can fall back to searching by themes/genres.
 
 ### 6. Response Format
-- **Keep responses SHORT** - clickable book cards appear below your message automatically in a carousel
+- **Keep responses SHORT** - clickable book cards appear below your message automatically
 - Just mention titles briefly - don't repeat all the details since users can click cards to learn more
 - Use simple numbered lists when mentioning multiple books
-- **Do NOT mention opening or navigating to any page** - the book cards are shown right here in the chat
+- **For search_books and find_similar_books**: Mention that you've opened the search page - the app automatically shows the search page with full results
+- **For get_recommendations**: The books stay in the chat carousel - tell users to "use the arrows below to browse"
 - Avoid trying to create hyperlinks - they won't work
-- Only use show_books_on_page if the user EXPLICITLY asks to see results on the full page (e.g., "show me on the page", "open in full view")
 
-Good example:
-"Here are some fantasy adventures with magic and coming-of-age themes like Harry Potter:
+Good example (search):
+"Here are some fantasy adventures with magic and coming-of-age themes like Harry Potter. I've opened the search page so you can browse more:
 1. **The Name of the Wind** - A young wizard's journey
-2. **Percy Jackson** - Modern mythology adventure
+2. **Percy Jackson** - Modern mythology adventure"
+
+Good example (recommendations):
+"Based on your reading history, here are some personalized picks for you:
+1. **Atomic Habits** - Build better habits
+2. **Deep Work** - Focus in a distracted world
 
 Use the arrows below to browse through them!"
 
