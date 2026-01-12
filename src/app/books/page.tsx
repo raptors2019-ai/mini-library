@@ -162,7 +162,6 @@ async function BooksContent({ searchParams }: BooksPageProps) {
   // Get user role for add book button
   const { data: { user } } = await supabase.auth.getUser()
   let canAddBooks = false
-  const isLoggedIn = !!user
   if (user) {
     const { data: profile } = await supabase
       .from('profiles')
@@ -236,7 +235,7 @@ async function BooksContent({ searchParams }: BooksPageProps) {
             Showing {books?.length || 0} of {count || 0} results
           </div>
 
-          <BookGrid books={books || []} showAddButton={isLoggedIn} />
+          <BookGrid books={books || []} />
 
           {totalPages > 1 && (
             <Pagination
