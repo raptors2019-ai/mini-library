@@ -2,10 +2,11 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { ChevronRight, Sparkles } from 'lucide-react'
+import { Sparkles } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { BookCoverImage } from '@/components/books/book-cover-image'
-import { CompactBookCard } from '@/components/books/compact-book-card'
+import { BookCarouselCard } from '@/components/books/book-carousel-card'
+import type { BookStatus } from '@/types/database'
 
 interface SourceBook {
   id: string
@@ -19,6 +20,9 @@ interface SimilarBook {
   title: string
   cover_url: string | null
   author: string
+  status: BookStatus
+  genres?: string[] | null
+  ai_summary?: string | null
   similarity?: number
 }
 
@@ -34,7 +38,7 @@ export function BecauseYouRead(): React.ReactElement | null {
   useEffect(() => {
     async function fetchRecommendations(): Promise<void> {
       try {
-        const response = await fetch('/api/recommendations/because-you-read?limit=4')
+        const response = await fetch('/api/recommendations/because-you-read?limit=5')
         if (response.ok) {
           const data = await response.json()
           setRecommendations(data.recommendations || [])
@@ -58,12 +62,13 @@ export function BecauseYouRead(): React.ReactElement | null {
               <div className="h-6 bg-muted rounded w-64 animate-pulse" />
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                {[...Array(4)].map((_, j) => (
-                  <div key={j} className="space-y-2 animate-pulse">
+              <div className="flex gap-4 overflow-x-auto pb-2">
+                {[...Array(5)].map((_, j) => (
+                  <div key={j} className="flex-shrink-0 w-[180px] space-y-2 animate-pulse">
                     <div className="aspect-[2/3] bg-muted rounded-lg" />
                     <div className="h-4 bg-muted rounded w-3/4" />
                     <div className="h-3 bg-muted rounded w-1/2" />
+                    <div className="h-8 bg-muted rounded-md" />
                   </div>
                 ))}
               </div>
@@ -104,24 +109,20 @@ export function BecauseYouRead(): React.ReactElement | null {
                   by {rec.sourceBook.author}
                 </p>
               </div>
-              <Link
-                href={`/books/${rec.sourceBook.id}`}
-                className="hidden sm:flex items-center text-sm text-muted-foreground hover:text-primary transition-colors"
-              >
-                View book
-                <ChevronRight className="h-4 w-4" />
-              </Link>
             </div>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div className="flex gap-4 overflow-x-auto pb-2">
               {rec.similarBooks.map((book) => (
-                <CompactBookCard
+                <BookCarouselCard
                   key={book.id}
                   id={book.id}
                   title={book.title}
                   author={book.author}
                   coverUrl={book.cover_url}
+                  status={book.status}
+                  genres={book.genres}
+                  showAiBadge={!!book.ai_summary}
                 />
               ))}
             </div>

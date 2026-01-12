@@ -51,10 +51,17 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     .single()
 
   if (existing) {
-    // Update existing entry
+    // Update existing entry - only include fields that were explicitly provided
+    const updateData: Record<string, unknown> = { updated_at: new Date().toISOString() }
+    if (status !== undefined) updateData.status = status
+    if (rating !== undefined) updateData.rating = rating
+    if (review !== undefined) updateData.review = review
+    if (date_started !== undefined) updateData.date_started = date_started
+    if (date_finished !== undefined) updateData.date_finished = date_finished
+
     const { data, error } = await supabase
       .from('user_books')
-      .update({ status, rating, review, date_started, date_finished })
+      .update(updateData)
       .eq('id', existing.id)
       .select('*, book:books(*)')
       .single()

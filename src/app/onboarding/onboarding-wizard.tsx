@@ -2,30 +2,12 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import Image from 'next/image'
-import { ArrowLeft, ArrowRight, BookOpen, Check, Sparkles, Star } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Check, Sparkles, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
 import { Progress } from '@/components/ui/progress'
-import { Badge } from '@/components/ui/badge'
-
-interface Book {
-  id: string
-  title: string
-  author: string
-  cover_url: string | null
-  genres: string[] | null
-}
-
-interface UserBookEntry {
-  book_id: string
-  rating: number | null
-}
 
 interface OnboardingWizardProps {
-  popularBooks: Book[]
-  existingUserBooks: UserBookEntry[]
   availableGenres: string[]
 }
 
@@ -44,6 +26,12 @@ const GENRE_ICONS: Record<string, string> = {
   'Children': '🧒',
   'Young Adult': '🎓',
   'Technology': '💻',
+  'Horror': '👻',
+  'Non-Fiction': '📚',
+  'Memoir': '✍️',
+  'Psychology': '🧠',
+  'Philosophy': '🤔',
+  'Poetry': '🎭',
 }
 
 const READING_MOODS = [
@@ -55,53 +43,45 @@ const READING_MOODS = [
   { id: 'adventurous', label: 'Adventurous', icon: '🗺️' },
 ]
 
-export function OnboardingWizard({ popularBooks, existingUserBooks, availableGenres }: OnboardingWizardProps) {
+export function OnboardingWizard({ availableGenres }: OnboardingWizardProps) {
   const router = useRouter()
   const [step, setStep] = useState(1)
   const [loading, setLoading] = useState(false)
-  const [searchQuery, setSearchQuery] = useState('')
 
-  // Step 1: Books
-  const [selectedBooks, setSelectedBooks] = useState<Map<string, number>>(
-    new Map(existingUserBooks.map(ub => [ub.book_id, ub.rating || 0]))
-  )
+  // Step 1: Genre preferences
+  const [favoriteGenres, setFavoriteGenres] = useState<Set<string>>(new Set())
+  const [dislikedGenres, setDislikedGenres] = useState<Set<string>>(new Set())
 
-  // Step 2: Genres
-  const [selectedGenres, setSelectedGenres] = useState<Set<string>>(new Set())
-
-  // Step 3: Preferences
+  // Step 2: Reading preferences
   const [preferredLength, setPreferredLength] = useState<string>('any')
   const [selectedMoods, setSelectedMoods] = useState<Set<string>>(new Set())
 
-  const filteredBooks = popularBooks.filter(book =>
-    book.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    book.author.toLowerCase().includes(searchQuery.toLowerCase())
-  )
-
-  const toggleBook = (bookId: string) => {
-    const newSelected = new Map(selectedBooks)
-    if (newSelected.has(bookId)) {
-      newSelected.delete(bookId)
+  const toggleFavoriteGenre = (genre: string) => {
+    const newFavorites = new Set(favoriteGenres)
+    if (newFavorites.has(genre)) {
+      newFavorites.delete(genre)
     } else {
-      newSelected.set(bookId, 0) // 0 means selected but not rated
+      newFavorites.add(genre)
+      // Can't be both favorite and disliked
+      const newDislikes = new Set(dislikedGenres)
+      newDislikes.delete(genre)
+      setDislikedGenres(newDislikes)
     }
-    setSelectedBooks(newSelected)
+    setFavoriteGenres(newFavorites)
   }
 
-  const setRating = (bookId: string, rating: number) => {
-    const newSelected = new Map(selectedBooks)
-    newSelected.set(bookId, rating)
-    setSelectedBooks(newSelected)
-  }
-
-  const toggleGenre = (genre: string) => {
-    const newSelected = new Set(selectedGenres)
-    if (newSelected.has(genre)) {
-      newSelected.delete(genre)
+  const toggleDislikedGenre = (genre: string) => {
+    const newDislikes = new Set(dislikedGenres)
+    if (newDislikes.has(genre)) {
+      newDislikes.delete(genre)
     } else {
-      newSelected.add(genre)
+      newDislikes.add(genre)
+      // Can't be both favorite and disliked
+      const newFavorites = new Set(favoriteGenres)
+      newFavorites.delete(genre)
+      setFavoriteGenres(newFavorites)
     }
-    setSelectedGenres(newSelected)
+    setDislikedGenres(newDislikes)
   }
 
   const toggleMood = (mood: string) => {
@@ -115,7 +95,7 @@ export function OnboardingWizard({ popularBooks, existingUserBooks, availableGen
   }
 
   const handleNext = async () => {
-    if (step < 3) {
+    if (step < 2) {
       setStep(step + 1)
       return
     }
@@ -123,25 +103,13 @@ export function OnboardingWizard({ popularBooks, existingUserBooks, availableGen
     // Complete onboarding
     setLoading(true)
     try {
-      // Save selected books
-      for (const [bookId, rating] of selectedBooks) {
-        await fetch('/api/user/books', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            book_id: bookId,
-            status: 'read',
-            rating: rating > 0 ? rating : null,
-          }),
-        })
-      }
-
       // Save preferences
       await fetch('/api/user/preferences', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          favorite_genres: Array.from(selectedGenres),
+          favorite_genres: Array.from(favoriteGenres),
+          disliked_genres: Array.from(dislikedGenres),
           preferred_length: preferredLength,
           reading_moods: Array.from(selectedMoods),
           onboarding_completed: true,
@@ -177,141 +145,93 @@ export function OnboardingWizard({ popularBooks, existingUserBooks, availableGen
       {/* Progress */}
       <div className="mb-8">
         <div className="flex justify-between text-sm text-muted-foreground mb-2">
-          <span>Step {step} of 3</span>
-          <span>{Math.round((step / 3) * 100)}% complete</span>
+          <span>Step {step} of 2</span>
+          <span>{Math.round((step / 2) * 100)}% complete</span>
         </div>
-        <Progress value={(step / 3) * 100} className="h-2" />
+        <Progress value={(step / 2) * 100} className="h-2" />
       </div>
 
-      {/* Step 1: Select Books */}
+      {/* Step 1: Genre Preferences */}
       {step === 1 && (
-        <div className="space-y-6">
+        <div className="space-y-8">
           <div className="text-center">
-            <h1 className="text-2xl font-bold">What have you read?</h1>
+            <h1 className="text-2xl font-bold">What do you like to read?</h1>
             <p className="text-muted-foreground mt-2">
-              Select books you&apos;ve read and optionally rate them. This helps us recommend books you&apos;ll love.
+              Help us personalize your recommendations
             </p>
           </div>
 
-          <Input
-            placeholder="Search for books..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="max-w-md mx-auto"
-          />
-
-          {selectedBooks.size > 0 && (
-            <div className="flex flex-wrap gap-2 justify-center">
-              <span className="text-sm text-muted-foreground">Selected:</span>
-              {Array.from(selectedBooks.keys()).slice(0, 5).map(bookId => {
-                const book = popularBooks.find(b => b.id === bookId)
-                return book ? (
-                  <Badge key={bookId} variant="secondary" className="text-xs">
-                    {book.title.substring(0, 20)}...
-                  </Badge>
-                ) : null
-              })}
-              {selectedBooks.size > 5 && (
-                <Badge variant="secondary" className="text-xs">
-                  +{selectedBooks.size - 5} more
-                </Badge>
-              )}
-            </div>
-          )}
-
-          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3 max-h-[400px] overflow-y-auto p-1">
-            {filteredBooks.map(book => {
-              const isSelected = selectedBooks.has(book.id)
-              const rating = selectedBooks.get(book.id) || 0
-              return (
-                <div key={book.id} className="relative group">
+          {/* Favorite Genres */}
+          <div>
+            <h3 className="font-semibold mb-3 flex items-center gap-2">
+              <span className="text-lg">❤️</span>
+              Genres you love
+            </h3>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              {availableGenres.map(genre => {
+                const isSelected = favoriteGenres.has(genre)
+                const icon = GENRE_ICONS[genre] || '📚'
+                return (
                   <button
-                    onClick={() => toggleBook(book.id)}
-                    className={`w-full aspect-[2/3] relative rounded-lg overflow-hidden border-2 transition-all ${
-                      isSelected ? 'border-primary ring-2 ring-primary/20' : 'border-transparent hover:border-muted-foreground/30'
+                    key={genre}
+                    onClick={() => toggleFavoriteGenre(genre)}
+                    className={`p-3 rounded-lg border-2 transition-all text-left flex items-center gap-2 ${
+                      isSelected
+                        ? 'border-primary bg-primary/10'
+                        : 'border-muted hover:border-muted-foreground/30'
                     }`}
                   >
-                    {book.cover_url ? (
-                      <Image
-                        src={book.cover_url}
-                        alt={book.title}
-                        fill
-                        className="object-cover"
-                      />
-                    ) : (
-                      <div className="flex items-center justify-center h-full bg-muted">
-                        <BookOpen className="h-8 w-8 text-muted-foreground/50" />
-                      </div>
-                    )}
+                    <span className="text-xl">{icon}</span>
+                    <span className="font-medium text-sm flex-1">{genre}</span>
                     {isSelected && (
-                      <div className="absolute top-1 right-1 bg-primary text-primary-foreground rounded-full p-1">
-                        <Check className="h-3 w-3" />
-                      </div>
+                      <Check className="h-4 w-4 text-primary flex-shrink-0" />
                     )}
                   </button>
-                  <p className="text-xs mt-1 line-clamp-2 text-center">{book.title}</p>
-
-                  {/* Rating stars - show when selected */}
-                  {isSelected && (
-                    <div className="flex justify-center gap-0.5 mt-1">
-                      {[1, 2, 3, 4, 5].map(star => (
-                        <button
-                          key={star}
-                          onClick={() => setRating(book.id, star)}
-                          className="p-0.5"
-                        >
-                          <Star
-                            className={`h-3 w-3 ${star <= rating ? 'fill-yellow-500 text-yellow-500' : 'text-muted-foreground/30'}`}
-                          />
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )
-            })}
+                )
+              })}
+            </div>
           </div>
-        </div>
-      )}
 
-      {/* Step 2: Select Genres */}
-      {step === 2 && (
-        <div className="space-y-6">
-          <div className="text-center">
-            <h1 className="text-2xl font-bold">What genres do you enjoy?</h1>
-            <p className="text-muted-foreground mt-2">
-              Select your favorite genres to help us personalize your recommendations.
+          {/* Disliked Genres */}
+          <div>
+            <h3 className="font-semibold mb-2 flex items-center gap-2">
+              <span className="text-lg">🚫</span>
+              Genres you&apos;d rather avoid
+            </h3>
+            <p className="text-sm text-muted-foreground mb-3">
+              We&apos;ll show these less often (optional)
             </p>
-          </div>
-
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            {availableGenres.map(genre => {
-              const isSelected = selectedGenres.has(genre)
-              const icon = GENRE_ICONS[genre] || '📚'
-              return (
-                <button
-                  key={genre}
-                  onClick={() => toggleGenre(genre)}
-                  className={`p-4 rounded-lg border-2 transition-all text-left ${
-                    isSelected
-                      ? 'border-primary bg-primary/5'
-                      : 'border-muted hover:border-muted-foreground/30'
-                  }`}
-                >
-                  <span className="text-2xl">{icon}</span>
-                  <p className="font-medium mt-2">{genre}</p>
-                  {isSelected && (
-                    <Check className="h-4 w-4 text-primary mt-1" />
-                  )}
-                </button>
-              )
-            })}
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              {availableGenres
+                .filter(g => !favoriteGenres.has(g))
+                .map(genre => {
+                  const isSelected = dislikedGenres.has(genre)
+                  const icon = GENRE_ICONS[genre] || '📚'
+                  return (
+                    <button
+                      key={genre}
+                      onClick={() => toggleDislikedGenre(genre)}
+                      className={`p-3 rounded-lg border-2 transition-all text-left flex items-center gap-2 ${
+                        isSelected
+                          ? 'border-destructive bg-destructive/10'
+                          : 'border-muted hover:border-muted-foreground/30'
+                      }`}
+                    >
+                      <span className="text-xl">{icon}</span>
+                      <span className="font-medium text-sm flex-1">{genre}</span>
+                      {isSelected && (
+                        <X className="h-4 w-4 text-destructive flex-shrink-0" />
+                      )}
+                    </button>
+                  )
+                })}
+            </div>
           </div>
         </div>
       )}
 
-      {/* Step 3: Reading Preferences */}
-      {step === 3 && (
+      {/* Step 2: Reading Preferences */}
+      {step === 2 && (
         <div className="space-y-8">
           <div className="text-center">
             <h1 className="text-2xl font-bold">Almost done!</h1>
@@ -391,7 +311,7 @@ export function OnboardingWizard({ popularBooks, existingUserBooks, availableGen
         <Button onClick={handleNext} disabled={loading}>
           {loading ? (
             'Saving...'
-          ) : step === 3 ? (
+          ) : step === 2 ? (
             <>
               <Sparkles className="h-4 w-4 mr-2" />
               Complete Setup

@@ -19,21 +19,7 @@ async function getOnboardingData() {
     redirect('/dashboard')
   }
 
-  // Get popular books for selection
-  const { data: popularBooks } = await supabase
-    .from('books')
-    .select('id, title, author, cover_url, genres')
-    .neq('status', 'inactive')
-    .not('cover_url', 'is', null)
-    .limit(50)
-
-  // Get user's already added books
-  const { data: userBooks } = await supabase
-    .from('user_books')
-    .select('book_id, rating')
-    .eq('user_id', user.id)
-
-  // Get all available genres
+  // Get all available genres from books in the catalog
   const { data: booksWithGenres } = await supabase
     .from('books')
     .select('genres')
@@ -45,8 +31,6 @@ async function getOnboardingData() {
   })
 
   return {
-    popularBooks: popularBooks || [],
-    userBooks: userBooks || [],
     availableGenres: Array.from(allGenres).sort(),
   }
 }
@@ -56,11 +40,7 @@ export default async function OnboardingPage() {
 
   return (
     <div className="min-h-[80vh] flex flex-col items-center justify-center py-8">
-      <OnboardingWizard
-        popularBooks={data.popularBooks}
-        existingUserBooks={data.userBooks}
-        availableGenres={data.availableGenres}
-      />
+      <OnboardingWizard availableGenres={data.availableGenres} />
     </div>
   )
 }

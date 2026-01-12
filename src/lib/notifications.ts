@@ -97,6 +97,12 @@ export const notificationTemplates = {
     message: `Good news! Your request for "${bookTitle}" has been approved and will be added to the library soon.`,
   }),
 
+  bookRequestFulfilled: (bookTitle: string) => ({
+    type: 'book_request_approved' as NotificationType,
+    title: 'Book Now Available',
+    message: `"${bookTitle}" is now available in the library! You can check it out now.`,
+  }),
+
   bookRequestDeclined: (bookTitle: string, reason?: string) => ({
     type: 'book_request_declined' as NotificationType,
     title: 'Book Request Declined',

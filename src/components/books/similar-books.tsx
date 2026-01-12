@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { Sparkles } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { CompactBookCard } from './compact-book-card'
+import { BookCarouselCard } from './book-carousel-card'
 import type { Book } from '@/types/database'
 
 interface SimilarBooksProps {
@@ -46,12 +46,13 @@ export function SimilarBooks({ bookId, limit = 5 }: SimilarBooksProps): React.Re
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
+          <div className="flex gap-4 overflow-x-auto pb-2">
             {[...Array(5)].map((_, i) => (
-              <div key={i} className="space-y-2 animate-pulse">
+              <div key={i} className="flex-shrink-0 w-[180px] space-y-2 animate-pulse">
                 <div className="aspect-[2/3] bg-muted rounded-lg" />
                 <div className="h-4 bg-muted rounded w-3/4" />
                 <div className="h-3 bg-muted rounded w-1/2" />
+                <div className="h-8 bg-muted rounded-md" />
               </div>
             ))}
           </div>
@@ -78,14 +79,17 @@ export function SimilarBooks({ bookId, limit = 5 }: SimilarBooksProps): React.Re
         </div>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
+        <div className="flex gap-4 overflow-x-auto pb-2">
           {books.map((book) => (
-            <CompactBookCard
+            <BookCarouselCard
               key={book.id}
               id={book.id}
               title={book.title}
               author={book.author}
               coverUrl={book.cover_url}
+              status={book.status}
+              genres={book.genres}
+              showAiBadge={!!book.ai_summary}
             />
           ))}
         </div>

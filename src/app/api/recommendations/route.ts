@@ -24,7 +24,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
   const { data: preferences } = await supabase
     .from('user_preferences')
-    .select('favorite_genres, taste_embedding')
+    .select('favorite_genres, disliked_genres, taste_embedding')
     .eq('user_id', user.id)
     .single()
 
@@ -104,6 +104,18 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     if (popular) {
       recommendations.push(...popular)
     }
+  }
+
+  // De-prioritize books with disliked genres (soft penalty - show less, not exclude)
+  const dislikedGenres = preferences?.disliked_genres
+  if (dislikedGenres && dislikedGenres.length > 0) {
+    recommendations.sort((a, b) => {
+      const aHasDisliked = a.genres?.some(g => dislikedGenres.includes(g)) ?? false
+      const bHasDisliked = b.genres?.some(g => dislikedGenres.includes(g)) ?? false
+      if (aHasDisliked && !bHasDisliked) return 1
+      if (!aHasDisliked && bHasDisliked) return -1
+      return 0
+    })
   }
 
   return NextResponse.json({

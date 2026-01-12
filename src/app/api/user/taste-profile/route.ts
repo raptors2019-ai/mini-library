@@ -9,7 +9,18 @@ interface BookEmbedding {
 
 interface UserBookWithEmbedding {
   rating: number | null
+  status: string
   book: BookEmbedding | BookEmbedding[] | null
+}
+
+// Calculate weight based on status and rating
+// - Rated reads: rating² (5-star = 25, 3-star = 9)
+// - Unrated reads: 9 (default positive - they finished it)
+// - DNF books: -4 (soft negative penalty)
+function getWeight(status: string, rating: number | null): number {
+  if (status === 'dnf') return -4
+  if (rating !== null) return Math.pow(rating, 2)
+  return 9 // Unrated but read
 }
 
 function extractEmbedding(book: BookEmbedding | BookEmbedding[] | null): number[] | null {
@@ -26,13 +37,13 @@ export async function POST(): Promise<NextResponse> {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  // Get user's rated books with embeddings
+  // Get user's read and DNF books with embeddings
+  // Includes: rated reads, unrated reads, and DNF books
   const { data: userBooks, error: booksError } = await supabase
     .from('user_books')
-    .select('rating, book:books(embedding)')
+    .select('rating, status, book:books(embedding)')
     .eq('user_id', user.id)
-    .not('rating', 'is', null)
-    .eq('status', 'read')
+    .in('status', ['read', 'dnf'])
 
   if (booksError) {
     return NextResponse.json({ error: booksError.message }, { status: 500 })
@@ -40,19 +51,19 @@ export async function POST(): Promise<NextResponse> {
 
   if (!userBooks || userBooks.length === 0) {
     return NextResponse.json({
-      message: 'No rated books found',
+      message: 'No books found for taste profile',
       tasteEmbedding: null
     })
   }
 
   // Filter books that have embeddings
   const typedUserBooks = userBooks as UserBookWithEmbedding[]
-  const booksWithEmbeddings: Array<{ rating: number | null; embedding: number[] }> = []
+  const booksWithEmbeddings: Array<{ rating: number | null; status: string; embedding: number[] }> = []
 
   for (const ub of typedUserBooks) {
     const embedding = extractEmbedding(ub.book)
     if (embedding) {
-      booksWithEmbeddings.push({ rating: ub.rating, embedding })
+      booksWithEmbeddings.push({ rating: ub.rating, status: ub.status, embedding })
     }
   }
 
@@ -63,17 +74,20 @@ export async function POST(): Promise<NextResponse> {
     })
   }
 
-  // Calculate weighted average embedding (rating squared for differentiation)
+  // Calculate weighted average embedding
+  // Positive weights for read books, negative for DNF (pushes away from those themes)
   const tasteEmbedding = new Array(EMBEDDING_SIZE).fill(0)
   let totalWeight = 0
 
   for (const userBook of booksWithEmbeddings) {
-    const weight = Math.pow(userBook.rating || 3, 2)
-    totalWeight += weight
+    const weight = getWeight(userBook.status, userBook.rating)
 
     for (let i = 0; i < EMBEDDING_SIZE; i++) {
       tasteEmbedding[i] += userBook.embedding[i] * weight
     }
+
+    // Use absolute weight for normalization
+    totalWeight += Math.abs(weight)
   }
 
   // Normalize

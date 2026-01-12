@@ -23,6 +23,9 @@ interface SourceBook {
 }
 
 interface SimilarBook extends SourceBook {
+  status: string
+  genres: string[] | null
+  ai_summary: string | null
   similarity?: number
 }
 
@@ -96,7 +99,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       if (sourceBook?.genres?.length) {
         let genreQuery = supabase
           .from('books')
-          .select('id, title, cover_url, author')
+          .select('id, title, cover_url, author, status, genres, ai_summary')
           .neq('id', book.id)
           .neq('status', 'inactive')
           .overlaps('genres', sourceBook.genres)
@@ -139,8 +142,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       })
     }
 
-    // Stop after finding 3 source books with recommendations
-    if (recommendations.length >= 3) break
+    // Stop after finding 2 source books with recommendations
+    if (recommendations.length >= 2) break
   }
 
   return NextResponse.json({ recommendations })

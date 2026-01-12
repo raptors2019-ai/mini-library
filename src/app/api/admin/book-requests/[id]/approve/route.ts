@@ -73,8 +73,10 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
   if (updateError) return jsonError(updateError.message, 500)
 
-  // Notify the user that their request was approved
-  const template = notificationTemplates.bookRequestApproved(bookRequest.title)
+  // Notify the user - use appropriate template based on whether book was created
+  const template = bookId
+    ? notificationTemplates.bookRequestFulfilled(bookRequest.title)
+    : notificationTemplates.bookRequestApproved(bookRequest.title)
 
   await createNotification({
     supabase,
