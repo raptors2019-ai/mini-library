@@ -110,10 +110,15 @@ export function DateSimulator() {
     )
   }
 
-  if (!state) return null
+  // Use default state if fetch failed - still show the component
+  const effectiveState = state || {
+    simulatedDate: null,
+    isSimulating: false,
+    realDate: new Date().toISOString(),
+  }
 
-  const displayDate = state.simulatedDate
-    ? new Date(state.simulatedDate).toLocaleDateString('en-US', {
+  const displayDate = effectiveState.simulatedDate
+    ? new Date(effectiveState.simulatedDate).toLocaleDateString('en-US', {
         month: 'short',
         day: 'numeric',
         year: 'numeric'
@@ -127,19 +132,19 @@ export function DateSimulator() {
           variant="outline"
           size="sm"
           className={`gap-2 ${
-            state.isSimulating
+            effectiveState.isSimulating
               ? 'border-dashed border-amber-500/50 bg-amber-500/10 text-amber-600 dark:text-amber-400'
               : 'border-dashed border-gray-400/50'
           }`}
           disabled={loading}
         >
-          {state.isSimulating ? (
+          {effectiveState.isSimulating ? (
             <Calendar className="h-4 w-4" />
           ) : (
             <Clock className="h-4 w-4" />
           )}
           <span className="hidden sm:inline">
-            {state.isSimulating ? 'SIM:' : ''}
+            {effectiveState.isSimulating ? 'SIM:' : ''}
           </span>
           <span>{displayDate}</span>
           <ChevronDown className="h-3 w-3" />
@@ -177,7 +182,7 @@ export function DateSimulator() {
               size="sm"
               variant="outline"
               onClick={handleReset}
-              disabled={!state.isSimulating || loading}
+              disabled={!effectiveState.isSimulating || loading}
             >
               <RotateCcw className="h-4 w-4 mr-1" />
               Reset
@@ -222,7 +227,7 @@ export function DateSimulator() {
             </div>
           </div>
 
-          {state.isSimulating && (
+          {effectiveState.isSimulating && (
             <div className="bg-amber-500/10 border border-amber-500/30 rounded-md p-2 text-xs text-amber-600 dark:text-amber-400">
               <strong>Simulation active.</strong> The system is using {displayDate} instead of real time.
             </div>

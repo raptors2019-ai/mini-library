@@ -82,9 +82,9 @@ export function RoleSwitcher() {
     )
   }
 
-  if (!currentRole) return null
-
-  const roleInfo = ROLE_INFO[currentRole]
+  // Use 'member' as fallback if fetch failed - still show the component
+  const effectiveRole = currentRole || 'member'
+  const roleInfo = ROLE_INFO[effectiveRole]
 
   return (
     <DropdownMenu>
@@ -107,7 +107,7 @@ export function RoleSwitcher() {
         <DropdownMenuSeparator />
         {(Object.keys(ROLE_INFO) as UserRole[]).map((role) => {
           const info = ROLE_INFO[role]
-          const isActive = role === currentRole
+          const isActive = role === effectiveRole
           return (
             <DropdownMenuItem
               key={role}

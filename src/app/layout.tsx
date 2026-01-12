@@ -10,6 +10,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { ChatWidget } from "@/components/chat";
 import { SimulationBanner } from "@/components/simulation-banner";
 import { Footer } from "@/components/footer";
+import { ConsoleUtils } from "@/components/dev/console-utils";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -52,6 +53,7 @@ export default function RootLayout({
                 <Footer />
                 <Toaster />
                 <ChatWidget />
+                <ConsoleUtils />
               </ActionProvider>
             </NotificationProvider>
           </Suspense>
