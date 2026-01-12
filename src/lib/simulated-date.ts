@@ -87,3 +87,55 @@ export function isDueSoon(dueDate: Date, currentDate: Date, daysThreshold: numbe
   const daysUntilDue = daysBetween(currentDate, dueDate)
   return daysUntilDue >= 0 && daysUntilDue <= daysThreshold
 }
+
+/**
+ * Auto-return configuration stored in system_settings.
+ * Maps checkout_id to the date it should auto-return.
+ */
+export interface AutoReturnConfig {
+  checkout_id: string
+  book_id: string
+  return_date: string // ISO date string
+  original_status: 'active' | 'overdue'
+}
+
+/**
+ * Get auto-return configurations from system settings.
+ */
+export async function getAutoReturnConfigs(supabase: SupabaseClient): Promise<AutoReturnConfig[]> {
+  const { data } = await supabase
+    .from('system_settings')
+    .select('value')
+    .eq('key', 'auto_return_checkouts')
+    .single()
+
+  if (!data || !data.value) {
+    return []
+  }
+
+  return data.value as AutoReturnConfig[]
+}
+
+/**
+ * Set auto-return configurations.
+ */
+export async function setAutoReturnConfigs(
+  supabase: SupabaseClient,
+  configs: AutoReturnConfig[],
+  userId: string
+): Promise<{ success: boolean; error?: string }> {
+  const { error } = await supabase
+    .from('system_settings')
+    .upsert({
+      key: 'auto_return_checkouts',
+      value: configs,
+      updated_at: new Date().toISOString(),
+      updated_by: userId,
+    })
+
+  if (error) {
+    return { success: false, error: error.message }
+  }
+
+  return { success: true }
+}

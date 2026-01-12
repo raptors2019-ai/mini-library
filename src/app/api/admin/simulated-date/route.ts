@@ -1,7 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
-import { getSimulatedDate, setSimulatedDate, daysBetween, isOverdue, isDueSoon } from '@/lib/simulated-date'
+import { getSimulatedDate, setSimulatedDate, daysBetween, isOverdue, isDueSoon, getAutoReturnConfigs, AutoReturnConfig } from '@/lib/simulated-date'
 import { createNotification, notificationTemplates } from '@/lib/notifications'
+import { getHoldDurationHours } from '@/lib/constants'
 
 // GET - Get current simulated date
 export async function GET(): Promise<NextResponse> {
@@ -75,16 +76,24 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: result.error }, { status: 500 })
   }
 
-  // If setting a date (not resetting), generate notifications
+  // If setting a date (not resetting), generate notifications and process auto-returns
   let notificationsGenerated = 0
+  let autoReturnsProcessed = 0
+  let autoReturnsReverted = 0
+
   if (newDate) {
     notificationsGenerated = await generateDateBasedNotifications(supabase, newDate)
+    const autoReturnResult = await processAutoReturns(supabase, newDate)
+    autoReturnsProcessed = autoReturnResult.processed
+    autoReturnsReverted = autoReturnResult.reverted
   }
 
   return NextResponse.json({
     success: true,
     simulatedDate: newDate?.toISOString() || null,
     notificationsGenerated,
+    autoReturnsProcessed,
+    autoReturnsReverted,
   })
 }
 
@@ -116,6 +125,47 @@ export async function DELETE(): Promise<NextResponse> {
     .single()
 
   let notificationsDeleted = 0
+  let autoReturnsReverted = 0
+
+  // Revert any auto-returned checkouts back to their original state
+  const configs = await getAutoReturnConfigs(supabase)
+  for (const config of configs) {
+    const { data: checkout } = await supabase
+      .from('checkouts')
+      .select('status')
+      .eq('id', config.checkout_id)
+      .single()
+
+    if (checkout?.status === 'returned') {
+      // Revert to original state
+      await supabase
+        .from('checkouts')
+        .update({
+          status: config.original_status,
+          returned_at: null,
+        })
+        .eq('id', config.checkout_id)
+
+      // Update book status back to checked_out
+      await supabase
+        .from('books')
+        .update({ status: 'checked_out' })
+        .eq('id', config.book_id)
+
+      // Revert any waitlist entries that were notified
+      await supabase
+        .from('waitlist')
+        .update({
+          status: 'waiting',
+          notified_at: null,
+          expires_at: null,
+        })
+        .eq('book_id', config.book_id)
+        .eq('status', 'notified')
+
+      autoReturnsReverted++
+    }
+  }
 
   // Delete notifications created during simulation (due_soon and overdue types only)
   if (startTimeSetting?.value) {
@@ -123,7 +173,7 @@ export async function DELETE(): Promise<NextResponse> {
     const { count } = await supabase
       .from('notifications')
       .delete({ count: 'exact' })
-      .in('type', ['due_soon', 'overdue'])
+      .in('type', ['due_soon', 'overdue', 'book_returned', 'waitlist_available'])
       .gte('created_at', startTime)
 
     notificationsDeleted = count || 0
@@ -150,6 +200,7 @@ export async function DELETE(): Promise<NextResponse> {
     success: true,
     simulatedDate: null,
     notificationsDeleted,
+    autoReturnsReverted,
     message: 'Reset to real time',
   })
 }
@@ -244,4 +295,151 @@ async function generateDateBasedNotifications(
   }
 
   return count
+}
+
+/**
+ * Process auto-returns based on the simulated date.
+ * - If simulated date >= return_date: auto-return the book
+ * - If simulated date < return_date: revert to checked-out state
+ */
+async function processAutoReturns(
+  supabase: ReturnType<typeof createClient> extends Promise<infer T> ? T : never,
+  simulatedDate: Date
+): Promise<{ processed: number; reverted: number }> {
+  const configs = await getAutoReturnConfigs(supabase)
+  let processed = 0
+  let reverted = 0
+
+  for (const config of configs) {
+    const returnDate = new Date(config.return_date)
+    const shouldBeReturned = simulatedDate >= returnDate
+
+    // Get current checkout status
+    const { data: checkout } = await supabase
+      .from('checkouts')
+      .select('id, status, book_id, user_id, book:books(id, title)')
+      .eq('id', config.checkout_id)
+      .single()
+
+    if (!checkout) continue
+
+    const isCurrentlyReturned = checkout.status === 'returned'
+    const book = checkout.book as unknown as { id: string; title: string } | null
+    const bookTitle = book?.title || 'Unknown Book'
+
+    if (shouldBeReturned && !isCurrentlyReturned) {
+      // Auto-return the book
+      await supabase
+        .from('checkouts')
+        .update({
+          status: 'returned',
+          returned_at: returnDate.toISOString(),
+        })
+        .eq('id', config.checkout_id)
+
+      // Check waitlist for this book
+      const { data: nextInLine } = await supabase
+        .from('waitlist')
+        .select('id, user_id, is_priority')
+        .eq('book_id', config.book_id)
+        .eq('status', 'waiting')
+        .order('is_priority', { ascending: false })
+        .order('position', { ascending: true })
+        .limit(1)
+        .single()
+
+      if (nextInLine) {
+        // Update book status to on_hold
+        await supabase
+          .from('books')
+          .update({ status: 'on_hold' })
+          .eq('id', config.book_id)
+
+        // Get next person's profile to determine hold duration
+        const { data: nextUserProfile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', nextInLine.user_id)
+          .single()
+
+        // Calculate hold expiration based on user's role
+        const holdHours = getHoldDurationHours(nextUserProfile?.role)
+        const expiresAt = new Date(returnDate)
+        expiresAt.setHours(expiresAt.getHours() + holdHours)
+
+        await supabase
+          .from('waitlist')
+          .update({
+            status: 'notified',
+            notified_at: returnDate.toISOString(),
+            expires_at: expiresAt.toISOString(),
+          })
+          .eq('id', nextInLine.id)
+
+        // Notify the next person
+        const expirationLabel = holdHours === 24 ? '1 day' : `${holdHours / 24} days`
+        const template = notificationTemplates.waitlistAvailable(bookTitle, expirationLabel)
+        await createNotification({
+          supabase,
+          userId: nextInLine.user_id,
+          bookId: config.book_id,
+          ...template,
+        })
+      } else {
+        // No waitlist, make book available
+        await supabase
+          .from('books')
+          .update({ status: 'available' })
+          .eq('id', config.book_id)
+      }
+
+      // Create return notification
+      const returnTemplate = notificationTemplates.bookReturned(bookTitle)
+      await createNotification({
+        supabase,
+        userId: checkout.user_id,
+        bookId: config.book_id,
+        ...returnTemplate,
+      })
+
+      processed++
+    } else if (!shouldBeReturned && isCurrentlyReturned) {
+      // Revert to checked-out state (simulated date is before return date)
+      await supabase
+        .from('checkouts')
+        .update({
+          status: config.original_status,
+          returned_at: null,
+        })
+        .eq('id', config.checkout_id)
+
+      // Update book status back to checked_out
+      await supabase
+        .from('books')
+        .update({ status: 'checked_out' })
+        .eq('id', config.book_id)
+
+      // Revert any waitlist entries that were notified back to waiting
+      await supabase
+        .from('waitlist')
+        .update({
+          status: 'waiting',
+          notified_at: null,
+          expires_at: null,
+        })
+        .eq('book_id', config.book_id)
+        .eq('status', 'notified')
+
+      // Delete auto-generated notifications for this book
+      await supabase
+        .from('notifications')
+        .delete()
+        .eq('book_id', config.book_id)
+        .in('type', ['book_returned', 'waitlist_available'])
+
+      reverted++
+    }
+  }
+
+  return { processed, reverted }
 }
