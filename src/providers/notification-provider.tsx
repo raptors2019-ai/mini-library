@@ -60,34 +60,43 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
     if (!userId) return
 
     // Set up real-time subscription for new and updated notifications
-    // Filter by user_id to only receive events for the current user
+    // Using wildcard event (*) and client-side filtering for reliability
+    // The RLS policy ensures we only see our own notifications anyway
     const channel = supabase
-      .channel(`notifications-${userId}`)
+      .channel(`user-notifications-${userId}`)
       .on(
         'postgres_changes',
         {
-          event: 'INSERT',
+          event: '*',
           schema: 'public',
           table: 'notifications',
-          filter: `user_id=eq.${userId}`,
         },
-        () => {
-          fetchNotifications()
+        (payload) => {
+          // Client-side filter: only process events for this user
+          const newRecord = payload.new as { user_id?: string } | null
+          const oldRecord = payload.old as { user_id?: string } | null
+          const targetUserId = newRecord?.user_id || oldRecord?.user_id
+
+          if (targetUserId === userId) {
+            console.log('[Realtime] Notification event for current user:', payload.eventType)
+            fetchNotifications()
+          }
         }
       )
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'notifications',
-          filter: `user_id=eq.${userId}`,
-        },
-        () => {
-          fetchNotifications()
+      .subscribe((status, err) => {
+        if (err) {
+          console.error('[Realtime] Subscription error:', err)
         }
-      )
-      .subscribe()
+        if (status === 'SUBSCRIBED') {
+          console.log('[Realtime] Subscribed to notifications channel')
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error('[Realtime] Channel error - retrying in 5s')
+          // Retry after delay
+          setTimeout(() => {
+            channel.subscribe()
+          }, 5000)
+        }
+      })
 
     return () => {
       supabase.removeChannel(channel)

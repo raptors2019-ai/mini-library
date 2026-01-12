@@ -56,12 +56,15 @@ export async function PATCH(
   const { supabase } = auth
   const body = await request.json()
 
+  // Convert empty string ISBN to null to avoid unique constraint violations
+  const isbn = body.isbn?.trim() || null
+
   const { data: updatedBook, error } = await supabase
     .from('books')
     .update({
       title: body.title,
       author: body.author,
-      isbn: body.isbn,
+      isbn,
       description: body.description,
       cover_url: body.cover_url,
       page_count: body.page_count,
