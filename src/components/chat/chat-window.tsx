@@ -33,7 +33,7 @@ export function ChatWindow({
   currentBookTitle,
 }: ChatWindowProps) {
   return (
-    <div className="fixed bottom-6 right-6 z-50 flex flex-col w-[360px] h-[500px] bg-background border rounded-xl shadow-xl overflow-hidden animate-in slide-in-from-bottom-2 fade-in-0 duration-200">
+    <div className="fixed bottom-0 right-0 sm:bottom-6 sm:right-6 z-50 flex flex-col w-full sm:w-[360px] h-[100dvh] sm:h-[500px] sm:max-h-[calc(100dvh-3rem)] bg-background border-t sm:border sm:rounded-xl shadow-xl overflow-hidden animate-in slide-in-from-bottom-2 fade-in-0 duration-200 pb-[env(safe-area-inset-bottom)]">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b bg-muted/30">
         <div className="flex items-center gap-2">

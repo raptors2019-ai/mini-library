@@ -29,7 +29,7 @@ function CompactStars({ rating }: { rating: number }) {
           </div>
         )
       })}
-      <span className="ml-0.5 text-[10px] text-muted-foreground">
+      <span className="ml-0.5 text-xs text-muted-foreground">
         {rating.toFixed(1)}
       </span>
     </div>
@@ -72,8 +72,8 @@ export function ChatBookCard({ book }: ChatBookCardProps) {
             sizes="44px"
           />
         ) : (
-          <div className="flex h-full items-center justify-center text-[8px] text-muted-foreground p-1 text-center">
-            {book.title}
+          <div className="flex h-full items-center justify-center text-[10px] text-muted-foreground p-1 text-center leading-tight">
+            {book.title.slice(0, 20)}
           </div>
         )}
       </div>
@@ -85,7 +85,7 @@ export function ChatBookCard({ book }: ChatBookCardProps) {
         <div className="mt-1 flex items-center gap-2">
           <Badge
             variant="outline"
-            className={`text-[10px] px-1.5 py-0 ${BOOK_STATUS_COLORS[book.status]}`}
+            className={`text-xs px-1.5 py-0 ${BOOK_STATUS_COLORS[book.status]}`}
           >
             {BOOK_STATUS_LABELS[book.status]}
           </Badge>

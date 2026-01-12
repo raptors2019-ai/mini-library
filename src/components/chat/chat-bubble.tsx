@@ -15,7 +15,8 @@ export function ChatBubble({ onClick }: ChatBubbleProps) {
       size="icon"
       className={cn(
         'fixed bottom-6 right-6 z-50 h-14 w-14 rounded-full shadow-lg',
-        'animate-in slide-in-from-bottom-2 fade-in-0 duration-300'
+        'animate-in slide-in-from-bottom-2 fade-in-0 duration-300',
+        'mb-[env(safe-area-inset-bottom)] mr-[env(safe-area-inset-right)]'
       )}
       aria-label="Open chat assistant"
     >
