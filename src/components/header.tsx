@@ -7,7 +7,7 @@ import { Search, Settings, LogIn, LogOut, User, Menu, LayoutDashboard, BookOpen,
 import { ThemeToggle } from "@/components/theme-toggle"
 import { NotificationBell } from "@/components/notification-bell"
 import { RoleSwitcher } from "@/components/dev/role-switcher"
-import { DateSimulator } from "@/components/dev/date-simulator"
+// import { DateSimulator } from "@/components/dev/date-simulator"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -233,8 +233,8 @@ export function Header(): React.ReactNode {
         </nav>
 
         <div className="ml-auto flex items-center space-x-2">
-          {/* Date simulator for demo purposes */}
-          {user && <DateSimulator />}
+          {/* Date simulator hidden for now - uncomment to re-enable */}
+          {/* {user && <DateSimulator />} */}
           {/* Role switcher for demo/testing */}
           {user && <RoleSwitcher />}
           <ThemeToggle />
