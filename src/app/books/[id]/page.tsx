@@ -19,6 +19,7 @@ import {
 } from 'lucide-react'
 import { CheckoutButton } from '@/components/books/checkout-button'
 import { WaitlistButton } from '@/components/books/waitlist-button'
+import { BookReturnButton } from '@/components/books/book-return-button'
 import { BookCoverImage } from '@/components/books/book-cover-image'
 import { SimilarBooks } from '@/components/books/similar-books'
 import { AddToMyBooksButton } from '@/components/books/add-to-my-books-button'
@@ -152,6 +153,9 @@ export default async function BookDetailPage({ params }: BookDetailPageProps) {
   const showCheckoutButton = isAvailable || (canCheckout && ['on_hold_premium', 'on_hold_waitlist'].includes(book.status))
   const showWaitlistButton = !showCheckoutButton && book.status !== 'available'
 
+  // Check if current user has this book checked out
+  const userHasBookCheckedOut = checkout && user && (checkout.user as { id?: string })?.id === user.id
+
   return (
     <div className="flex flex-col gap-8 pb-12">
       {/* Navigation */}
@@ -194,7 +198,11 @@ export default async function BookDetailPage({ params }: BookDetailPageProps) {
           <div className="space-y-3 max-w-[300px] mx-auto lg:mx-0">
             {user && (
               <>
-                {showCheckoutButton ? (
+                {userHasBookCheckedOut ? (
+                  <BookReturnButton
+                    checkout={{ ...checkout, book }}
+                  />
+                ) : showCheckoutButton ? (
                   <CheckoutButton
                     bookId={book.id}
                     bookTitle={book.title}
