@@ -5,12 +5,14 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
+import { Switch } from '@/components/ui/switch'
+import { Label } from '@/components/ui/label'
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
-import { Search, X, ChevronDown } from 'lucide-react'
+import { Search, X, ChevronDown, Sparkles } from 'lucide-react'
 import { useCallback, useState, useTransition, useEffect } from 'react'
 import { GENRES, BOOK_STATUS_LABELS } from '@/lib/constants'
 import type { BookStatus } from '@/types/database'
@@ -27,10 +29,12 @@ export function BookFilters() {
   const [isPending, startTransition] = useTransition()
 
   const [searchInput, setSearchInput] = useState(searchParams.get('search') || '')
+  const [useSemanticSearch, setUseSemanticSearch] = useState(searchParams.get('semantic') === 'true')
 
-  // Sync searchInput with URL params when they change (e.g., from command palette)
+  // Sync state with URL params when they change (e.g., from command palette)
   useEffect(() => {
     setSearchInput(searchParams.get('search') || '')
+    setUseSemanticSearch(searchParams.get('semantic') === 'true')
   }, [searchParams])
 
   // Parse multi-value params
@@ -56,7 +60,12 @@ export function BookFilters() {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
     startTransition(() => {
-      router.push(`/books?${createQueryString({ search: searchInput })}`)
+      if (useSemanticSearch) {
+        // Add semantic param to enable AI search on books page
+        router.push(`/books?${createQueryString({ search: searchInput, semantic: 'true' })}`)
+      } else {
+        router.push(`/books?${createQueryString({ search: searchInput, semantic: null })}`)
+      }
     })
   }
 
@@ -116,19 +125,37 @@ export function BookFilters() {
     <div className="flex flex-col gap-4">
       {/* Filter controls row */}
       <div className="flex flex-col sm:flex-row gap-4">
-        <form onSubmit={handleSearch} className="flex-1 flex gap-2">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search books..."
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              className="pl-10"
-            />
+        <form onSubmit={handleSearch} className="flex-1 flex flex-col gap-2">
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder={useSemanticSearch ? "Try 'books about habit formation'..." : "Search books..."}
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            <Button type="submit" disabled={isPending}>
+              Search
+            </Button>
           </div>
-          <Button type="submit" disabled={isPending}>
-            Search
-          </Button>
+          <div className="flex items-center gap-3">
+            <Switch
+              id="semantic-search-books"
+              checked={useSemanticSearch}
+              onCheckedChange={setUseSemanticSearch}
+            />
+            <Label htmlFor="semantic-search-books" className="flex items-center gap-2 cursor-pointer text-sm">
+              <Sparkles className="h-4 w-4 text-primary" />
+              AI-Powered Search
+            </Label>
+            {useSemanticSearch && (
+              <span className="text-xs text-muted-foreground">
+                Uses semantic understanding to find relevant books
+              </span>
+            )}
+          </div>
         </form>
 
         <div className="flex gap-2 w-full sm:w-auto">

@@ -353,7 +353,7 @@ async function checkAvailability(args: CheckAvailabilityArgs): Promise<ToolExecu
 
   const { data: book, error } = await supabase
     .from('books')
-    .select('id, title, author, status')
+    .select('id, title, author, status, hold_started_at')
     .eq('id', args.book_id)
     .single()
 
@@ -362,10 +362,13 @@ async function checkAvailability(args: CheckAvailabilityArgs): Promise<ToolExecu
   }
 
   const isAvailable = book.status === 'available'
+  const isOnHoldPremium = book.status === 'on_hold_premium'
+  const isOnHoldWaitlist = book.status === 'on_hold_waitlist'
 
   // Get additional info based on status
   let dueDate = null
   let waitlistCount = 0
+  let holdInfo = null
 
   if (!isAvailable) {
     // Get due date (include overdue checkouts - book is still checked out)
@@ -384,6 +387,22 @@ async function checkAvailability(args: CheckAvailabilityArgs): Promise<ToolExecu
       .eq('book_id', args.book_id)
       .eq('status', 'waiting')
     waitlistCount = count || 0
+
+    // Calculate hold end dates if applicable
+    if ((isOnHoldPremium || isOnHoldWaitlist) && book.hold_started_at) {
+      const holdStarted = new Date(book.hold_started_at)
+      const premiumEnds = new Date(holdStarted)
+      premiumEnds.setHours(premiumEnds.getHours() + 24)
+      const waitlistEnds = new Date(holdStarted)
+      waitlistEnds.setHours(waitlistEnds.getHours() + 48)
+
+      holdInfo = {
+        status: book.status,
+        premiumAccessUntil: premiumEnds.toISOString(),
+        waitlistAccessUntil: waitlistEnds.toISOString(),
+        generalAccessAt: waitlistEnds.toISOString(),
+      }
+    }
   }
 
   return {
@@ -396,6 +415,7 @@ async function checkAvailability(args: CheckAvailabilityArgs): Promise<ToolExecu
       status: book.status,
       dueDate,
       waitlistCount,
+      holdInfo,
     },
   }
 }

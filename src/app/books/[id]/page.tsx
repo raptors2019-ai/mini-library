@@ -14,7 +14,8 @@ import {
   User,
   Clock,
   Users,
-  Sparkles
+  Sparkles,
+  Crown
 } from 'lucide-react'
 import { CheckoutButton } from '@/components/books/checkout-button'
 import { WaitlistButton } from '@/components/books/waitlist-button'
@@ -29,6 +30,7 @@ import { HardcoverReviews } from '@/components/books/hardcover-reviews'
 import { BookContentTabs } from '@/components/books/book-content-tabs'
 import { BOOK_STATUS_COLORS, BOOK_STATUS_LABELS, isAdminRole, isPriorityRole } from '@/lib/constants'
 import { estimateReadingTime } from '@/lib/utils'
+import { processBookHoldTransition, getHoldEndDates, canUserCheckout } from '@/lib/hold-transitions'
 import type { BookStatus, UserBookStatus } from '@/types/database'
 
 interface BookDetailPageProps {
@@ -39,6 +41,9 @@ export default async function BookDetailPage({ params }: BookDetailPageProps) {
   const { id } = await params
   const supabase = await createClient()
 
+  // Process any pending hold transitions for this book
+  await processBookHoldTransition(supabase, id)
+
   const { data: book, error } = await supabase
     .from('books')
     .select('*')
@@ -48,6 +53,9 @@ export default async function BookDetailPage({ params }: BookDetailPageProps) {
   if (error || !book) {
     notFound()
   }
+
+  // Calculate hold end dates if applicable
+  const holdDates = getHoldEndDates(book.hold_started_at, book.status)
 
   // Get current checkout (include overdue - book is still checked out)
   const { data: checkout } = await supabase
@@ -131,6 +139,18 @@ export default async function BookDetailPage({ params }: BookDetailPageProps) {
 
   const canEdit = isAdminRole(userRole)
   const isAvailable = book.status === 'available'
+  const isPriorityUser = isPriorityRole(userRole)
+
+  // Check if user can checkout this book (considering hold statuses)
+  let canCheckout = false
+  if (user && userRole !== 'guest') {
+    const eligibility = await canUserCheckout(supabase, id, user.id, isPriorityUser)
+    canCheckout = eligibility.allowed
+  }
+
+  // Determine if we should show checkout or waitlist button
+  const showCheckoutButton = isAvailable || (canCheckout && ['on_hold_premium', 'on_hold_waitlist'].includes(book.status))
+  const showWaitlistButton = !showCheckoutButton && book.status !== 'available'
 
   return (
     <div className="flex flex-col gap-8 pb-12">
@@ -174,27 +194,27 @@ export default async function BookDetailPage({ params }: BookDetailPageProps) {
           <div className="space-y-3 max-w-[300px] mx-auto lg:mx-0">
             {user && (
               <>
-                {isAvailable ? (
+                {showCheckoutButton ? (
                   <CheckoutButton
                     bookId={book.id}
                     bookTitle={book.title}
                     bookAuthor={book.author}
-                    disabled={!user || userActiveCheckout >= userCheckoutLimit}
+                    disabled={!user || userActiveCheckout >= userCheckoutLimit || !canCheckout}
                     loanDays={userLoanDays}
-                    isPremium={isPriorityRole(userRole)}
+                    isPremium={isPriorityUser}
                     overdueCount={userOverdueCount}
                     isGuest={userRole === 'guest'}
                   />
-                ) : (
+                ) : showWaitlistButton ? (
                   <WaitlistButton
                     bookId={book.id}
                     isOnWaitlist={!!userWaitlistEntry}
                     waitlistPosition={userWaitlistEntry?.position}
-                    isPriorityUser={isPriorityRole(userRole)}
+                    isPriorityUser={isPriorityUser}
                     totalWaiting={waitlistCount || 0}
                     priorityWaiting={priorityWaitlistCount || 0}
                   />
-                )}
+                ) : null}
                 {userRole !== 'guest' && (
                   <AddToMyBooksButton
                     bookId={book.id}
@@ -237,6 +257,18 @@ export default async function BookDetailPage({ params }: BookDetailPageProps) {
               >
                 {BOOK_STATUS_LABELS[book.status as BookStatus]}
               </Badge>
+              {book.status === 'on_hold_premium' && holdDates && (
+                <Badge variant="secondary" className="gap-1.5 bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
+                  <Crown className="h-3 w-3" />
+                  Premium access until {holdDates.premiumEnds.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                </Badge>
+              )}
+              {book.status === 'on_hold_waitlist' && holdDates && (
+                <Badge variant="secondary" className="gap-1.5 bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300">
+                  <Clock className="h-3 w-3" />
+                  Waitlist access until {holdDates.waitlistEnds.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                </Badge>
+              )}
               {(waitlistCount ?? 0) > 0 && (
                 <Badge variant="secondary" className="gap-1.5">
                   <Users className="h-3 w-3" />

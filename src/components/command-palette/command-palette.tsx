@@ -79,13 +79,14 @@ export function CommandPalette({ open: externalOpen, onOpenChange }: CommandPale
     try {
       const classification = classifyQuery(trimmedQuery)
 
+      // For simple searches (just a title/author), use semantic search page
       if (classification.type === 'simple') {
-        const searchParams = buildSearchParams({ search: trimmedQuery })
-        router.push(`/books?${searchParams}`)
+        router.push(`/search?q=${encodeURIComponent(trimmedQuery)}`)
         setIsOpen(false)
         return
       }
 
+      // For complex queries with filters, try to classify and route appropriately
       const response = await fetch('/api/search/classify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -95,20 +96,27 @@ export function CommandPalette({ open: externalOpen, onOpenChange }: CommandPale
       const data: ClassifyResponse = await response.json()
 
       if (!data.success) {
-        router.push(`/books?search=${encodeURIComponent(trimmedQuery)}`)
+        // Fallback to semantic search page for natural language queries
+        router.push(`/search?q=${encodeURIComponent(trimmedQuery)}`)
         setIsOpen(false)
         return
       }
 
-      const searchParams = buildSearchParams(data.params)
-      if (!searchParams) {
-        router.push(`/books?search=${encodeURIComponent(trimmedQuery)}`)
-      } else {
+      // If we have genre/status filters, use books page with filters
+      // Otherwise use semantic search for better natural language understanding
+      const hasFilters = (data.params.genres && data.params.genres.length > 0) ||
+                        (data.params.statuses && data.params.statuses.length > 0)
+
+      if (hasFilters) {
+        const searchParams = buildSearchParams(data.params)
         router.push(`/books?${searchParams}`)
+      } else {
+        // Use semantic search page for natural language queries
+        router.push(`/search?q=${encodeURIComponent(trimmedQuery)}`)
       }
       setIsOpen(false)
     } catch {
-      router.push(`/books?search=${encodeURIComponent(trimmedQuery)}`)
+      router.push(`/search?q=${encodeURIComponent(trimmedQuery)}`)
       setIsOpen(false)
     } finally {
       setIsLoading(false)

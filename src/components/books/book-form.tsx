@@ -38,7 +38,7 @@ const bookSchema = z.object({
   page_count: z.union([z.coerce.number().positive(), z.literal('')]).optional(),
   publish_date: z.string().optional(),
   genres: z.array(z.string()).default([]),
-  status: z.enum(['available', 'checked_out', 'on_hold', 'inactive']).default('available')
+  status: z.enum(['available', 'checked_out', 'on_hold', 'on_hold_premium', 'on_hold_waitlist', 'inactive']).default('available')
 })
 
 type BookFormValues = z.infer<typeof bookSchema>

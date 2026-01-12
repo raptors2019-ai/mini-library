@@ -146,11 +146,52 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   if (checkoutError) {
     // Rollback book status if checkout creation fails
+    // Restore to original status if we know it, otherwise available
+    const rollbackStatus = book.status === 'on_hold_premium' || book.status === 'on_hold_waitlist'
+      ? book.status
+      : 'available'
     await supabase
       .from('books')
-      .update({ status: 'available' })
+      .update({
+        status: rollbackStatus,
+        hold_started_at: book.hold_started_at
+      })
       .eq('id', book_id)
     return NextResponse.json({ error: checkoutError.message }, { status: 500 })
+  }
+
+  // If user was on waitlist, mark their entry as claimed and reorder positions
+  const { data: waitlistEntry } = await supabase
+    .from('waitlist')
+    .select('id, position')
+    .eq('book_id', book_id)
+    .eq('user_id', user.id)
+    .in('status', ['waiting', 'notified'])
+    .single()
+
+  if (waitlistEntry) {
+    // Mark entry as claimed
+    await supabase
+      .from('waitlist')
+      .update({ status: 'claimed' })
+      .eq('id', waitlistEntry.id)
+
+    // Decrement position for everyone after this user in the queue
+    const { data: laterEntries } = await supabase
+      .from('waitlist')
+      .select('id, position')
+      .eq('book_id', book_id)
+      .eq('status', 'waiting')
+      .gt('position', waitlistEntry.position)
+
+    if (laterEntries && laterEntries.length > 0) {
+      for (const entry of laterEntries) {
+        await supabase
+          .from('waitlist')
+          .update({ position: entry.position - 1 })
+          .eq('id', entry.id)
+      }
+    }
   }
 
   // Get book title for notification

@@ -7,6 +7,7 @@ import { BookFilters } from '@/components/books/book-filters'
 import { BookCarousel } from '@/components/books/book-carousel'
 import { BookGrid } from '@/components/books/book-grid'
 import { Pagination } from '@/components/books/pagination'
+import { SemanticSearchResults } from '@/components/books/semantic-search-results'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import { Suspense } from 'react'
@@ -19,6 +20,7 @@ interface BooksPageProps {
     statuses?: string
     genres?: string
     search?: string
+    semantic?: string
   }>
 }
 
@@ -117,6 +119,7 @@ async function BooksContent({ searchParams }: BooksPageProps) {
 
   // Check if any filters are active
   const hasActiveFilters = params.statuses || params.genres || params.search
+  const useSemanticSearch = params.semantic === 'true' && params.search
 
   let query = supabase
     .from('books')
@@ -230,21 +233,25 @@ async function BooksContent({ searchParams }: BooksPageProps) {
 
       {/* Grid - only show when filters are active (search results) */}
       {hasActiveFilters && (
-        <div className="space-y-6">
-          <div className="text-sm text-muted-foreground">
-            Showing {books?.length || 0} of {count || 0} results
+        useSemanticSearch ? (
+          <SemanticSearchResults query={params.search!} />
+        ) : (
+          <div className="space-y-6">
+            <div className="text-sm text-muted-foreground">
+              Showing {books?.length || 0} of {count || 0} results
+            </div>
+
+            <BookGrid books={books || []} />
+
+            {totalPages > 1 && (
+              <Pagination
+                currentPage={page}
+                totalPages={totalPages}
+                total={count || 0}
+              />
+            )}
           </div>
-
-          <BookGrid books={books || []} />
-
-          {totalPages > 1 && (
-            <Pagination
-              currentPage={page}
-              totalPages={totalPages}
-              total={count || 0}
-            />
-          )}
-        </div>
+        )
       )}
     </>
   )

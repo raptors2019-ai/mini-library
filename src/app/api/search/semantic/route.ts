@@ -94,7 +94,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           const queryEmbedding = await generateEmbedding(query)
           const { data, error } = await supabase.rpc('match_books', {
             query_embedding: queryEmbedding,
-            match_threshold: 0.25, // Lower threshold for more results
+            match_threshold: 0.18, // Lower threshold to catch conceptual queries like "getting 1% better"
             match_count: limit
           })
           if (error) {
