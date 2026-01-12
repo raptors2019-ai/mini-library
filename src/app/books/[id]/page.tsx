@@ -175,6 +175,7 @@ export default async function BookDetailPage({ params }: BookDetailPageProps) {
                     loanDays={userLoanDays}
                     isPremium={isPriorityRole(userRole)}
                     overdueCount={userOverdueCount}
+                    isGuest={userRole === 'guest'}
                   />
                 ) : (
                   <WaitlistButton
@@ -183,11 +184,13 @@ export default async function BookDetailPage({ params }: BookDetailPageProps) {
                     waitlistPosition={userWaitlistEntry?.position}
                   />
                 )}
-                <AddToMyBooksButton
-                  bookId={book.id}
-                  existingStatus={userBookEntry?.status}
-                  existingRating={userBookEntry?.rating}
-                />
+                {userRole !== 'guest' && (
+                  <AddToMyBooksButton
+                    bookId={book.id}
+                    existingStatus={userBookEntry?.status}
+                    existingRating={userBookEntry?.rating}
+                  />
+                )}
               </>
             )}
 
@@ -198,8 +201,8 @@ export default async function BookDetailPage({ params }: BookDetailPageProps) {
             )}
           </div>
 
-          {/* User's Rating/Review Form */}
-          {user && (
+          {/* User's Rating/Review Form - not shown for guests */}
+          {user && userRole !== 'guest' && (
             <div className="max-w-[300px] mx-auto lg:mx-0">
               <UserBookForm
                 bookId={book.id}

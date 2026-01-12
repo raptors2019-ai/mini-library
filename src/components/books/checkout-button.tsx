@@ -1,8 +1,9 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { BookCheck } from 'lucide-react'
+import { BookCheck, LogIn } from 'lucide-react'
 import { CheckoutDialog } from './checkout-dialog'
 
 interface CheckoutButtonProps {
@@ -13,6 +14,7 @@ interface CheckoutButtonProps {
   loanDays?: number
   isPremium?: boolean
   overdueCount?: number
+  isGuest?: boolean
 }
 
 export function CheckoutButton({
@@ -23,12 +25,25 @@ export function CheckoutButton({
   loanDays,
   isPremium,
   overdueCount = 0,
+  isGuest = false,
 }: CheckoutButtonProps) {
   const [dialogOpen, setDialogOpen] = useState(false)
 
   // Block checkout if user has overdue books
   const hasOverdue = overdueCount > 0
-  const isDisabled = disabled || hasOverdue
+  const isDisabled = disabled || hasOverdue || isGuest
+
+  // Guest users need to login with a member account
+  if (isGuest) {
+    return (
+      <Button asChild className="w-full" variant="secondary">
+        <Link href="/login">
+          <LogIn className="h-4 w-4 mr-2" />
+          Login to checkout
+        </Link>
+      </Button>
+    )
+  }
 
   return (
     <>

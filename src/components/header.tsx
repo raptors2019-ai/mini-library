@@ -229,8 +229,8 @@ export function Header(): React.ReactNode {
         </nav>
 
         <div className="ml-auto flex items-center space-x-2">
-          {/* Admin: Date simulator for demo purposes */}
-          {isAdmin && <DateSimulator />}
+          {/* Date simulator for demo purposes */}
+          {user && <DateSimulator />}
           {/* Role switcher for demo/testing */}
           {user && <RoleSwitcher />}
           <ThemeToggle />

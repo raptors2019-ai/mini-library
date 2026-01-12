@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Star, ExternalLink, Users, MessageSquare, BookOpen } from 'lucide-react'
+import { Star, ExternalLink, Users, MessageSquare } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   formatCount,
@@ -29,7 +29,6 @@ interface ExternalMetadata {
   hardcoverUrl: string | null
   hardcoverSlug: string | null
   reviews: HardcoverReview[] | null
-  previewLink: string | null
   publisher: string | null
 }
 
@@ -108,7 +107,7 @@ export function ExternalRating({ bookId, showReviews = true }: ExternalRatingPro
     )
   }
 
-  if (notAvailable || (!metadata?.rating && !metadata?.previewLink)) {
+  if (notAvailable || !metadata?.rating) {
     return null
   }
 
@@ -249,23 +248,6 @@ export function ExternalRating({ bookId, showReviews = true }: ExternalRatingPro
                 >
                   {hasReviews ? 'Read All Reviews' : 'View on Hardcover'}
                   <ExternalLink className="h-3.5 w-3.5" />
-                </a>
-              </Button>
-            )}
-            {metadata.previewLink && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="rounded-full gap-2"
-                asChild
-              >
-                <a
-                  href={metadata.previewLink}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <BookOpen className="h-3.5 w-3.5" />
-                  Preview
                 </a>
               </Button>
             )}

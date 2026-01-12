@@ -124,10 +124,14 @@ export async function getBookMetadata(isbn: string): Promise<BookMetadata | null
 
     if (!volumeInfo) return null
 
+    // Use a direct ISBN search link instead of Google's volume-specific previewLink
+    // This is more reliable as Google sometimes returns wrong volumes for an ISBN
+    const previewLink = `https://www.google.com/search?tbm=bks&q=isbn:${isbn}`
+
     return {
       averageRating: volumeInfo.averageRating ?? null,
       ratingsCount: volumeInfo.ratingsCount ?? null,
-      previewLink: volumeInfo.previewLink ?? null,
+      previewLink,
       publisher: volumeInfo.publisher ?? null,
     }
   } catch {

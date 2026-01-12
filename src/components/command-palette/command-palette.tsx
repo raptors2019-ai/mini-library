@@ -15,8 +15,8 @@ import type { ClassifyResponse } from '@/app/api/search/classify/route'
 import { GENRES } from '@/lib/constants'
 import { useRouter } from 'next/navigation'
 
-// Quick genre suggestions
-const QUICK_GENRES = ['Mystery', 'Science Fiction', 'Fantasy', 'Romance', 'Thriller', 'Biography']
+// Quick genre suggestions (kept compact)
+const QUICK_GENRES = ['Mystery', 'Science Fiction', 'Fantasy']
 
 // Example queries to show users what's possible
 const EXAMPLE_QUERIES = [

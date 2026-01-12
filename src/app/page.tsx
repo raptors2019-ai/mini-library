@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { BookCarousel } from "@/components/books/book-carousel"
 import { PersonalizedRecommendations } from "@/components/home/personalized-recommendations"
+import { SearchButton } from "@/components/home/search-button"
 import { createClient } from "@/lib/supabase/server"
 import { getBooksWithCovers } from "@/lib/google-books"
 
@@ -127,12 +128,7 @@ export default async function Home() {
                   Browse Books
                 </Link>
               </Button>
-              <Button asChild variant="outline" size="lg" className="w-full sm:w-auto">
-                <Link href="/search">
-                  <Search className="mr-2 h-4 w-4" />
-                  Search
-                </Link>
-              </Button>
+              <SearchButton variant="outline" className="w-full sm:w-auto" />
             </>
           )}
         </div>
@@ -182,12 +178,7 @@ export default async function Home() {
             <p className="text-subheading">
               Use AI-powered search to discover exactly what you&apos;re looking for.
             </p>
-            <Button asChild size="lg">
-              <Link href="/search">
-                <Search className="mr-2 h-4 w-4" />
-                Start Searching
-              </Link>
-            </Button>
+            <SearchButton>Start Searching</SearchButton>
           </>
         ) : (
           <>

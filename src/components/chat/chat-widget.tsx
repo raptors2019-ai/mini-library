@@ -8,7 +8,6 @@ import { useActions, useAppContext } from '@/context/action-context'
 
 export function ChatWidget(): React.ReactNode {
   const [isOpen, setIsOpen] = useState(false)
-  const [hasBeenOpened, setHasBeenOpened] = useState(false)
 
   // Get action dispatcher and context from provider
   const { dispatch } = useActions()
@@ -28,7 +27,6 @@ export function ChatWidget(): React.ReactNode {
 
   function handleOpen(): void {
     setIsOpen(true)
-    setHasBeenOpened(true)
   }
 
   function handleClose(): void {
@@ -52,10 +50,5 @@ export function ChatWidget(): React.ReactNode {
     )
   }
 
-  return (
-    <ChatBubble
-      onClick={handleOpen}
-      hasMessages={hasBeenOpened && messages.length > 0}
-    />
-  )
+  return <ChatBubble onClick={handleOpen} />
 }
